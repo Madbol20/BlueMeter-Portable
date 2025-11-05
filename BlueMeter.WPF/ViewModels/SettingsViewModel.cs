@@ -360,9 +360,9 @@ public partial class SettingsViewModel(
         UnsubscribeHandlers();
 
         // Unsubscribe from AppConfig PropertyChanged
-        if (_appConfig != null)
+        if (AppConfig != null)
         {
-            _appConfig.PropertyChanged -= OnAppConfigPropertyChanged;
+            AppConfig.PropertyChanged -= OnAppConfigPropertyChanged;
         }
 
         // Unsubscribe from RequestClose (not an external event, but good practice)

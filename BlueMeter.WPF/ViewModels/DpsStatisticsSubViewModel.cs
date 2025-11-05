@@ -550,9 +550,9 @@ public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
     // This is critical for ViewModels that are created and destroyed frequently during app lifetime.
     public void Dispose()
     {
-        if (_data != null)
+        if (Data != null)
         {
-            _data.CollectionChanged -= DataChanged;
+            Data.CollectionChanged -= DataChanged;
         }
     }
 }
