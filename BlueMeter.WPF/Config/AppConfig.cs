@@ -78,6 +78,12 @@ public partial class AppConfig : ObservableObject
     private string _theme = "Light";
 
     /// <summary>
+    /// Panel Farbmodus (Light = Weiß, Dark = Dunkelgrau)
+    /// </summary>
+    [ObservableProperty]
+    private string _panelColorMode = "Dark";
+
+    /// <summary>
     /// 主题颜色（窗口背景色）
     /// </summary>
     [ObservableProperty]

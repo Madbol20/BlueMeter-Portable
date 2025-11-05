@@ -45,6 +45,13 @@ public partial class SettingsViewModel(
         new(NumberDisplayMode.KMB, NumberDisplayMode.KMB.GetLocalizedDescription())
     ];
 
+    [ObservableProperty]
+    private List<Option<string>> _availablePanelColorModes =
+    [
+        new("Light", "Light (White)"),
+        new("Dark", "Dark (Gray)")
+    ];
+
     private bool _cultureHandlerSubscribed;
     private bool _networkHandlerSubscribed;
     private bool _isLoaded; // becomes true after LoadedAsync completes
@@ -52,6 +59,7 @@ public partial class SettingsViewModel(
 
     [ObservableProperty] private Option<Language>? _selectedLanguage;
     [ObservableProperty] private Option<NumberDisplayMode>? _selectedNumberDisplayMode;
+    [ObservableProperty] private Option<string>? _selectedPanelColorMode;
 
     public event Action? RequestClose;
 
@@ -75,6 +83,12 @@ public partial class SettingsViewModel(
     {
         if (value == null) return;
         AppConfig.DamageDisplayType = value.Value;
+    }
+
+    partial void OnSelectedPanelColorModeChanged(Option<string>? value)
+    {
+        if (value == null) return;
+        AppConfig.PanelColorMode = value.Value;
     }
 
     partial void OnSelectedLanguageChanged(Option<Language>? value)
@@ -399,10 +413,18 @@ public partial class SettingsViewModel
         if (ret) SelectedNumberDisplayMode = opt!;
     }
 
+    private void SyncPanelColorModeOption()
+    {
+        var (ret, opt) = SyncOption(SelectedPanelColorMode, AvailablePanelColorModes,
+            AppConfig.PanelColorMode);
+        if (ret) SelectedPanelColorMode = opt!;
+    }
+
     private void SyncOptions()
     {
         SyncLanguageOption();
         SyncNumberDisplayModeOption();
+        SyncPanelColorModeOption();
     }
 
     private static (bool result, Option<T>? opt) SyncOption<T>(Option<T>? option, List<Option<T>> availableList,
