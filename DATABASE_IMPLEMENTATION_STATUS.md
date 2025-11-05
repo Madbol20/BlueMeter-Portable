@@ -1,0 +1,275 @@
+# SQLite Database Implementation Status
+
+## ✅ COMPLETED
+
+### 1. Database Schema & Models
+- **Location:** `BlueMeter.Core/Data/Models/Database/`
+- **Files Created:**
+  - `EncounterEntity.cs` - Combat encounter/session entity
+  - `PlayerEntity.cs` - Player cache entity
+  - `PlayerEncounterStatsEntity.cs` - Player statistics per encounter
+
+### 2. Database Context
+- **Location:** `BlueMeter.Core/Data/Database/`
+- **File:** `BlueMeterDbContext.cs`
+- Entity Framework Core DbContext with proper relationships and indexes
+
+### 3. Repository Layer
+- **File:** `EncounterRepository.cs`
+- Methods for CRUD operations on encounters and players
+- Includes:
+  - CreateEncounterAsync()
+  - EndEncounterAsync()
+  - EnsurePlayerAsync() - Creates or updates player cache
+  - SavePlayerStatsAsync() - Saves stats for encounter
+  - GetRecentEncountersAsync() - For history dropdown
+  - GetEncounterWithStatsAsync() - Load full encounter data
+  - CleanupOldEncountersAsync() - Remove old encounters
+
+### 4. Service Layer
+- **File:** `EncounterService.cs`
+- High-level service for managing encounters
+- Includes data transfer models:
+  - EncounterSummary - For history list
+  - EncounterData - Full encounter with all player stats
+  - PlayerEncounterData - Player data for specific encounter
+
+### 5. Integration Layer
+- **File:** `DataStorageExtensions.cs`
+- Integrates database with existing DataStorage static class
+- Auto-saves encounters when:
+  - New section created
+  - Server connection changes
+  - Player info updates
+
+### 6. Database Initialization
+- **File:** `DatabaseInitializer.cs`
+- Creates database on first run
+- Default location: `%LocalAppData%\BlueMeter\BlueMeter.db`
+- Backup and size monitoring utilities
+
+### 7. History Window UI
+- **Location:** `BlueMeter.WPF/Views/`
+- **Files:**
+  - `EncounterHistoryView.xaml` - DataGrid showing past encounters
+  - `EncounterHistoryView.xaml.cs` - Code-behind
+  - **ViewModel:** `EncounterHistoryViewModel.cs`
+- Features:
+  - Lists recent encounters with stats
+  - Double-click or button to load encounter
+  - Refresh button
+  - Filter by date/stats (UI ready)
+
+### 8. Converters
+- **Files Created:**
+  - `BoolToActiveStatusConverter.cs`
+  - `NullToBoolConverter.cs`
+- **Added to:** `ConveterDictionary.xaml`
+
+### 9. App Startup Integration
+- **Modified:** `ApplicationStartup.cs`
+- Database initialization added to InitializeAsync()
+- Database shutdown added to Shutdown()
+
+### 10. NuGet Packages
+- ✅ Microsoft.EntityFrameworkCore.Sqlite 9.0.10
+- ✅ Microsoft.EntityFrameworkCore.Design 9.0.10
+
+---
+
+## ⚠️ COMPILATION ERRORS TO FIX
+
+### Error 1: PlayerInfo.IsNpc property doesn't exist
+**Files affected:**
+- `EncounterRepository.cs:75, 93`
+- `EncounterService.cs:188`
+
+**Fix needed:** Check PlayerInfo structure and determine how to identify NPCs (might be based on UID range or other property)
+
+### Error 2: Nullable property mismatches
+**Files affected:** `EncounterRepository.cs`
+**Lines:** 82, 86, 87, 88, 89, 90, 91, 131, 136, 137
+
+**Fix needed:** Add null-coalescing operators (`?? 0`) when assigning nullable properties
+
+### Error 3: DpsData.GetSkillDatas() method doesn't exist
+**File:** `EncounterRepository.cs:142`
+
+**Fix needed:** Find correct method name to iterate skills in DpsData (check DpsData.cs for actual method/property name)
+
+### Error 4: Method name mismatch
+**File:** `DataStorageExtensions.cs:93`
+
+**Error:** `EndEncounterAsync` should be `EndCurrentEncounterAsync`
+
+---
+
+## 🔧 TODO TO COMPLETE IMPLEMENTATION
+
+### 1. Fix Compilation Errors (CRITICAL)
+- [ ] Replace `PlayerInfo.IsNpc` with correct NPC detection logic
+- [ ] Add null-coalescing for all nullable properties
+- [ ] Fix DpsData skill iteration method
+- [ ] Rename EndEncounterAsync → EndCurrentEncounterAsync
+
+### 2. Hook History Menu Button
+- [ ] Add command to DpsStatisticsViewModel:
+  ```csharp
+  [RelayCommand]
+  private void OpenEncounterHistory()
+  {
+      var historyWindow = new EncounterHistoryView();
+      historyWindow.DataContext = new EncounterHistoryViewModel();
+      // Hook LoadEncounterRequested event
+      historyWindow.Show();
+  }
+  ```
+- [ ] Bind to History menu item in DpsStatisticsView.xaml (line 598)
+
+### 3. Load Historical Encounter into UI
+When user selects encounter from history:
+- [ ] Parse SkillDataJson back to Dictionary<long, SkillData>
+- [ ] Create DpsData objects from PlayerEncounterData
+- [ ] Update DpsStatisticsViewModel to display historical data
+- [ ] Add "viewing history" indicator in UI
+- [ ] Add "return to live" button
+
+### 4. Fix "Unknown" Players
+Current player cache (PlayerInfoCache.dat) should be migrated to database.
+- [ ] On app start, check if players have names in database
+- [ ] When encountering UID without name, query database first
+- [ ] Fall back to "Unknown" only if truly not cached
+
+**Implementation location:** `DataStorage.cs` in `EnsurePlayer()` method
+
+### 5. Keep Last Battle Visible
+- [ ] Don't clear UI when combat ends
+- [ ] Only clear when new combat actually starts (first BattleLog)
+- [ ] Add visual indicator: "Last Battle" vs "Current Battle"
+
+**Implementation location:** `DpsStatisticsViewModel.cs` section timeout logic
+
+### 6. Test & Verify
+- [ ] Build successfully
+- [ ] Run app and verify database creation
+- [ ] Test encounter recording during combat
+- [ ] Test history window opens and lists encounters
+- [ ] Test loading historical encounter
+- [ ] Test player cache reduces "Unknown" names
+
+---
+
+## 📁 FILE STRUCTURE
+
+```
+BlueMeter.Core/
+├── Data/
+│   ├── Models/
+│   │   └── Database/
+│   │       ├── EncounterEntity.cs ✅
+│   │       ├── PlayerEntity.cs ✅
+│   │       └── PlayerEncounterStatsEntity.cs ✅
+│   ├── Database/
+│   │   ├── BlueMeterDbContext.cs ✅
+│   │   ├── DatabaseInitializer.cs ✅
+│   │   ├── EncounterRepository.cs ⚠️ (has errors)
+│   │   └── EncounterService.cs ⚠️ (has errors)
+│   └── DataStorageExtensions.cs ⚠️ (has errors)
+
+BlueMeter.WPF/
+├── ViewModels/
+│   └── EncounterHistoryViewModel.cs ✅
+├── Views/
+│   ├── EncounterHistoryView.xaml ✅
+│   └── EncounterHistoryView.xaml.cs ✅
+├── Converters/
+│   ├── BoolToActiveStatusConverter.cs ✅
+│   ├── NullToBoolConverter.cs ✅
+│   └── ConveterDictionary.xaml ✅ (updated)
+└── Services/
+    └── ApplicationStartup.cs ✅ (updated)
+```
+
+---
+
+## 🎯 PRIORITY FIXES
+
+1. **HIGH:** Fix PlayerInfo.IsNpc references
+   - Search for how NPCs are identified in codebase
+   - Likely: UIDs < 0 or specific UID range
+
+2. **HIGH:** Fix nullable property assignments
+   - Add `?? 0` or `?? string.Empty` where needed
+
+3. **HIGH:** Fix DpsData skill access
+   - Check actual property/method name in DpsData.cs
+   - Likely: `SkillList` property or `EnumerateSkills()` method
+
+4. **MEDIUM:** Complete History menu integration
+   - Add OpenEncounterHistory command
+   - Wire up to existing History menu item
+
+5. **MEDIUM:** Implement encounter loading into UI
+   - Convert database data back to runtime objects
+
+---
+
+## 💡 QUICK START FOR FIXES
+
+```bash
+# 1. Check PlayerInfo structure
+grep -n "IsNpc" BlueMeter.Core/Data/Models/PlayerInfo.cs
+
+# 2. Check DpsData methods
+grep -n "Skill" BlueMeter.Core/Data/Models/DpsData.cs
+
+# 3. Check how NPCs are identified
+grep -rn "IsNpc\|NPC\|isNpc" BlueMeter.Core/
+```
+
+---
+
+## 📊 IMPLEMENTATION PROGRESS
+
+- Database Schema: ✅ 100%
+- Repository Layer: ⚠️ 95% (minor bugs)
+- Service Layer: ⚠️ 95% (minor bugs)
+- UI Components: ✅ 100%
+- Integration: ⚠️ 80% (needs wiring)
+- Testing: ⏳ 0%
+
+**Overall: ~85% Complete**
+
+---
+
+## 🔍 DEBUGGING TIPS
+
+1. **Check database creation:**
+   ```
+   Path: %LocalAppData%\BlueMeter\BlueMeter.db
+   Use: DB Browser for SQLite to inspect
+   ```
+
+2. **Check EF Core logging:**
+   Enable in DatabaseInitializer.cs (already enabled in DEBUG builds)
+
+3. **Test queries manually:**
+   ```csharp
+   var service = DataStorageExtensions.GetEncounterService();
+   var encounters = await service.GetRecentEncountersAsync();
+   Console.WriteLine($"Found {encounters.Count} encounters");
+   ```
+
+---
+
+## VERSION INCREMENT
+
+After all fixes are complete:
+- [ ] Update version in `BlueMeter.WPF/BlueMeter.WPF.csproj`
+- [ ] Update CHANGELOG.md with new feature
+- [ ] Current version: 1.0.2 → Suggest: **1.1.0** (minor feature addition)
+
+---
+
+*Last Updated: 2025-11-05*
+*Status: Implementation 85% complete, needs bug fixes before functional*

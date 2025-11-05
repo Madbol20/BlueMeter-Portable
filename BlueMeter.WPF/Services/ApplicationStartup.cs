@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using BlueMeter.Core.Analyze;
+using BlueMeter.Core.Data;
 using BlueMeter.WPF.Config;
 using BlueMeter.WPF.Data;
 using BlueMeter.WPF.Localization;
@@ -29,6 +30,18 @@ public sealed class ApplicationStartup(
             await TryFindBestNetworkAdapter().ConfigureAwait(false);
 
             dataStorage.LoadPlayerInfoFromFile();
+
+            // Initialize database for encounter history
+            try
+            {
+                await DataStorageExtensions.InitializeDatabaseAsync();
+                logger.LogInformation(WpfLogEvents.StartupInit, "Database initialized successfully");
+            }
+            catch (Exception dbEx)
+            {
+                logger.LogWarning(dbEx, "Database initialization failed, continuing without database features");
+            }
+
             // Start analyzer
             packetAnalyzer.Start();
             hotkeyService.Start();
@@ -88,6 +101,9 @@ public sealed class ApplicationStartup(
             packetAnalyzer.Stop();
             hotkeyService.Stop();
             dataStorage.SavePlayerInfoToFile();
+
+            // Shutdown database
+            DataStorageExtensions.Shutdown();
         }
         catch (Exception ex)
         {
