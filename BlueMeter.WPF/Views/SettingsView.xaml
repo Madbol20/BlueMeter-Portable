@@ -44,6 +44,7 @@
         <converters:BackgroundImageConverter x:Key="BackgroundImageConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
         <converters:ThemeColorConverter x:Key="ThemeColorConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
         <converters:ThemeColorOverlayConverter x:Key="ThemeColorOverlayConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
+        <converters:PanelColorModeConverter x:Key="PanelColorModeConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
 
         <Style x:Key="SelectedIconfont" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="pack://application:,,,/Assets/Fonts/#IconFont" />
@@ -146,6 +147,7 @@
         </Style>
 
         <Style x:Key="SectionBorder" TargetType="Border">
+            <Setter Property="Background" Value="{Binding AppConfig.PanelColorMode, Converter={StaticResource PanelColorModeConverter}}" />
             <Setter Property="BorderBrush" Value="#E5E5E5" />
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="CornerRadius" Value="10" />
@@ -829,6 +831,28 @@
                                             <Border Grid.Column="2" HorizontalAlignment="Right">
                                                 <ctrl:SwitchControl IsChecked="{Binding AppConfig.ShowBackgroundInDpsMeter}" />
                                             </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Panel Color Mode -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Panel Color Mode" />
+                                            <ComboBox
+                                                Grid.Column="2"
+                                                ItemsSource="{Binding AvailablePanelColorModes}"
+                                                SelectedItem="{Binding SelectedPanelColorMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                DisplayMemberPath="Display"
+                                                Style="{StaticResource FieldComboBox}" />
                                         </Grid>
                                     </Border>
 
