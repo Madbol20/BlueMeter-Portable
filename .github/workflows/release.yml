@@ -1,0 +1,55 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore BlueMeter.sln
+
+    - name: Build solution
+      run: dotnet build BlueMeter.sln --configuration Release --no-restore
+
+    - name: Publish application
+      run: dotnet publish BlueMeter.WPF/BlueMeter.WPF.csproj --configuration Release --output publish --no-build
+
+    - name: Create ZIP archive
+      run: |
+        cd publish
+        Compress-Archive -Path * -DestinationPath ../BlueMeter-${{ github.ref_name }}-windows-x64.zip
+      shell: pwsh
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: BlueMeter-${{ github.ref_name }}-windows-x64.zip
+        body: |
+          ## BlueMeter ${{ github.ref_name }}
+
+          ### Download
+          Download the ZIP file below, extract it, and run `BlueMeter.WPF.exe`
+
+          ### Requirements
+          - Windows 10 or later
+          - .NET 8.0 Runtime (will prompt to install if missing)
+
+          ### Changelog
+          See commits since last release for changes.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
