@@ -37,7 +37,7 @@ public class BackgroundImageConverter : IValueConverter
                 var imageBrush = new ImageBrush(bitmap)
                 {
                     Stretch = Stretch.UniformToFill,
-                    Opacity = 0.3 // Semi-transparent so content is still readable
+                    Opacity = 0.5 // Semi-transparent so content is still readable
                 };
                 imageBrush.Freeze();
 
