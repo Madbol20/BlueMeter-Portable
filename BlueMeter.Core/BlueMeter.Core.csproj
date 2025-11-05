@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <Platforms>x64</Platforms>
     <LangVersion>latest</LangVersion>
+    <AssemblyName>BlueMeter.Core</AssemblyName>
+    <RootNamespace>BlueMeter.Core</RootNamespace>
     <!-- <InternalsVisibleTo>BlueMeter.WPF</InternalsVisibleTo> -->
   </PropertyGroup>
   <ItemGroup>

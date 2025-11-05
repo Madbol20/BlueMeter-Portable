@@ -8,6 +8,8 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <Platforms>x64</Platforms>
+    <AssemblyName>BlueMeter.Tests</AssemblyName>
+    <RootNamespace>BlueMeter.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
