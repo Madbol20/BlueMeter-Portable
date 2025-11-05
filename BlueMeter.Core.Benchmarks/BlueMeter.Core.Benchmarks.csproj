@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Platforms>x64</Platforms>
+    <AssemblyName>BlueMeter.Core.Benchmarks</AssemblyName>
+    <RootNamespace>BlueMeter.Core.Benchmarks</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
