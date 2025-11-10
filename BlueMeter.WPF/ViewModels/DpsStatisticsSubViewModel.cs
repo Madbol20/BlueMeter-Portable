@@ -13,6 +13,7 @@ using BlueMeter.Core.Models;
 using BlueMeter.WPF.Data;
 using BlueMeter.WPF.Extensions;
 using BlueMeter.WPF.Models;
+using BlueMeter.WPF.Services;
 
 namespace BlueMeter.WPF.ViewModels;
 
@@ -45,6 +46,8 @@ public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private SortDirectionEnum _sortDirection = SortDirectionEnum.Descending;
     [ObservableProperty] private string _sortMemberPath = "Value";
 
+    private static DeepLSkillTranslator? _skillTranslator;
+
     public DpsStatisticsSubViewModel(ILogger<DpsStatisticsViewModel> logger, Dispatcher dispatcher, StatisticType type,
         IDataStorage storage,
         DebugFunctions debugFunctions)
@@ -60,6 +63,20 @@ public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
         // Now DataChanged is a proper instance method that can be unsubscribed in Dispose().
         _data.CollectionChanged += DataChanged;
     }
+
+    /// <summary>
+    /// Initialize skill translator (loads from static JSON file)
+    /// </summary>
+    public static void InitializeTranslator(string apiKeyOrPath = "")
+    {
+        // Static translator loads from skills_en.json file, no API key needed
+        _skillTranslator = new DeepLSkillTranslator(apiKeyOrPath);
+    }
+
+    /// <summary>
+    /// Get the translator instance (for external use)
+    /// </summary>
+    public static DeepLSkillTranslator? GetTranslator() => _skillTranslator;
 
     public Dictionary<long, StatisticDataViewModel> DataDictionary { get; } = new();
     public bool Initialized { get; set; }
@@ -314,9 +331,12 @@ public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
                 ? definition.Name
                 : skillIdText;
 
+            // Translate skill name using DeepL if available
+            var translatedSkillName = _skillTranslator?.Translate(skillName) ?? skillName;
+
             return new SkillItemViewModel
             {
-                SkillName = skillName,
+                SkillName = translatedSkillName,
                 TotalDamage = skill.TotalValue,
                 HitCount = skill.UseTimes,
                 CritCount = skill.CritTimes,
