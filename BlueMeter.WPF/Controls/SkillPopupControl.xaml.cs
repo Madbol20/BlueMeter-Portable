@@ -14,7 +14,7 @@ public partial class SkillPopupControl : UserControl
             nameof(Title),
             typeof(string),
             typeof(SkillPopupControl),
-            new PropertyMetadata("技能详情") // 默认值
+            new PropertyMetadata("Skill Details") // Default title in English
         );
 
     public static readonly DependencyProperty ItemsSourceProperty =

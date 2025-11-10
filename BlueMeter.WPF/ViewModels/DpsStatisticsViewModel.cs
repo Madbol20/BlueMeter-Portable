@@ -441,9 +441,12 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
                 ? definition.Name
                 : skillIdText;
 
+            // Translate skill name using DeepL if available
+            var translatedSkillName = DpsStatisticsSubViewModel.GetTranslator()?.Translate(skillName) ?? skillName;
+
             return new SkillItemViewModel
             {
-                SkillName = skillName,
+                SkillName = translatedSkillName,
                 TotalDamage = skill.TotalValue,
                 HitCount = skill.UseTimes,
                 CritCount = skill.CritTimes,

@@ -60,21 +60,21 @@
                                         Text="{Binding SkillName}"
                                         TextTrimming="CharacterEllipsis" />
                                     <TextBlock Margin="0,4,0,0" Foreground="White">
-                                        <Run Text="总伤害: " />
+                                        <Run Text="Total Damage: " />
                                         <Run FontWeight="Bold" Text="{Binding TotalDamage}" />
                                     </TextBlock>
                                     <TextBlock Margin="0,4,0,0">
-                                        <Run Text="命中: " />
+                                        <Run Text="Hits: " />
                                         <Run
                                             FontWeight="Bold"
                                             Foreground="{StaticResource AccentYellow}"
                                             Text="{Binding HitCount}" />
-                                        <Run Text="    暴击次数: " />
+                                        <Run Text="    Crits: " />
                                         <Run
                                             FontWeight="Bold"
                                             Foreground="{StaticResource AccentYellow}"
                                             Text="{Binding CritCount}" />
-                                        <Run Text="    平均伤害: " />
+                                        <Run Text="    Avg Damage: " />
                                         <Run
                                             FontWeight="Bold"
                                             Foreground="{StaticResource AccentYellow}"

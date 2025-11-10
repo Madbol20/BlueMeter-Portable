@@ -44,6 +44,10 @@ public partial class App : Application
 
         _logger.LogInformation(WpfLogEvents.AppStarting, "Application starting");
 
+        // Initialize DeepL translator for skill name translation
+        DpsStatisticsSubViewModel.InitializeTranslator("77ff22ea-b6d6-414c-b08c-1b950c9f8eca:fx");
+        _logger.LogInformation("DeepL translator initialized for skill name translation");
+
         var app = new App();
         app.InitializeComponent();
 

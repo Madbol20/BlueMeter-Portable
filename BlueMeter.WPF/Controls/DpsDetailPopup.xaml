@@ -36,18 +36,18 @@
                                 Foreground="Gold"
                                 Style="{StaticResource FooterTextContent}"
                                 Text="{Binding SkillName}" />
-                            <!--  总伤害  -->
+                            <!--  Total Damage  -->
                             <TextBlock Style="{StaticResource FooterTextContent}">
-                                <Run Foreground="White" Text="总伤害：" />
+                                <Run Foreground="White" Text="Total Damage: " />
                                 <Run Foreground="White" Text="{Binding TotalDamage}" />
                             </TextBlock>
-                            <!--  命中 / 暴击次数 / 平均伤害  -->
+                            <!--  Hits / Crit Count / Average Damage  -->
                             <TextBlock Style="{StaticResource FooterTextContent}">
-                                <Run Foreground="Orange" Text="命中：" />
+                                <Run Foreground="Orange" Text="Hits: " />
                                 <Run Foreground="White" Text="{Binding HitCount}" />
-                                <Run Foreground="Orange" Text="    暴击次数：" />
+                                <Run Foreground="Orange" Text="    Crits: " />
                                 <Run Foreground="White" Text="{Binding CritCount}" />
-                                <Run Foreground="Orange" Text="    平均伤害：" />
+                                <Run Foreground="Orange" Text="    Avg Damage: " />
                                 <Run Foreground="White" Text="{Binding AvgDamage}" />
                             </TextBlock>
                         </StackPanel>
