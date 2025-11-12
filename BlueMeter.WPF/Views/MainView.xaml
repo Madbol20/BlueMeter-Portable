@@ -172,6 +172,7 @@
             <Setter Property="Foreground" Value="{Binding DataContext.AppConfig.ThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeForegroundConverter}, ConverterParameter=label}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Margin" Value="0,25,0,0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
         <Style
