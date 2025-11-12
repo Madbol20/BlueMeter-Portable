@@ -41,6 +41,7 @@
         <converters:ThemeBackgroundConverter x:Key="ThemeBackgroundConverter" />
         <converters:ThemeAccentConverter x:Key="ThemeAccentConverter" />
         <converters:ThemeForegroundConverter x:Key="ThemeForegroundConverter" />
+        <converters:ThemeToAppNameConverter x:Key="ThemeToAppNameConverter" />
 
         <Style x:Key="IconFont" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="pack://application:,,,/Assets/Fonts/#IconFont" />
@@ -362,7 +363,7 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <ctrl:Header Title="{Binding HeaderTitle}" Grid.Row="0" />
+                <ctrl:Header Title="{Binding DataContext.AppConfig.ThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeToAppNameConverter}}" Grid.Row="0" />
 
             <Border Grid.Row="1" Style="{StaticResource MainContentBorder}">
                 <Grid>
