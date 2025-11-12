@@ -34,6 +34,8 @@ public sealed partial class PluginListItemViewModel : ObservableObject
 
     public string Description => Plugin.GetPluginDescription(CultureInfo.CurrentUICulture);
 
+    public bool IsEnabled => Plugin.GetType().Name == "DpsPlugin";
+
     public string AutoStartText => _state.IsAutoStart
         ? _localizationManager.GetString(ResourcesKeys.MainView_Plugin_AutoRunState_Enabled)
         : _localizationManager.GetString(ResourcesKeys.MainView_Plugin_AutoRunState_Disabled);

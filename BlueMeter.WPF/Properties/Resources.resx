@@ -493,13 +493,13 @@
     <value>Module Solver</value>
   </data>
   <data name="MainView_Plugin_ModuleSolver_Description" xml:space="preserve">
-    <value>Quickly calculates optimal module combinations</value>
+    <value>Coming Soon</value>
   </data>
   <data name="MainView_Plugin_WorldBoss_Title" xml:space="preserve">
     <value>World Boss Status Tracker</value>
   </data>
   <data name="MainView_Plugin_WorldBoss_Description" xml:space="preserve">
-    <value>Crowdsourced live data for each channel's world boss status</value>
+    <value>Coming Soon</value>
   </data>
   <data name="MainView_Plugin_PigTracker_Title" xml:space="preserve">
     <value>Pig Nabo Status Tracker</value>

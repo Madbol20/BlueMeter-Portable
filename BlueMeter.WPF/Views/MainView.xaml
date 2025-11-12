@@ -43,6 +43,7 @@
         <converters:ThemeForegroundConverter x:Key="ThemeForegroundConverter" />
         <converters:ThemeToAppNameConverter x:Key="ThemeToAppNameConverter" />
         <converters:BackgroundOnlyModeOpacityConverter x:Key="BackgroundOnlyModeOpacityConverter" />
+        <converters:IsEnabledToOpacityConverter x:Key="IsEnabledToOpacityConverter" />
 
         <Style x:Key="IconFont" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="pack://application:,,,/Assets/Fonts/#IconFont" />
@@ -448,7 +449,8 @@
                                                             BorderBrush="{Binding DataContext.AppConfig.ThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=light}"
                                                             BorderThickness="1"
                                                             CornerRadius="8"
-                                                            Padding="20,15,20,15">
+                                                            Padding="20,15,20,15"
+                                                            Opacity="{Binding IsEnabled, Converter={StaticResource IsEnabledToOpacityConverter}}">
                                                             <ContentPresenter />
                                                         </Border>
                                                         <ControlTemplate.Triggers>
