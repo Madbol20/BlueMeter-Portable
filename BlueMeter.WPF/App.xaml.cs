@@ -120,6 +120,7 @@ public partial class App : Application
                 services.AddSingleton<IApplicationStartup, ApplicationStartup>();
                 services.AddSingleton<IConfigManager, ConfigManger>();
                 services.AddSingleton<IGlobalHotkeyService, GlobalHotkeyService>();
+                services.AddSingleton<IUpdateCheckService, UpdateCheckService>();
                 services.AddSingleton<IMousePenetrationService, MousePenetrationService>();
                 services.AddSingleton<ITopmostService, TopmostService>();
                 services.AddSingleton<IPluginManager, PluginManager>();

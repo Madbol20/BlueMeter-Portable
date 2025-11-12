@@ -7,6 +7,7 @@ using BlueMeter.WPF.Data;
 using BlueMeter.WPF.Localization;
 using BlueMeter.WPF.Models;
 using BlueMeter.WPF.Logging;
+using BlueMeter.WPF.ViewModels;
 
 namespace BlueMeter.WPF.Services;
 
@@ -17,7 +18,8 @@ public sealed class ApplicationStartup(
     IGlobalHotkeyService hotkeyService,
     IPacketAnalyzer packetAnalyzer,
     IDataStorage dataStorage,
-    LocalizationManager localization) : IApplicationStartup
+    LocalizationManager localization,
+    IUpdateCheckService updateCheckService) : IApplicationStartup
 {
     public async Task InitializeAsync()
     {
@@ -49,6 +51,10 @@ public sealed class ApplicationStartup(
             // Start analyzer
             packetAnalyzer.Start();
             hotkeyService.Start();
+
+            // Check for updates asynchronously (non-blocking)
+            _ = CheckForUpdatesAsync();
+
             logger.LogInformation(WpfLogEvents.StartupInit, "Startup initialization completed");
         }
         catch (Exception ex)
@@ -93,6 +99,36 @@ public sealed class ApplicationStartup(
         else
         {
             logger.LogWarning(WpfLogEvents.StartupAdapter, "No adapters available for activation");
+        }
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            // Add a small delay to avoid UI blocking during startup
+            await Task.Delay(2000).ConfigureAwait(false);
+
+            var newVersion = await updateCheckService.CheckForUpdateAsync();
+            if (newVersion != null)
+            {
+                logger.LogInformation("Update available: {NewVersion}", newVersion);
+                ShowUpdateNotification(newVersion);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Error checking for updates");
+        }
+    }
+
+    private void ShowUpdateNotification(string newVersion)
+    {
+        // Post message to UI thread to show notification
+        var mainWindow = System.Windows.Application.Current?.MainWindow;
+        if (mainWindow?.DataContext is MainViewModel viewModel)
+        {
+            viewModel.ShowUpdateNotification(newVersion);
         }
     }
 

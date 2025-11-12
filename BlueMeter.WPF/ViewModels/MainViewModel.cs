@@ -286,6 +286,30 @@ public partial class MainViewModel : BaseViewModel, IDisposable
         }
     }
 
+    public void ShowUpdateNotification(string newVersion)
+    {
+        var title = "Update Available";
+        var content = $"Version {newVersion} is available on GitHub.\n\nDo you want to visit the releases page?";
+
+        var result = _dialogService.Show(title, content);
+        if (result == true)
+        {
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "https://github.com/caaatto/BlueMeter/releases",
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
+            }
+            catch
+            {
+                // Ignore if browser fails to open
+            }
+        }
+    }
+
     // MEMORY LEAK FIX: Implement IDisposable to unsubscribe from events.
     // MainViewModel subscribes to:
     // 1. LocalizationManager.CultureChanged (singleton → transient leak)
