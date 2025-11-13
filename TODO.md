@@ -31,7 +31,20 @@
 - [ ] (WPF) Refresh promptly after retrieving cached user information
 - [ ] (WPF) Manual TopMost toggle sometimes fails to clear
 
-### Features
+### Features - DPS Meter Core
+
+- [ ] DPS Over Time Graph - Visualize how DPS changes throughout the battle
+- [ ] Party/Team Comparison Chart - Show percentage of total damage per player
+- [ ] Peak DPS / Burst Damage Tracking - Highest DPS spike in combat
+- [ ] Average vs Instantaneous DPS - Distinguish between sustained and burst
+- [ ] Damage Type Breakdown - Physical vs Magical vs Elemental damage split
+- [ ] Tanking/Mitigation Stats - Track damage taken and mitigation efficiency
+- [ ] Healing Efficiency Metrics - Heals per second and overhealing tracking
+- [ ] Combat Log Export - Save combat data as CSV/JSON for analysis
+- [ ] Cooldown/Ability Tracking - Show which abilities are on cooldown
+- [ ] Team Synergy Detection - Highlight beneficial ability combinations
+
+### Features - General
 
 - [ ] Local data caching feature
 - [ ] (WinForm) Attempt GPU-accelerated control rendering
