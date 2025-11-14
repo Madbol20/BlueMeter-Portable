@@ -19,14 +19,15 @@ The tool does not require modifying the game client and does not violate the gam
 
 ### Screenshots
 
-**DPS Meter View**
-![DPS Meter](BlueMeter.Assets/Images/dpsMeter.png)
+<div align="center">
 
-**Menu View**
-![Menu](BlueMeter.Assets/Images/menuView.png)
+<img src="BlueMeter.Assets/Images/dpsMeter.png" alt="DPS Meter" width="280" />
+<img src="BlueMeter.Assets/Images/menuView.png" alt="Menu" width="280" />
+<img src="BlueMeter.Assets/Images/Settings.png" alt="Settings" width="280" />
 
-**Settings**
-![Settings](BlueMeter.Assets/Images/Settings.png)
+**DPS Meter** • **Menu** • **Settings**
+
+</div>
 
 ## 🚀 Quick Start
 
