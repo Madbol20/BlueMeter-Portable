@@ -725,53 +725,8 @@
                                                 Style="{StaticResource FieldName}"
                                                 Text="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Theme_WindowColor}}" />
                                             <Border Grid.Column="2" HorizontalAlignment="Right">
-                                                <WrapPanel x:Name="ThemeButtonsPanel">
-                                                    <Button Background="#0047AB" Style="{StaticResource ThemeButton}" Click="ThemeButton_Click" />
-                                                    <Button Background="#FFA9A8" Style="{StaticResource ThemeButton}" Click="ThemeButton_Click" />
-                                                    <Button Background="#F7A0DD" Style="{StaticResource ThemeButton}" Click="ThemeButton_Click" />
-                                                    <Button Background="#2F2F2F" Style="{StaticResource ThemeButton}" Click="ThemeButton_Click" />
-                                                    <Button Background="#D0D0D0" Style="{StaticResource ThemeButton}" Click="ThemeButton_Click" />
-                                                    <Button Background="Transparent" Style="{StaticResource ThemeButton}" Click="ThemeButton_Click" Tag="Transparent" ToolTip="Transparent (No Color Overlay)" />
-                                                    <Button Style="{StaticResource ThemeButton}" Click="ThemeButton_Click">
-                                                        <Button.Template>
-                                                            <ControlTemplate>
-                                                                <Border Style="{StaticResource ThemeButtonBorder}">
-                                                                    <Grid>
-                                                                        <Grid.RowDefinitions>
-                                                                            <RowDefinition Height="*" />
-                                                                            <RowDefinition Height="*" />
-                                                                        </Grid.RowDefinitions>
-                                                                        <Grid.ColumnDefinitions>
-                                                                            <ColumnDefinition Width="*" />
-                                                                            <ColumnDefinition Width="*" />
-                                                                        </Grid.ColumnDefinitions>
-
-                                                                        <Border
-                                                                            Grid.Row="0"
-                                                                            Grid.Column="0"
-                                                                            Background="#1FD1B5"
-                                                                            CornerRadius="5,0,0,0" />
-                                                                        <Border
-                                                                            Grid.Row="0"
-                                                                            Grid.Column="1"
-                                                                            Background="#FFD400"
-                                                                            CornerRadius="0,5,0,0" />
-                                                                        <Border
-                                                                            Grid.Row="1"
-                                                                            Grid.Column="0"
-                                                                            Background="#00A2FD"
-                                                                            CornerRadius="0,0,0,5" />
-                                                                        <Border
-                                                                            Grid.Row="1"
-                                                                            Grid.Column="1"
-                                                                            Background="#FF6663"
-                                                                            CornerRadius="0,0,5,0" />
-                                                                    </Grid>
-                                                                </Border>
-                                                            </ControlTemplate>
-                                                        </Button.Template>
-                                                    </Button>
-                                                </WrapPanel>
+                                                <!-- Theme buttons are populated dynamically from ThemeDefinitions.cs -->
+                                                <WrapPanel x:Name="ThemeButtonsPanel" />
                                             </Border>
                                         </Grid>
                                     </Border>

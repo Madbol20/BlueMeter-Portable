@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
 using BlueMeter.WPF.ViewModels;
+using BlueMeter.WPF.Config;
 
 namespace BlueMeter.WPF.Views;
 
@@ -29,8 +30,152 @@ public partial class SettingsView : Window
 
     private void SettingsView_Loaded(object sender, RoutedEventArgs e)
     {
+        // Populate theme buttons dynamically from ThemeDefinitions
+        PopulateThemeButtons();
+
         // Find and mark the currently active theme button
         InitializeActiveThemeButton();
+    }
+
+    // Dynamically generate theme buttons from ThemeDefinitions
+    private void PopulateThemeButtons()
+    {
+        if (ThemeButtonsPanel == null) return;
+
+        // Clear any existing buttons
+        ThemeButtonsPanel.Children.Clear();
+
+        // Add buttons for each theme definition
+        foreach (var theme in ThemeDefinitions.Themes)
+        {
+            Button themeButton;
+
+            // Handle special gradient themes
+            if (theme.Id == "Rainbow" || theme.Id == "Sunset" || theme.Id == "Cyberpunk")
+            {
+                themeButton = CreateGradientButton(theme.Id);
+            }
+            else if (theme.Id == "Transparent")
+            {
+                themeButton = CreateTransparentButton();
+            }
+            else
+            {
+                themeButton = CreateSolidColorButton(theme.ColorHex);
+            }
+
+            // Store theme ID in Tag for easier identification
+            themeButton.Tag = theme.Id;
+            themeButton.ToolTip = theme.DisplayName;
+            themeButton.Click += ThemeButton_Click;
+
+            ThemeButtonsPanel.Children.Add(themeButton);
+        }
+    }
+
+    private Button CreateSolidColorButton(string colorHex)
+    {
+        var button = new Button
+        {
+            Style = (Style)FindResource("ThemeButton")
+        };
+
+        try
+        {
+            var color = (Color)ColorConverter.ConvertFromString(colorHex);
+            button.Background = new SolidColorBrush(color);
+        }
+        catch
+        {
+            button.Background = new SolidColorBrush(Colors.Gray);
+        }
+
+        return button;
+    }
+
+    private Button CreateTransparentButton()
+    {
+        return new Button
+        {
+            Style = (Style)FindResource("ThemeButton"),
+            Background = Brushes.Transparent,
+            Tag = "Transparent",
+            ToolTip = "Transparent (No Color Overlay)"
+        };
+    }
+
+    private Button CreateGradientButton(string gradientType)
+    {
+        var button = new Button
+        {
+            Style = (Style)FindResource("ThemeButton")
+        };
+
+        // Create gradient template
+        var template = new ControlTemplate(typeof(Button));
+        var factory = new FrameworkElementFactory(typeof(Border));
+        factory.SetValue(Border.StyleProperty, FindResource("ThemeButtonBorder"));
+
+        var gridFactory = new FrameworkElementFactory(typeof(Grid));
+
+        // Define gradient colors based on type
+        var colors = gradientType switch
+        {
+            "Rainbow" => new[] { "#FF0000", "#FFA500", "#FFFF00", "#00FF00" },
+            "Sunset" => new[] { "#FF6B6B", "#FFA500", "#FFD700", "#FF69B4" },
+            "Cyberpunk" => new[] { "#FF006E", "#00FFFF", "#39FF14", "#BF40BF" },
+            _ => new[] { "#FF0000", "#00FF00", "#0000FF", "#FFFF00" }
+        };
+
+        for (int i = 0; i < 4; i++)
+        {
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.SetValue(Grid.RowProperty, i / 2);
+            borderFactory.SetValue(Grid.ColumnProperty, i % 2);
+
+            try
+            {
+                var color = (Color)ColorConverter.ConvertFromString(colors[i]);
+                borderFactory.SetValue(Border.BackgroundProperty, new SolidColorBrush(color));
+            }
+            catch
+            {
+                borderFactory.SetValue(Border.BackgroundProperty, Brushes.Gray);
+            }
+
+            // Set corner radius for gradient tiles
+            borderFactory.SetValue(Border.CornerRadiusProperty, i switch
+            {
+                0 => new CornerRadius(5, 0, 0, 0),
+                1 => new CornerRadius(0, 5, 0, 0),
+                2 => new CornerRadius(0, 0, 0, 5),
+                3 => new CornerRadius(0, 0, 5, 0),
+                _ => new CornerRadius(0)
+            });
+
+            gridFactory.AppendChild(borderFactory);
+        }
+
+        // Add row/column definitions
+        var rowDef1 = new FrameworkElementFactory(typeof(RowDefinition));
+        rowDef1.SetValue(RowDefinition.HeightProperty, new GridLength(1, GridUnitType.Star));
+        var rowDef2 = new FrameworkElementFactory(typeof(RowDefinition));
+        rowDef2.SetValue(RowDefinition.HeightProperty, new GridLength(1, GridUnitType.Star));
+        gridFactory.AppendChild(rowDef1);
+        gridFactory.AppendChild(rowDef2);
+
+        var colDef1 = new FrameworkElementFactory(typeof(ColumnDefinition));
+        colDef1.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
+        var colDef2 = new FrameworkElementFactory(typeof(ColumnDefinition));
+        colDef2.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
+        gridFactory.AppendChild(colDef1);
+        gridFactory.AppendChild(colDef2);
+
+        factory.AppendChild(gridFactory);
+        template.VisualTree = factory;
+        button.Template = template;
+
+        return button;
     }
 
     // Initialize the active theme button indicator based on current AppConfig.ThemeColor
@@ -47,11 +192,19 @@ public partial class SettingsView : Window
             {
                 bool isActive = false;
 
-                // Check if this button matches the current theme
-                if (button.Tag is string tag && tag == "Transparent")
+                // Check if this button matches the current theme using Tag (theme ID)
+                if (button.Tag is string themeId)
                 {
-                    isActive = currentThemeColor?.Equals("Transparent", StringComparison.OrdinalIgnoreCase) ?? false;
+                    // Try to find the theme in definitions
+                    var theme = ThemeDefinitions.GetTheme(themeId);
+                    if (theme != null)
+                    {
+                        // Match by ID or ColorHex
+                        isActive = theme.Id.Equals(currentThemeColor, StringComparison.OrdinalIgnoreCase) ||
+                                   theme.ColorHex.Equals(currentThemeColor, StringComparison.OrdinalIgnoreCase);
+                    }
                 }
+                // Fallback: check background color for backwards compatibility
                 else if (button.Background is SolidColorBrush brush)
                 {
                     isActive = brush.Color.ToString().Equals(currentThemeColor, StringComparison.OrdinalIgnoreCase);
@@ -83,11 +236,17 @@ public partial class SettingsView : Window
         {
             string? newThemeColor = null;
 
-            // Check if it's the transparent button
-            if (button.Tag is string tag && tag == "Transparent")
+            // Get theme from Tag (theme ID)
+            if (button.Tag is string themeId)
             {
-                newThemeColor = "Transparent";
+                var theme = ThemeDefinitions.GetTheme(themeId);
+                if (theme != null)
+                {
+                    // Use the theme's ColorHex as the theme color
+                    newThemeColor = theme.ColorHex;
+                }
             }
+            // Fallback: use background color for backwards compatibility
             else if (button.Background is SolidColorBrush brush)
             {
                 newThemeColor = brush.Color.ToString();
