@@ -43,6 +43,9 @@ LicenseFile=..\LICENSE.txt
 OutputBaseFilename=BlueMeterSetup
 SolidCompression=yes
 WizardStyle=modern
+; Close applications during upgrade
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
