@@ -51,6 +51,16 @@ public partial class App : Application
         var app = new App();
         app.InitializeComponent();
 
+        // Check if Npcap is installed before starting the app
+        if (!Services.NpcapChecker.IsNpcapInstalled())
+        {
+            _logger.LogError("Npcap is not installed on this system");
+            Services.NpcapChecker.ShowNpcapRequiredDialog();
+            Log.CloseAndFlush();
+            Environment.Exit(1);
+            return;
+        }
+
         // Centralized application startup (localization, adapter, analyzer)
         var appStartup = Host.Services.GetRequiredService<IApplicationStartup>();
         appStartup.InitializeAsync().GetAwaiter().GetResult();

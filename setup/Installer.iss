@@ -11,7 +11,7 @@
 #include "CodeDependencies.iss"
 
 #define MyAppName "BlueMeter"
-#define MyAppVersion "1.3.3"
+#define MyAppVersion "1.3.4"
 #define MyAppURL "https://github.com/caaatto/BlueMeter"
 #define MyAppExeName "BlueMeter.WPF.exe"
 
@@ -70,7 +70,7 @@ function InitializeSetup: Boolean;
 begin
   // add the dependencies you need
   Dependency_AddDotNet80Desktop;  // WPF requires Desktop Runtime
-  Dependency_AddNpcap;             // Required for packet capturing
+  Dependency_AddNpcap;  // Packet capture driver (free edition, non-silent)
 
   Result := True;
 end;
