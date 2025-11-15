@@ -29,6 +29,27 @@ jobs:
     - name: Publish application
       run: dotnet publish BlueMeter.WPF/BlueMeter.WPF.csproj --configuration Release --output publish --no-build
 
+    - name: Install Inno Setup
+      run: |
+        choco install innosetup -y --no-progress
+        # Wait for installation to complete
+        Start-Sleep -Seconds 5
+      shell: pwsh
+
+    - name: Build Inno Setup Installer (BEFORE reorganizing publish folder)
+      run: |
+        $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $isccPath)) {
+          Write-Host "ISCC not found at $isccPath, checking alternative paths..."
+          $isccPath = Get-ChildItem -Path "C:\Program Files*" -Filter "ISCC.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $isccPath) {
+            throw "Inno Setup ISCC.exe not found!"
+          }
+        }
+        Write-Host "Using ISCC at: $isccPath"
+        & $isccPath setup\Installer.iss /DSourcePath="${{ github.workspace }}" /O+
+      shell: pwsh
+
     - name: Organize publish folder
       run: |
         # Create lib folder for DLLs
@@ -48,27 +69,6 @@ jobs:
         Copy-Item BlueMeter.Assets publish/ -Recurse
         Copy-Item BlueMeter.sln publish/
         Copy-Item Directory.Packages.props publish/
-      shell: pwsh
-
-    - name: Install Inno Setup
-      run: |
-        choco install innosetup -y --no-progress
-        # Wait for installation to complete
-        Start-Sleep -Seconds 5
-      shell: pwsh
-
-    - name: Build Inno Setup Installer
-      run: |
-        $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-        if (-not (Test-Path $isccPath)) {
-          Write-Host "ISCC not found at $isccPath, checking alternative paths..."
-          $isccPath = Get-ChildItem -Path "C:\Program Files*" -Filter "ISCC.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-          if (-not $isccPath) {
-            throw "Inno Setup ISCC.exe not found!"
-          }
-        }
-        Write-Host "Using ISCC at: $isccPath"
-        & $isccPath setup\Installer.iss /DSourcePath="${{ github.workspace }}" /O+
       shell: pwsh
 
     - name: Create ZIP archive

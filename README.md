@@ -36,10 +36,13 @@ The tool does not require modifying the game client and does not violate the gam
 #### Option 1: Professional Installer (Recommended) ⭐
 1. Go to the [Releases page](https://github.com/caaatto/BlueMeter/releases)
 2. Download `BlueMeterSetup.exe`
-3. **Double-click `BlueMeterSetup.exe`**
-4. Follow the setup wizard
-5. .NET 8.0 will be automatically installed if needed
-6. BlueMeter will launch automatically after installation
+3. **Right-click `BlueMeterSetup.exe` → "Run as administrator"**
+4. If Windows SmartScreen appears, click "More info" → "Run anyway"
+5. Follow the setup wizard
+6. .NET 8.0 will be automatically installed if needed
+7. BlueMeter will launch automatically after installation
+
+⚠️ **Windows SmartScreen Warning**: The installer is not digitally signed. If Windows blocks it, right-click → Properties → check "Unblock" → Apply, then run as administrator.
 
 #### Option 2: Portable Build (For Developers)
 1. Go to the [Releases page](https://github.com/caaatto/BlueMeter/releases)
