@@ -316,7 +316,7 @@
                             Margin="1"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Stretch"
-                            IndicatorForeground="{Binding Player.Class, Converter={StaticResource ClassesColorConverter}}"
+                            IndicatorForeground="{Binding Player.Spec, Converter={StaticResource ClassSpecColorConverter}}"
                             OverlayContent="{Binding}"
                             OverlayTemplate="{StaticResource StatisticDetailDataTemplate}"
                             Percentage="{Binding PercentOfMax}"
