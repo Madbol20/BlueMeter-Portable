@@ -70,6 +70,7 @@ function InitializeSetup: Boolean;
 begin
   // add the dependencies you need
   Dependency_AddDotNet80;
+  Dependency_AddNpcap;
 
   Result := True;
 end;

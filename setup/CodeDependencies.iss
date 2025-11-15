@@ -775,6 +775,18 @@ begin
   end;
 end;
 
+procedure Dependency_AddNpcap;
+begin
+  // Npcap is required for packet capturing with SharpPcap
+  if not RegKeyExists(HKLM, 'SOFTWARE\Npcap') then begin
+    Dependency_Add('npcap-1.79.exe',
+      '/S',
+      'Npcap (Packet Capture Driver)',
+      'https://npcap.com/dist/npcap-1.79.exe',
+      '', True, False);
+  end;
+end;
+
 [Files]
 #ifdef Dependency_Path_DirectX
 Source: "{#Dependency_Path_DirectX}dxwebsetup.exe"; Flags: dontcopy noencryption
