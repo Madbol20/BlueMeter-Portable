@@ -54,4 +54,54 @@
     <!--  灵魂乐手 (SoulMusician)  -->
     <Color x:Key="ClassesSoulMusicianColor">#FF5353</Color>
     <SolidColorBrush x:Key="ClassesSoulMusicianBrush" Color="{StaticResource ClassesSoulMusicianColor}" />
+
+    <!--  ===== ClassSpec-specific Colors (Skill-specific) =====  -->
+
+    <!--  神盾骑士 (ShieldKnight) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecShieldKnightRecoveryColor">#AA6F25</Color>
+    <SolidColorBrush x:Key="ClassSpecShieldKnightRecoveryBrush" Color="{StaticResource ClassSpecShieldKnightRecoveryColor}" />
+    <Color x:Key="ClassSpecShieldKnightShieldColor">#8A5B23</Color>
+    <SolidColorBrush x:Key="ClassSpecShieldKnightShieldBrush" Color="{StaticResource ClassSpecShieldKnightShieldColor}" />
+
+    <!--  巨刃守卫者 (HeavyGuardian) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecHeavyGuardianEarthfortColor">#1F4165</Color>
+    <SolidColorBrush x:Key="ClassSpecHeavyGuardianEarthfortBrush" Color="{StaticResource ClassSpecHeavyGuardianEarthfortColor}" />
+    <Color x:Key="ClassSpecHeavyGuardianBlockColor">#244A7D</Color>
+    <SolidColorBrush x:Key="ClassSpecHeavyGuardianBlockBrush" Color="{StaticResource ClassSpecHeavyGuardianBlockColor}" />
+
+    <!--  雷影剑士 (Stormblade) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecStormbladeIaidoSlashColor">#8C1B28</Color>
+    <SolidColorBrush x:Key="ClassSpecStormbladeIaidoSlashBrush" Color="{StaticResource ClassSpecStormbladeIaidoSlashColor}" />
+    <Color x:Key="ClassSpecStormbladeMoonStrikeColor">#A0212F</Color>
+    <SolidColorBrush x:Key="ClassSpecStormbladeMoonStrikeBrush" Color="{StaticResource ClassSpecStormbladeMoonStrikeColor}" />
+
+    <!--  青岚骑士 (WindKnight) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecWindKnightVanGuardColor">#143A55</Color>
+    <SolidColorBrush x:Key="ClassSpecWindKnightVanGuardBrush" Color="{StaticResource ClassSpecWindKnightVanGuardColor}" />
+    <Color x:Key="ClassSpecWindKnightSkywardColor">#1A5A93</Color>
+    <SolidColorBrush x:Key="ClassSpecWindKnightSkywardBrush" Color="{StaticResource ClassSpecWindKnightSkywardColor}" />
+
+    <!--  冰魔导师 (FrostMage) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecFrostMageIcicleColor">#6A7BFF</Color>
+    <SolidColorBrush x:Key="ClassSpecFrostMageIcicleBrush" Color="{StaticResource ClassSpecFrostMageIcicleColor}" />
+    <Color x:Key="ClassSpecFrostMageFrostBeamColor">#7250C7</Color>
+    <SolidColorBrush x:Key="ClassSpecFrostMageFrostBeamBrush" Color="{StaticResource ClassSpecFrostMageFrostBeamColor}" />
+
+    <!--  神射手 (Marksman) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecMarksmanWildpackColor">#A4831D</Color>
+    <SolidColorBrush x:Key="ClassSpecMarksmanWildpackBrush" Color="{StaticResource ClassSpecMarksmanWildpackColor}" />
+    <Color x:Key="ClassSpecMarksmanFalconryColor">#A5861A</Color>
+    <SolidColorBrush x:Key="ClassSpecMarksmanFalconryBrush" Color="{StaticResource ClassSpecMarksmanFalconryColor}" />
+
+    <!--  森语者 (VerdantOracle) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecVerdantOracleSmiteColor">#467D46</Color>
+    <SolidColorBrush x:Key="ClassSpecVerdantOracleSmiteBrush" Color="{StaticResource ClassSpecVerdantOracleSmiteColor}" />
+    <Color x:Key="ClassSpecVerdantOracleLifeBindColor">#3E6A3F</Color>
+    <SolidColorBrush x:Key="ClassSpecVerdantOracleLifeBindBrush" Color="{StaticResource ClassSpecVerdantOracleLifeBindColor}" />
+
+    <!--  灵魂乐手 (SoulMusician) - Skill-specific colors  -->
+    <Color x:Key="ClassSpecSoulMusicianDissonanceColor">#5B2B8A</Color>
+    <SolidColorBrush x:Key="ClassSpecSoulMusicianDissonanceBrush" Color="{StaticResource ClassSpecSoulMusicianDissonanceColor}" />
+    <Color x:Key="ClassSpecSoulMusicianConcertoColor">#5C1F95</Color>
+    <SolidColorBrush x:Key="ClassSpecSoulMusicianConcertoBrush" Color="{StaticResource ClassSpecSoulMusicianConcertoColor}" />
 </ResourceDictionary>
