@@ -16,6 +16,9 @@
 # Mono auto generated files
 mono_crash.*
 
+# BlueMeter runtime data
+PlayerInfoCache.dat
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
