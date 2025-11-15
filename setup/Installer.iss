@@ -69,8 +69,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 function InitializeSetup: Boolean;
 begin
   // add the dependencies you need
-  Dependency_AddDotNet80;
-  Dependency_AddNpcap;
+  Dependency_AddDotNet80Desktop;  // WPF requires Desktop Runtime
+  Dependency_AddNpcap;             // Required for packet capturing
 
   Result := True;
 end;
