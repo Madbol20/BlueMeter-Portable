@@ -106,7 +106,17 @@ BlueMeter requires two dependencies to function properly. The installer will aut
 **Installation**: The installer automatically downloads and installs .NET 8.0 Desktop Runtime if it's not already present on your system.
 
 ### Npcap (Network Packet Capture Driver)
-**Why it's needed**: BlueMeter works by capturing and analyzing network packets sent between your game client and the server. This is how it can track your damage, skills, and combat statistics in real-time without modifying the game files or violating Terms of Service. Npcap is the industry-standard packet capture driver that enables this functionality.
+**Why it's needed**: BlueMeter works by capturing and analyzing network packets sent between your game client and the server. This packet capture approach is important because:
+
+- **No game modification**: BlueMeter doesn't inject code, modify game files, or hook into the game process
+- **Terms of Service compliant**: Reading network traffic is a passive observation technique that doesn't alter gameplay
+- **Real-time accuracy**: Packet analysis provides precise combat statistics directly from the server data
+
+**What happens with your data**:
+- ✅ **100% Local Storage**: All captured data and combat statistics are stored only on your computer
+- ✅ **Zero Telemetry**: BlueMeter does not send any data to external servers or third parties
+- ✅ **Your Privacy Matters**: No tracking, no analytics, no data collection - everything stays on your machine
+- ✅ **Offline Capable**: Works completely offline after installation
 
 **Installation**: The installer will launch the Npcap setup wizard if Npcap is not detected on your system. Simply follow the wizard to complete the installation. If you skip Npcap installation, BlueMeter will remind you to install it when you first launch the app.
 
