@@ -103,3 +103,25 @@ If this project helps you, please consider giving it a star ⭐
 ---
 
 **Disclaimer**: This tool is for learning and analysis of game data only. Do not use it in ways that violate the game's Terms of Service. You are solely responsible for any risks incurred. I am not responsible for any misuse of this tool to discriminate against other players. Please adhere to the rules and ethical standards of the game's community.
+
+---
+
+## 💙 Thank You!
+
+<div align="center">
+
+**Thanks for checking out BlueMeter!** Give it a try and let me know what you think. Every test, feedback, and bug report helps make this tool better for everyone!
+
+<img src="BlueMeter.WPF/Assets/Images/cutedog.png" alt="Cute dog mascot" width="200" />
+
+### Join the Community
+
+Have questions, suggestions, or just want to hang out and talk about the game? **Come say hi!** 👋
+
+**Issues & Feedback**: [Open an issue on GitHub](https://github.com/caaatto/BlueMeter/issues)
+
+**Contribute**: Help improve BlueMeter - all contributions welcome!
+
+**Happy tracking!** ✨
+
+</div>
