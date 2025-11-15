@@ -116,7 +116,7 @@ BlueMeter requires two dependencies to function properly. The installer will aut
 - ✅ **100% Local Storage**: All captured data and combat statistics are stored only on your computer
 - ✅ **Zero Telemetry**: BlueMeter does not send any data to external servers or third parties
 - ✅ **Your Privacy Matters**: No tracking, no analytics, no data collection - everything stays on your machine
-- ✅ **Offline Capable**: Works completely offline after installation
+- ✅ **Offline Capable**: Works completely offline after installation (though you need to be online to play the game anyway)
 
 **Installation**: The installer will launch the Npcap setup wizard if Npcap is not detected on your system. Simply follow the wizard to complete the installation. If you skip Npcap installation, BlueMeter will remind you to install it when you first launch the app.
 
