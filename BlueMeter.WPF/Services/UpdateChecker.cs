@@ -68,14 +68,14 @@ public class UpdateChecker : IUpdateChecker
         }
     }
 
-    private static string GetCurrentVersion()
+    protected virtual string GetCurrentVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetName().Version;
         return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.0.0";
     }
 
-    private static bool IsNewerVersion(string current, string latest)
+    protected virtual bool IsNewerVersion(string current, string latest)
     {
         try
         {
