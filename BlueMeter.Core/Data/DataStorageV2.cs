@@ -150,6 +150,20 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             _activeBossUuid = enemyUuid;
             _bossDeathTime = null;
             logger.LogInformation("Boss fight started: Enemy {EnemyUid}", enemyUuid);
+
+            // Start encounter for this boss fight
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await DataStorageExtensions.StartNewEncounterAsync();
+                    logger.LogInformation("Encounter started for boss fight: Enemy {EnemyUid}", enemyUuid);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to start encounter for boss fight");
+                }
+            });
         }
     }
 
@@ -183,6 +197,22 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Get boss name from UUID
+    /// </summary>
+    private string GetBossName(long bossUuid)
+    {
+        if (bossUuid == 0) return "Unknown Boss";
+
+        // Try to get from PlayerInfoData
+        if (PlayerInfoData.TryGetValue(bossUuid, out var playerInfo))
+        {
+            return playerInfo.Name ?? $"Boss {bossUuid}";
+        }
+
+        return $"Boss {bossUuid}";
     }
 
     /// <summary>
@@ -375,10 +405,37 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
         if (last == DateTime.MinValue) return; // no logs yet
 
         // Check if boss died and delay has passed
+        // Capture boss info BEFORE calling ShouldEndBattleSection (which resets the values)
+        var currentBossUuid = _activeBossUuid;
+        var currentBossDeathTime = _bossDeathTime;
+
         if (ShouldEndBattleSection())
         {
+            // Get boss name from captured UUID
+            var bossName = GetBossName(currentBossUuid);
+
             try
             {
+                // Calculate actual duration from boss death time
+                var durationMs = currentBossDeathTime.HasValue
+                    ? (long)(DateTime.UtcNow - currentBossDeathTime.Value).TotalMilliseconds + (BossDeathDelaySeconds * 1000)
+                    : (long)SectionTimeout.TotalMilliseconds;
+
+                // End encounter before clearing DPS data
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await DataStorageExtensions.EndCurrentEncounterAsync(durationMs, bossName, currentBossUuid);
+                        logger.LogInformation("Encounter ended for boss: {BossName} (UID={BossUid}), Duration={DurationMs}ms",
+                            bossName, currentBossUuid, durationMs);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to end encounter for boss fight");
+                    }
+                });
+
                 PrivateClearDpsData(); // raises DpsDataUpdated & DataUpdated
                 RaiseNewSectionCreated();
             }

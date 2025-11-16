@@ -78,6 +78,63 @@ public class PlayerEncounterStatsEntity
     [MaxLength(100)]
     public string NameSnapshot { get; set; } = string.Empty;
 
+    // ===== Aggregate Statistics =====
+
+    /// <summary>
+    /// Total number of hits (sum of all skill UseTimes)
+    /// </summary>
+    public int TotalHits { get; set; }
+
+    /// <summary>
+    /// Total number of critical hits (sum of all skill CritTimes)
+    /// </summary>
+    public int TotalCrits { get; set; }
+
+    /// <summary>
+    /// Total number of lucky hits (sum of all skill LuckyTimes)
+    /// </summary>
+    public int TotalLuckyHits { get; set; }
+
+    /// <summary>
+    /// Average damage per hit (TotalAttackDamage / TotalHits)
+    /// </summary>
+    public double AvgDamagePerHit { get; set; }
+
+    /// <summary>
+    /// Critical hit rate (TotalCrits / TotalHits)
+    /// </summary>
+    public double CritRate { get; set; }
+
+    /// <summary>
+    /// Lucky hit rate (TotalLuckyHits / TotalHits)
+    /// </summary>
+    public double LuckyRate { get; set; }
+
+    /// <summary>
+    /// Damage per second (TotalAttackDamage / encounter duration in seconds)
+    /// </summary>
+    public double DPS { get; set; }
+
+    /// <summary>
+    /// Healing per second (TotalHeal / encounter duration in seconds)
+    /// </summary>
+    public double HPS { get; set; }
+
+    /// <summary>
+    /// Highest critical hit damage
+    /// </summary>
+    public long HighestCrit { get; set; }
+
+    /// <summary>
+    /// Minimum damage dealt in a single hit
+    /// </summary>
+    public long MinDamage { get; set; }
+
+    /// <summary>
+    /// Maximum damage dealt in a single hit
+    /// </summary>
+    public long MaxDamage { get; set; }
+
     /// <summary>
     /// Navigation property to Player
     /// </summary>

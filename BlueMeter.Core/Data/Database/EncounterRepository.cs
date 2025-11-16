@@ -44,7 +44,7 @@ public class EncounterRepository
     /// <summary>
     /// End an encounter
     /// </summary>
-    public async Task EndEncounterAsync(string encounterId, DateTime endTime, long durationMs)
+    public async Task EndEncounterAsync(string encounterId, DateTime endTime, long durationMs, string? bossName = null, long? bossUuid = null)
     {
         var encounter = await _context.Encounters
             .FirstOrDefaultAsync(e => e.EncounterId == encounterId);
@@ -54,6 +54,19 @@ public class EncounterRepository
             encounter.EndTime = endTime;
             encounter.DurationMs = durationMs;
             encounter.IsActive = false;
+
+            // Set boss name if provided
+            if (!string.IsNullOrEmpty(bossName))
+            {
+                encounter.BossName = bossName;
+            }
+
+            // Set boss UID if provided
+            if (bossUuid.HasValue)
+            {
+                encounter.BossUID = bossUuid.Value;
+            }
+
             await _context.SaveChangesAsync();
         }
     }
@@ -144,6 +157,63 @@ public class EncounterRepository
             skillDictionary[skill.SkillId] = skill;
         }
         stats.SkillDataJson = JsonConvert.SerializeObject(skillDictionary);
+
+        // Calculate aggregate statistics
+        var totalHits = 0;
+        var totalCrits = 0;
+        var totalLuckyHits = 0;
+        var highestCrit = 0L;
+        var minDamage = long.MaxValue;
+        var maxDamage = 0L;
+
+        foreach (var skill in dpsData.ReadOnlySkillDataList)
+        {
+            totalHits += skill.UseTimes;
+            totalCrits += skill.CritTimes;
+            totalLuckyHits += skill.LuckyTimes;
+            highestCrit = Math.Max(highestCrit, skill.HighestCrit);
+
+            if (skill.MinDamage < long.MaxValue)
+                minDamage = Math.Min(minDamage, skill.MinDamage);
+
+            maxDamage = Math.Max(maxDamage, skill.MaxDamage);
+        }
+
+        stats.TotalHits = totalHits;
+        stats.TotalCrits = totalCrits;
+        stats.TotalLuckyHits = totalLuckyHits;
+        stats.HighestCrit = highestCrit;
+        stats.MinDamage = minDamage == long.MaxValue ? 0 : minDamage;
+        stats.MaxDamage = maxDamage;
+
+        // Calculate rates and averages
+        if (totalHits > 0)
+        {
+            stats.AvgDamagePerHit = (double)stats.TotalAttackDamage / totalHits;
+            stats.CritRate = (double)totalCrits / totalHits;
+            stats.LuckyRate = (double)totalLuckyHits / totalHits;
+        }
+        else
+        {
+            stats.AvgDamagePerHit = 0;
+            stats.CritRate = 0;
+            stats.LuckyRate = 0;
+        }
+
+        // Calculate DPS/HPS (will be updated when encounter ends with final duration)
+        var durationTicks = stats.LastLoggedTick - stats.StartLoggedTick;
+        var durationSeconds = durationTicks / 10_000_000.0; // Convert Windows ticks to seconds
+
+        if (durationSeconds > 0)
+        {
+            stats.DPS = stats.TotalAttackDamage / durationSeconds;
+            stats.HPS = stats.TotalHeal / durationSeconds;
+        }
+        else
+        {
+            stats.DPS = 0;
+            stats.HPS = 0;
+        }
 
         await _context.SaveChangesAsync();
 

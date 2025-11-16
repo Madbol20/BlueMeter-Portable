@@ -110,14 +110,14 @@ public static class DataStorageExtensions
     /// <summary>
     /// End current encounter and save to database
     /// </summary>
-    public static async Task EndCurrentEncounterAsync(long durationMs)
+    public static async Task EndCurrentEncounterAsync(long durationMs, string? bossName = null, long? bossUuid = null)
     {
         if (_encounterService == null) return;
 
         // Final save before ending
         await SaveCurrentEncounterAsync();
 
-        await _encounterService.EndCurrentEncounterAsync(durationMs);
+        await _encounterService.EndCurrentEncounterAsync(durationMs, 0, bossName, bossUuid);
     }
 
     /// <summary>
@@ -176,15 +176,14 @@ public static class DataStorageExtensions
     {
         try
         {
-            // End previous encounter if active
+            // Boss fights now handle their own encounter lifecycle in DataStorageV2
+            // This event handler is kept for potential future use (e.g., periodic saves)
+
+            // Optionally save current encounter state
             if (_encounterService != null && _encounterService.IsEncounterActive)
             {
-                var durationMs = DataStorage.SectionTimeout.TotalMilliseconds;
-                await EndCurrentEncounterAsync((long)durationMs);
+                await SaveCurrentEncounterAsync();
             }
-
-            // Start new encounter
-            await StartNewEncounterAsync();
         }
         catch (Exception ex)
         {
@@ -196,14 +195,12 @@ public static class DataStorageExtensions
     {
         try
         {
-            if (isConnected)
+            // Boss fights now handle their own encounter lifecycle in DataStorageV2
+            // Only clean up on disconnect
+
+            if (!isConnected)
             {
-                // Start new encounter when server connects
-                await StartNewEncounterAsync();
-            }
-            else
-            {
-                // End encounter when server disconnects
+                // End encounter when server disconnects (if any active)
                 if (_encounterService != null && _encounterService.IsEncounterActive)
                 {
                     await SaveCurrentEncounterAsync();

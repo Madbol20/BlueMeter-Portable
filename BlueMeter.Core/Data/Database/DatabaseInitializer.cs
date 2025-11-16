@@ -29,9 +29,63 @@ public static class DatabaseInitializer
         // Create database if it doesn't exist and apply migrations
         await context.Database.EnsureCreatedAsync();
 
+        // Apply manual migrations for existing databases
+        await ApplyManualMigrationsAsync(context);
+
         // Deactivate any active encounters from previous session
         var repository = new EncounterRepository(context);
         await repository.DeactivateAllEncountersAsync();
+    }
+
+    /// <summary>
+    /// Apply manual schema migrations for existing databases
+    /// </summary>
+    private static async Task ApplyManualMigrationsAsync(BlueMeterDbContext context)
+    {
+        try
+        {
+            // Migration: Add aggregate statistics columns to PlayerEncounterStats
+            // Check if TotalHits column exists
+            var connection = context.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('PlayerEncounterStats') WHERE name='TotalHits'";
+            var exists = Convert.ToInt32(await command.ExecuteScalarAsync()) > 0;
+
+            if (!exists)
+            {
+                // Add aggregate statistics columns
+                var alterCommands = new[]
+                {
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN TotalHits INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN TotalCrits INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN TotalLuckyHits INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN AvgDamagePerHit REAL NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN CritRate REAL NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN LuckyRate REAL NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN DPS REAL NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN HPS REAL NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN HighestCrit INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN MinDamage INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE PlayerEncounterStats ADD COLUMN MaxDamage INTEGER NOT NULL DEFAULT 0"
+                };
+
+                foreach (var alterCommand in alterCommands)
+                {
+                    using var alterCmd = connection.CreateCommand();
+                    alterCmd.CommandText = alterCommand;
+                    await alterCmd.ExecuteNonQueryAsync();
+                }
+
+                Console.WriteLine("Successfully applied aggregate statistics migration to PlayerEncounterStats table");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error applying manual migrations: {ex.Message}");
+            // Continue anyway - new databases won't need these migrations
+        }
     }
 
     /// <summary>

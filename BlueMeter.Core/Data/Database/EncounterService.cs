@@ -61,7 +61,9 @@ public class EncounterService
     /// </summary>
     /// <param name="durationMs">Duration of encounter in milliseconds</param>
     /// <param name="minDurationMs">Minimum duration to save (0 = save all). Encounters shorter than this will not be saved.</param>
-    public async Task EndCurrentEncounterAsync(long durationMs, long minDurationMs = 0)
+    /// <param name="bossName">Name of the boss (optional)</param>
+    /// <param name="bossUuid">UUID of the boss (optional)</param>
+    public async Task EndCurrentEncounterAsync(long durationMs, long minDurationMs = 0, string? bossName = null, long? bossUuid = null)
     {
         if (!_isEncounterActive || string.IsNullOrEmpty(_currentEncounterId))
             return;
@@ -83,7 +85,7 @@ public class EncounterService
         using var context2 = _contextFactory();
         var repository2 = new EncounterRepository(context2);
 
-        await repository2.EndEncounterAsync(_currentEncounterId, DateTime.UtcNow, durationMs);
+        await repository2.EndEncounterAsync(_currentEncounterId, DateTime.UtcNow, durationMs, bossName, bossUuid);
 
         _isEncounterActive = false;
     }
@@ -200,7 +202,20 @@ public class EncounterService
                 IsNpcData = stats.IsNpcData,
                 Class = stats.Player.Class,
                 Spec = stats.Player.Spec,
-                SkillDataJson = stats.SkillDataJson
+                SkillDataJson = stats.SkillDataJson,
+
+                // Aggregate statistics
+                TotalHits = stats.TotalHits,
+                TotalCrits = stats.TotalCrits,
+                TotalLuckyHits = stats.TotalLuckyHits,
+                AvgDamagePerHit = stats.AvgDamagePerHit,
+                CritRate = stats.CritRate,
+                LuckyRate = stats.LuckyRate,
+                DPS = stats.DPS,
+                HPS = stats.HPS,
+                HighestCrit = stats.HighestCrit,
+                MinDamage = stats.MinDamage,
+                MaxDamage = stats.MaxDamage
             };
 
             DebugLogger.Log($"[LoadEncounterAsync]   Final PlayerData: Name='{playerData.Name}', Class={playerData.Class}");
@@ -388,4 +403,17 @@ public class PlayerEncounterData
     public Classes Class { get; set; }
     public ClassSpec Spec { get; set; }
     public string? SkillDataJson { get; set; }
+
+    // Aggregate statistics
+    public int TotalHits { get; set; }
+    public int TotalCrits { get; set; }
+    public int TotalLuckyHits { get; set; }
+    public double AvgDamagePerHit { get; set; }
+    public double CritRate { get; set; }
+    public double LuckyRate { get; set; }
+    public double DPS { get; set; }
+    public double HPS { get; set; }
+    public long HighestCrit { get; set; }
+    public long MinDamage { get; set; }
+    public long MaxDamage { get; set; }
 }
