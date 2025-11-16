@@ -43,7 +43,20 @@
 - [ ] Peak DPS / Burst Damage Tracking - Highest DPS spike in combat
 - [ ] Average vs Instantaneous DPS - Distinguish between sustained and burst
 - [ ] Damage Type Breakdown - Physical vs Magical vs Elemental damage split
-- [ ] Tanking/Mitigation Stats - Track damage taken and mitigation efficiency
+- [ ] **Tanking/Mitigation Stats** - Track damage taken and mitigation efficiency
+  - [ ] Parse `ShieldLessenValue` from network packets (damage absorbed/mitigated)
+  - [ ] Extend `BattleLog` struct with `ShieldLessenValue` field
+  - [ ] Update `DeltaInfoProcessors` to capture shield/mitigation data
+  - [ ] Add `TotalDamageMitigated` to `DpsData` model
+  - [ ] Update database schema to store mitigation data (with migration)
+  - [ ] Display metrics in UI:
+    - Damage Taken (current HP damage)
+    - Damage Mitigated (shields/absorbs/blocks)
+    - Effective Damage (total threat = taken + mitigated)
+    - Mitigation % ((mitigated / effective) × 100)
+  - [ ] Add "Effective TPS" (Threat Per Second) including shields
+  - [ ] Show mitigation breakdown in skill breakdown window
+  - **Priority: High** - Critical for tank performance analysis
 - [ ] Healing Efficiency Metrics - Heals per second and overhealing tracking
 - [ ] Combat Log Export - Save combat data as CSV/JSON for analysis
 - [ ] Cooldown/Ability Tracking - Show which abilities are on cooldown
