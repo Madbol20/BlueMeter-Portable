@@ -31,6 +31,10 @@
     Topmost="{Binding AppConfig.TopmostEnabled, Mode=OneWay}"
     mc:Ignorable="d">
 
+    <Window.Opacity>
+        <Binding Path="AppConfig.Opacity" Converter="{StaticResource PercentToOpacityConverter}" />
+    </Window.Opacity>
+
     <!--  WindowChrome: 开启可拉伸边界  -->
     <WindowChrome.WindowChrome>
         <WindowChrome
@@ -61,6 +65,7 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:PanelColorModeConverter x:Key="PanelColorModeConverter" />
         <converters:PanelContentColorModeConverter x:Key="PanelContentColorModeConverter" />
+        <converters:PercentToOpacityConverter x:Key="PercentToOpacityConverter" />
 
         <!-- DPS Settings MenuItem with black text for readability on light background -->
         <Style x:Key="DpsSettingsMenuItem" TargetType="MenuItem" BasedOn="{StaticResource ModernMenuItem}">

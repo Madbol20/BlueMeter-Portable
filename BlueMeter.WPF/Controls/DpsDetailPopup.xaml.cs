@@ -14,7 +14,7 @@ public partial class DpsDetailPopup : UserControl
             nameof(Title),
             typeof(string),
             typeof(SkillPopupControl),
-            new PropertyMetadata("技能详情") // 默认值
+            new PropertyMetadata("Skill Details") // Default value
         );
 
     public static readonly DependencyProperty SkillListProperty = DependencyProperty.Register(
