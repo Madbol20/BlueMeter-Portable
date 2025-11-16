@@ -373,7 +373,10 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <ctrl:Header Title="{Binding DataContext.AppConfig.ThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeToAppNameConverter}}" Grid.Row="0" />
+                <ctrl:Header
+                    Title="{Binding DataContext.AppConfig.ThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeToAppNameConverter}}"
+                    MinimizeToTrayCommand="{Binding MinimizeToTrayCommand}"
+                    Grid.Row="0" />
 
                 <!-- Update Available Banner -->
                 <Border Grid.Row="1"
