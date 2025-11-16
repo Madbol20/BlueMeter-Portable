@@ -573,8 +573,6 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             skillData.UseTimes += 1;
             skillData.CritTimes += log.IsCritical ? 1 : 0;
             skillData.LuckyTimes += log.IsLucky ? 1 : 0;
-<<<<<<< Updated upstream
-=======
             // Track min/max damage (excluding misses)
             if (!log.IsMiss && log.Value > 0)
             {
@@ -586,7 +584,6 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
                     skillData.HighestCrit = Math.Max(skillData.HighestCrit, log.Value);
                 }
             }
->>>>>>> Stashed changes
         });
 
         sectionedData.StartLoggedTick ??= log.TimeTicks;
@@ -598,8 +595,6 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             skillData.UseTimes += 1;
             skillData.CritTimes += log.IsCritical ? 1 : 0;
             skillData.LuckyTimes += log.IsLucky ? 1 : 0;
-<<<<<<< Updated upstream
-=======
             // Track min/max damage (excluding misses)
             if (!log.IsMiss && log.Value > 0)
             {
@@ -611,7 +606,6 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
                     skillData.HighestCrit = Math.Max(skillData.HighestCrit, log.Value);
                 }
             }
->>>>>>> Stashed changes
         });
 
         return (fullData, sectionedData);

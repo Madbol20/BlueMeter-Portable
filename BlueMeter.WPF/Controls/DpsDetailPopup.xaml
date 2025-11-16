@@ -50,8 +50,6 @@
                                 <Run Foreground="Orange" Text="    Avg Damage: " />
                                 <Run Foreground="White" Text="{Binding AvgDamage}" />
                             </TextBlock>
-<<<<<<< Updated upstream
-=======
                             <!--  Min / Max Damage  -->
                             <TextBlock Style="{StaticResource FooterTextContent}">
                                 <Run Foreground="Orange" Text="Min Damage: " />
@@ -64,7 +62,6 @@
                                 <Run Foreground="Orange" Text="Highest Crit: " />
                                 <Run Foreground="White" Text="{Binding HighestCrit}" />
                             </TextBlock>
->>>>>>> Stashed changes
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
