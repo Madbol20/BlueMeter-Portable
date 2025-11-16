@@ -113,7 +113,9 @@ namespace BlueMeter.Core.Data.Models
                 TotalValue = source.TotalValue,
                 UseTimes = source.UseTimes,
                 CritTimes = source.CritTimes,
-                LuckyTimes = source.LuckyTimes
+                LuckyTimes = source.LuckyTimes,
+                MinDamage = source.MinDamage,
+                MaxDamage = source.MaxDamage
             };
         }
     }

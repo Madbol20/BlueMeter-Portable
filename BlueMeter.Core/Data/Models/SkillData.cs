@@ -28,5 +28,13 @@ namespace BlueMeter.Core.Data.Models
         /// 幸运一击次数
         /// </summary>
         public int LuckyTimes { get; internal set; }
+        /// <summary>
+        /// 最小伤害值
+        /// </summary>
+        public long MinDamage { get; internal set; } = long.MaxValue;
+        /// <summary>
+        /// 最大伤害值
+        /// </summary>
+        public long MaxDamage { get; internal set; } = 0;
     }
 }

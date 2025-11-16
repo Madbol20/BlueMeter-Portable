@@ -50,6 +50,13 @@
                                 <Run Foreground="Orange" Text="    Avg Damage: " />
                                 <Run Foreground="White" Text="{Binding AvgDamage}" />
                             </TextBlock>
+                            <!--  Min / Max Damage  -->
+                            <TextBlock Style="{StaticResource FooterTextContent}">
+                                <Run Foreground="Orange" Text="Min Damage: " />
+                                <Run Foreground="White" Text="{Binding MinDamage}" />
+                                <Run Foreground="Orange" Text="    Max Damage: " />
+                                <Run Foreground="White" Text="{Binding MaxDamage}" />
+                            </TextBlock>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
