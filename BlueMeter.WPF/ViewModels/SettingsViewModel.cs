@@ -292,6 +292,9 @@ public partial class SettingsViewModel(
             case ShortcutType.ClearData:
                 AppConfig.ClearDataShortcut = shortCut;
                 break;
+            case ShortcutType.TopMost:
+                AppConfig.TopmostShortcut = shortCut;
+                break;
         }
     }
 

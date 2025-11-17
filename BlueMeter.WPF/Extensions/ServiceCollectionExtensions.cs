@@ -64,11 +64,9 @@ public static class ServiceCollectionExtensions
         {
             options.WriteIndented = true;
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            // options.Converters.Add(new JsonModifierKeysConverter());
-            // Add the factory converter as well for completeness
-            // options.Converters.Add(new JsonModifierKeysConverterFactory());
+            // Add KeyBinding JSON converter to properly handle Key.None serialization
+            options.Converters.Add(new KeyBindingJsonConverter());
         });
-        // TypeDescriptor.AddAttributes(typeof(KeyBinding), new TypeConverterAttribute(typeof(KeyBindingTypeConverter)));
         TypeDescriptor.AddAttributes(typeof(ModifierKeys),
             new TypeConverterAttribute(typeof(ModifierKeysTypeConverter)));
 
