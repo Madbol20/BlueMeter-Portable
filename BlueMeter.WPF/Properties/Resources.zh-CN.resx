@@ -223,7 +223,7 @@
     <value>战斗设置</value>
   </data>
   <data name="Settings_Section_Combat_Sub" xml:space="preserve">
-    <value>脱战清空只重置当前战斗数据，而非全程统计</value>
+    <value></value>
   </data>
   <data name="Settings_NetworkAdapter_Label" xml:space="preserve">
     <value>监听网卡</value>

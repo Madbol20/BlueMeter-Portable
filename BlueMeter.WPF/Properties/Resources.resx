@@ -223,7 +223,7 @@
     <value>Combat Settings</value>
   </data>
   <data name="Settings_Section_Combat_Sub" xml:space="preserve">
-    <value>[Clear data after combat] resets only the current data, not the total.</value>
+    <value></value>
   </data>
   <data name="Settings_NetworkAdapter_Label" xml:space="preserve">
     <value>Capture Adapter</value>
