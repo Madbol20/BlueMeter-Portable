@@ -102,6 +102,13 @@ public sealed class GlobalHotkeyService(
     {
         try
         {
+            // Skip registration if global hotkeys are disabled
+            if (!_config.GlobalHotkeysEnabled)
+            {
+                logger.LogInformation("Global hotkeys are disabled. Skipping registration.");
+                return;
+            }
+
             RegisterMouseThroughHotkey();
             RegisterTopmostHotkey();
             RegisterResetDpsStatistic();
@@ -185,12 +192,34 @@ public sealed class GlobalHotkeyService(
     {
         // Always attempt to unregister first (safe even if not registered)
         UnregisterHotKey(hWnd, id);
+
+        // Validate VK code before attempting registration
+        if (vk == 0)
+        {
+            logger.LogWarning("RegisterHotKey skipped for {Name}: Invalid virtual key code for {Key}. " +
+                "This key is not supported by Windows (possibly a hardware-specific key like Fn or custom keyboard software key).",
+                name, key);
+            return false;
+        }
+
         if (!RegisterHotKey(hWnd, id, fsModifiers, vk))
         {
             var error = Marshal.GetLastWin32Error();
-            logger.LogWarning("RegisterHotKey failed for {Name}: {Key}+{Mods}. Win32Error={Error}", name, key, mods, error);
+            var errorDescription = error switch
+            {
+                1409 => "Hotkey already registered by another application",
+                87 => "Invalid parameter (key not supported)",
+                _ => $"Win32 error code {error}"
+            };
+
+            logger.LogWarning("RegisterHotKey failed for {Name}: {Key}+{Mods}. {ErrorDescription}. " +
+                "If using special keyboard software (Razer, Corsair, Wooting, etc.), it may be intercepting the key. " +
+                "Try a different key or disable keyboard software temporarily.",
+                name, key, mods, errorDescription);
             return false;
         }
+
+        logger.LogInformation("Successfully registered hotkey {Name}: {Key}+{Mods}", name, key, mods);
         return true;
     }
 

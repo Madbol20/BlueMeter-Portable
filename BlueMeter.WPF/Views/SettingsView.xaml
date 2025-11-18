@@ -505,6 +505,28 @@
                             <Border Style="{StaticResource SectionBorder}">
                                 <StackPanel Style="{StaticResource SectionStackPanel}">
 
+                                    <!-- Enable/Disable All Hotkeys Toggle -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Enable Global Hotkeys"
+                                                ToolTip="Turn on/off all global hotkeys. When disabled, no hotkeys will work." />
+                                            <CheckBox
+                                                Grid.Column="2"
+                                                HorizontalAlignment="Left"
+                                                IsChecked="{Binding AppConfig.GlobalHotkeysEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource CheckBoxSwitch}" />
+                                        </Grid>
+                                    </Border>
+
                                     <Border Style="{StaticResource SectionFieldBorder}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>

@@ -64,7 +64,7 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
     private readonly TimeSpan _uiUpdateThrottle = TimeSpan.FromMilliseconds(100);
     // Combat pause detection - pause timer when no damage (but don't archive!)
     private DateTime _lastDamageTime = DateTime.MinValue;
-    private readonly TimeSpan _combatPauseThreshold = TimeSpan.FromSeconds(3);
+    private readonly TimeSpan _combatPauseThreshold = TimeSpan.FromSeconds(1); // Stop meter after 1s of no combat
     private ulong _lastKnownMaxTick;
     [ObservableProperty] private ScopeTime _scopeTime = ScopeTime.Current;
     [ObservableProperty] private bool _showContextMenu;

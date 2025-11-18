@@ -150,6 +150,12 @@ public partial class AppConfig : ObservableObject
     private bool _topmostEnabled;
 
     /// <summary>
+    /// Enable or disable all global hotkeys
+    /// </summary>
+    [ObservableProperty]
+    private bool _globalHotkeysEnabled = true;
+
+    /// <summary>
     /// Save DPS window position and size on application exit
     /// </summary>
     [ObservableProperty]

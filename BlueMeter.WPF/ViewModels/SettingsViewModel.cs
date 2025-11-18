@@ -260,6 +260,15 @@ public partial class SettingsViewModel(
     /// </summary>
     private void UpdateShortcut(ShortcutType shortcutType, Key key, ModifierKeys modifiers)
     {
+        // Validate that the key can be registered as a Windows global hotkey
+        if (!IsValidHotkeyKey(key, out var errorMessage))
+        {
+            messageDialogService.Show(
+                "Invalid Hotkey",
+                errorMessage ?? "This key cannot be used as a global hotkey. Please try a different key.\n\nNote: Function keys (F1-F12), number keys, and letter keys work best. Special keys like Fn or numpad 00 are not supported by Windows global hotkeys.");
+            return;
+        }
+
         var shortcutData = new KeyBinding(key, modifiers);
 
         switch (shortcutType)
@@ -276,6 +285,41 @@ public partial class SettingsViewModel(
             default:
                 throw new ArgumentOutOfRangeException(nameof(shortcutType), shortcutType, null);
         }
+    }
+
+    /// <summary>
+    /// Validates if a key can be used for Windows global hotkeys
+    /// </summary>
+    /// <param name="key">The key to validate</param>
+    /// <param name="errorMessage">Error message if validation fails</param>
+    /// <returns>True if valid, false otherwise</returns>
+    private bool IsValidHotkeyKey(Key key, out string? errorMessage)
+    {
+        errorMessage = null;
+
+        // Check if we can get a valid virtual key code
+        var vk = KeyInterop.VirtualKeyFromKey(key);
+        if (vk == 0)
+        {
+            errorMessage = $"The key '{key}' is not recognized by Windows and cannot be registered as a global hotkey.\n\nThis often happens with:\n• Hardware-specific keys (Fn, special macro keys)\n• Custom keyboard software keys\n• Non-standard numpad keys (like 00)\n\nPlease use standard keys like F1-F12, letters, or numbers.";
+            return false;
+        }
+
+        // Blacklist problematic keys that have VK codes but don't work well with RegisterHotKey
+        var blacklistedKeys = new[]
+        {
+            Key.LWin, Key.RWin,  // Windows keys (can cause issues)
+            Key.Sleep,            // System keys
+            Key.None              // Invalid key
+        };
+
+        if (blacklistedKeys.Contains(key))
+        {
+            errorMessage = $"The key '{key}' cannot be used as a global hotkey because it is reserved by Windows.";
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
