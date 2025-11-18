@@ -542,7 +542,10 @@
                                     <!--  记录设置  -->
                                     <MenuItem Header="{lex:Loc Key={x:Static loc:ResourcesKeys.Menu_RecordSettings}}" ItemContainerStyle="{StaticResource CheckableMenuItem}">
                                         <!--  pass a parameter (literal) to the command  -->
-                                        <MenuItem Command="{Binding Options.SetMinimalDurationCommand}" Header="{lex:Loc Key={x:Static loc:ResourcesKeys.Menu_Record_Always}}">
+                                        <MenuItem
+                                            Command="{Binding Options.SetMinimalDurationCommand}"
+                                            Header="{lex:Loc Key={x:Static loc:ResourcesKeys.Menu_Record_Always}}"
+                                            IsChecked="{Binding Options.IsRecordAll, Mode=OneWay}">
                                             <MenuItem.CommandParameter>
                                                 <system:Int32>-1</system:Int32>
                                             </MenuItem.CommandParameter>
@@ -550,7 +553,7 @@
                                         <MenuItem
                                             Command="{Binding Options.SetMinimalDurationCommand}"
                                             Header="{lex:Loc Key={x:Static loc:ResourcesKeys.Menu_Record_Skip1Min}}"
-                                            IsChecked="{Binding Options.MinimalDurationInSeconds}">
+                                            IsChecked="{Binding Options.IsSkip2Sec, Mode=OneWay}">
                                             <MenuItem.CommandParameter>
                                                 <system:Int32>2</system:Int32>
                                             </MenuItem.CommandParameter>
@@ -559,7 +562,7 @@
                                         <MenuItem
                                             Command="{Binding Options.SetMinimalDurationCommand}"
                                             Header="{lex:Loc Key={x:Static loc:ResourcesKeys.Menu_Record_Skip2Min}}"
-                                            IsChecked="{Binding Options.MinimalDurationInSeconds}">
+                                            IsChecked="{Binding Options.IsSkip5Sec, Mode=OneWay}">
                                             <MenuItem.CommandParameter>
                                                 <system:Int32>5</system:Int32>
                                             </MenuItem.CommandParameter>

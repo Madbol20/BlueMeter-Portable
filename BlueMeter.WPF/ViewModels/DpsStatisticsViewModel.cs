@@ -23,12 +23,19 @@ namespace BlueMeter.WPF.ViewModels;
 
 public partial class DpsStatisticsOptions : BaseViewModel
 {
-    [ObservableProperty] private int _minimalDurationInSeconds;
+    [ObservableProperty] private int _minimalDurationInSeconds = -1;
+
+    public bool IsRecordAll => MinimalDurationInSeconds == -1;
+    public bool IsSkip2Sec => MinimalDurationInSeconds == 2;
+    public bool IsSkip5Sec => MinimalDurationInSeconds == 5;
 
     [RelayCommand]
     private void SetMinimalDuration(int duration)
     {
         MinimalDurationInSeconds = duration;
+        OnPropertyChanged(nameof(IsRecordAll));
+        OnPropertyChanged(nameof(IsSkip2Sec));
+        OnPropertyChanged(nameof(IsSkip5Sec));
     }
 }
 
