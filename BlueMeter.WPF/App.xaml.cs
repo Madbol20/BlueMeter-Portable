@@ -144,6 +144,12 @@ public partial class App : Application
                 services.AddTransient<ChartsWindowViewModel>();
                 services.AddTransient<ChartsWindow>();
 
+                // Chart Views and ViewModels (Phase 4-6)
+                services.AddTransient<DpsTrendChartViewModel>();
+                services.AddTransient<DpsTrendChartView>();
+                services.AddTransient<SkillBreakdownChartViewModel>();
+                services.AddTransient<SkillBreakdownChartView>();
+
                 services.AddSingleton<DebugFunctions>();
                 services.AddSingleton(CaptureDeviceList.Instance);
                 services.AddSingleton<IApplicationControlService, ApplicationControlService>();

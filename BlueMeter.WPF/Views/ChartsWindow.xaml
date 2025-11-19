@@ -166,14 +166,7 @@
 
             <!--  Skill Breakdown Tab  -->
             <TabItem Header="🎯 Skill Breakdown" Style="{StaticResource DarkTabItem}">
-                <Grid Background="#1E1E1E">
-                    <TextBlock
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        FontSize="16"
-                        Foreground="#888888"
-                        Text="Skill Breakdown Chart - Coming Soon in Phase 6" />
-                </Grid>
+                <ContentControl x:Name="SkillBreakdownChartContainer" />
             </TabItem>
 
             <!--  Player Comparison Tab  -->

@@ -11,19 +11,23 @@ public partial class ChartsWindow : Window
 {
     private readonly ChartsWindowViewModel _viewModel;
     private readonly DpsTrendChartView _dpsTrendChartView;
+    private readonly SkillBreakdownChartView _skillBreakdownChartView;
 
     public ChartsWindow(
         ChartsWindowViewModel viewModel,
-        DpsTrendChartView dpsTrendChartView)
+        DpsTrendChartView dpsTrendChartView,
+        SkillBreakdownChartView skillBreakdownChartView)
     {
         _viewModel = viewModel;
         _dpsTrendChartView = dpsTrendChartView;
+        _skillBreakdownChartView = skillBreakdownChartView;
         DataContext = _viewModel;
 
         InitializeComponent();
 
-        // Inject the DPS Trend Chart view into the tab
+        // Inject the chart views into their respective tabs
         DpsTrendChartContainer.Content = _dpsTrendChartView;
+        SkillBreakdownChartContainer.Content = _skillBreakdownChartView;
 
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -46,10 +50,15 @@ public partial class ChartsWindow : Window
     {
         _viewModel.SetFocusedPlayer(playerId);
 
-        // Also notify the DPS Trend Chart ViewModel
+        // Notify chart ViewModels
         if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsTrendViewModel)
         {
             dpsTrendViewModel.SetFocusedPlayer(playerId);
+        }
+
+        if (_skillBreakdownChartView.DataContext is SkillBreakdownChartViewModel skillBreakdownViewModel)
+        {
+            skillBreakdownViewModel.SetFocusedPlayer(playerId);
         }
     }
 }
