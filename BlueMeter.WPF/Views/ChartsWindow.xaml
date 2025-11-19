@@ -92,6 +92,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="DarkComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="#3F3F46" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#555555" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
     </Window.Resources>
 
     <Grid>
