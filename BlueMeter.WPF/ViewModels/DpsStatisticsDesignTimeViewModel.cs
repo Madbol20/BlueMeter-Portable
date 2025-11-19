@@ -109,6 +109,7 @@ public sealed class DpsStatisticsDesignTimeViewModel : DpsStatisticsViewModel
         public ModuleSolveView ModuleSolveView => throw new NotSupportedException();
         public BossTrackerView BossTrackerView => throw new NotSupportedException();
         public BlueMeter.WPF.Views.Checklist.ChecklistWindow ChecklistWindow => throw new NotSupportedException();
+        public ChartsWindow ChartsWindow => throw new NotSupportedException();
         public MainView MainView => throw new NotSupportedException();
     }
 

@@ -3,6 +3,8 @@
 ## Overview
 This document outlines the complete implementation plan for adding real-time chart visualization to BlueMeter, inspired by StarResonanceDps's chart system.
 
+**Current Status**: ✅ Phase 1 Complete - OxyPlot integrated and tested
+
 ---
 
 ## Table of Contents
@@ -101,70 +103,106 @@ void OnTimerTick()
 
 ### Our Approach vs StarResonanceDps
 
-| Aspect | StarResonanceDps | BlueMeter (Our Plan) |
-|--------|------------------|----------------------|
+| Aspect | StarResonanceDps | BlueMeter (Our Implementation) |
+|--------|------------------|-------------------------------|
 | **UI Framework** | WinForms | WPF |
-| **Chart Library** | Custom Graphics | LiveCharts2 |
+| **Chart Library** | Custom Graphics | **OxyPlot 2.2.0** |
 | **Update Frequency** | 200ms | 200ms (same) |
 | **Data Window** | 1 second | 1 second (same) |
 | **Max History** | 500 points | 500 points (same) |
 | **Theme Support** | Dark/Light | Dark/Light (same) |
 
-### Why Different Library?
-- **WPF Native**: LiveCharts2 is designed for WPF (better integration)
-- **MVVM Support**: Built-in data binding
-- **Less Code**: No need to implement custom rendering
-- **Maintained**: Active development and community support
+### Why OxyPlot?
+- ✅ **Stable Release**: Version 2.2.0 (not prerelease)
+- ✅ **WPF Native**: Excellent WPF integration
+- ✅ **MVVM Support**: Built-in data binding with PlotModel
+- ✅ **Reliable**: Mature library, proven in production
+- ✅ **Lightweight**: Smaller dependency footprint
+- ✅ **Simple API**: Easy to learn and use
+- ✅ **Performance**: Fast rendering for real-time data
+- ✅ **Theme Support**: Easy dark/light mode customization
 
 ---
 
 ## Library Selection
 
-### Option 1: LiveCharts2 ⭐ **RECOMMENDED**
-**NuGet**: `LiveChartsCore.SkiaSharpView.WPF`
+### ✅ Selected: OxyPlot **PRODUCTION READY**
+**NuGet**: `OxyPlot.Wpf` Version 2.2.0
 
 **Pros:**
+- ✅ Stable release (not prerelease)
 - ✅ Native WPF support with MVVM
-- ✅ Beautiful default styling
-- ✅ Excellent performance (SkiaSharp backend)
-- ✅ Real-time updates support
-- ✅ Built-in animations
-- ✅ Active development
-- ✅ Great documentation
+- ✅ Clean, simple API
+- ✅ Excellent performance
+- ✅ Easy theme customization
+- ✅ No XAML compilation issues
+- ✅ Active community support
+- ✅ Comprehensive documentation
 
 **Cons:**
-- ❌ Larger dependency size (~8MB)
-- ❌ Learning curve for API
+- ⚠️ Less "modern" animations than some alternatives
+- ⚠️ Styling requires code (not XAML-based)
 
-**Code Example:**
+**Tested Code Example:**
 ```csharp
-// Simple line chart
-public ObservableCollection<ISeries> Series { get; set; } = new()
+using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
+
+public class ChartTestViewModel
 {
-    new LineSeries<double>
+    public PlotModel PlotModel { get; set; }
+
+    public ChartTestViewModel()
     {
-        Values = new ObservableCollection<double> { 2, 5, 4, 6, 8 },
-        Fill = null,
-        GeometrySize = 0
+        PlotModel = new PlotModel
+        {
+            Title = "DPS Trend",
+            Background = OxyColors.Transparent,
+            TextColor = OxyColors.White
+        };
+
+        // Add axes
+        PlotModel.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "DPS",
+            TitleColor = OxyColors.White,
+            TextColor = OxyColors.White
+        });
+
+        // Create line series
+        var lineSeries = new LineSeries
+        {
+            Title = "Player DPS",
+            Color = OxyColors.CornflowerBlue,
+            StrokeThickness = 2
+        };
+
+        // Add data points
+        for (int i = 0; i < values.Length; i++)
+        {
+            lineSeries.Points.Add(new DataPoint(i, values[i]));
+        }
+
+        PlotModel.Series.Add(lineSeries);
     }
-};
+}
 ```
 
-### Option 2: ScottPlot
-**NuGet**: `ScottPlot.WPF`
+**XAML Usage:**
+```xml
+<oxy:PlotView Model="{Binding PlotModel}" />
+```
 
-**Pros:**
-- ✅ Very fast rendering
-- ✅ Lightweight
-- ✅ Simple API
-- ✅ Good for scientific plots
+### ❌ Rejected: LiveCharts2
+**NuGet**: `LiveChartsCore.SkiaSharpView.WPF` Version 2.0.0-rc6.1
 
-**Cons:**
-- ❌ Less WPF-native (uses WinForms host)
-- ❌ Styling requires more work
-- ❌ Less suitable for real-time streaming
-
-**Decision: Use LiveCharts2** for better WPF integration and real-time support.
+**Issues Encountered:**
+- ❌ Prerelease version (not production-ready)
+- ❌ XAML compilation errors in .NET 8
+- ❌ WPF XAML compiler cannot find assemblies
+- ❌ Larger dependency footprint (~8MB)
 
 ---
 
@@ -181,7 +219,8 @@ BlueMeter.WPF
 │   ├── DpsTrendChartViewModel.cs    # DPS trend chart VM
 │   └── SkillBreakdownViewModel.cs   # Skill breakdown VM
 ├── Views/
-│   └── ChartsWindow.xaml            # Charts window UI
+│   ├── ChartsWindow.xaml            # Charts window UI
+│   └── ChartTestWindow.xaml         # Test window (Phase 1) ✅
 └── Models/
     └── ChartDataPoint.cs            # Time-series data point
 
@@ -201,13 +240,13 @@ DpsData (accumulates damage)
     ↓ [Every damage event]
 DpsData.UpdateRealtimeStats() (sliding window)
     ↓ [Every 200ms]
-ChartDataService.SampleData() (reads RealtimeValue)
+ChartDataService.SampleData() (reads InstantDps)
     ↓
 ChartDataService._history (stores time-series)
     ↓ [On UI update]
-ChartsWindowViewModel (binds to LiveCharts)
+ChartsWindowViewModel (updates OxyPlot PlotModel)
     ↓
-ChartsWindow.xaml (renders)
+ChartsWindow.xaml (PlotView renders chart)
 ```
 
 ---
@@ -306,6 +345,13 @@ public record ChartDataPoint
         Timestamp = timestamp;
         Value = value;
     }
+
+    // For OxyPlot DataPoint conversion
+    public DataPoint ToOxyDataPoint(DateTime baseTime)
+    {
+        var seconds = (Timestamp - baseTime).TotalSeconds;
+        return new DataPoint(seconds, Value);
+    }
 }
 ```
 
@@ -323,6 +369,7 @@ using System.Windows.Threading;
 using BlueMeter.Core.Data;
 using BlueMeter.WPF.Models;
 using Microsoft.Extensions.Logging;
+using OxyPlot;
 
 namespace BlueMeter.WPF.Services;
 
@@ -437,15 +484,22 @@ public sealed class ChartDataService : IDisposable
 
 ## Implementation Phases
 
-### Phase 1: Library Setup (1-2 hours)
-**Goal**: Install and configure LiveCharts2
+### ✅ Phase 1: Library Setup (COMPLETED)
+**Goal**: Install and configure OxyPlot
 
 **Tasks:**
-1. Add NuGet package `LiveChartsCore.SkiaSharpView.WPF` to BlueMeter.WPF
-2. Test basic chart rendering with dummy data
-3. Verify theme compatibility (dark/light mode)
+1. ✅ Add NuGet package `OxyPlot.Wpf` to BlueMeter.WPF
+2. ✅ Test basic chart rendering with dummy data
+3. ✅ Verify theme compatibility (dark mode)
+4. ✅ Create ChartTestWindow and ChartTestViewModel
+5. ✅ Verify build succeeds
 
-**Deliverable**: Simple test window with a working line chart
+**Deliverable**: ✅ Working test window with OxyPlot line chart
+
+**Files Created:**
+- `BlueMeter.WPF/Views/ChartTestWindow.xaml`
+- `BlueMeter.WPF/Views/ChartTestWindow.xaml.cs`
+- `BlueMeter.WPF/ViewModels/ChartTestViewModel.cs`
 
 ---
 
@@ -465,6 +519,9 @@ public sealed class ChartDataService : IDisposable
 - Verify windows clear on section end
 
 **Deliverable**: DpsData with working real-time stats
+
+**Files to Modify:**
+- `BlueMeter.Core/Models/DpsData.cs`
 
 ---
 
@@ -504,7 +561,7 @@ public sealed class ChartDataService : IDisposable
 - `BlueMeter.WPF/Services/IChartDataService.cs`
 
 **Files to Modify:**
-- `BlueMeter.WPF/Services/ApplicationStartup.cs` (register service)
+- `BlueMeter.WPF/App.xaml.cs` (register service)
 
 **Testing:**
 - Verify sampling occurs every 200ms
@@ -524,7 +581,7 @@ public sealed class ChartDataService : IDisposable
    - DPS Trend
    - Skill Breakdown
    - Player Comparison
-3. Add window styling (theme support)
+3. Add window styling (dark theme)
 4. Add menu item in main window to open charts
 5. Create `ChartsWindowViewModel.cs`
 
@@ -540,22 +597,28 @@ public sealed class ChartDataService : IDisposable
 ---
 
 ### Phase 4: DPS Trend Chart (3-4 hours)
-**Goal**: Implement real-time DPS line chart
+**Goal**: Implement real-time DPS line chart with OxyPlot
 
 **Tasks:**
 1. Create `DpsTrendChartViewModel.cs`
 2. Bind to ChartDataService history
-3. Configure LiveCharts LineSeries
+3. Configure OxyPlot LineSeries and Axes
 4. Add player selection (show all or specific player)
 5. Add time range slider (30s, 60s, 120s)
-6. Implement chart theming
+6. Implement chart theming (dark mode)
+
+**OxyPlot Features to Use:**
+- `LineSeries` for DPS trends
+- `LinearAxis` for X/Y axes
+- `PlotModel.InvalidatePlot()` for real-time updates
+- Color customization for dark theme
 
 **Features:**
 - Multi-player lines (different colors)
-- Smooth interpolation
 - Auto-scaling Y axis
 - Time labels on X axis
 - Legend with player names
+- Grid lines
 
 **Deliverable**: Working DPS trend chart
 
@@ -567,9 +630,14 @@ public sealed class ChartDataService : IDisposable
 **Tasks:**
 1. Create `SkillBreakdownViewModel.cs`
 2. Calculate skill damage percentages
-3. Configure LiveCharts PieSeries
+3. Configure OxyPlot PieSeries
 4. Add player dropdown selector
 5. Show top 8 skills + "Others"
+
+**OxyPlot Features:**
+- `PieSeries` for skill breakdown
+- Custom colors per slice
+- Labels with percentages
 
 **Features:**
 - Player selection dropdown
@@ -587,9 +655,13 @@ public sealed class ChartDataService : IDisposable
 **Tasks:**
 1. Create `PlayerComparisonViewModel.cs`
 2. Calculate average DPS per player
-3. Configure LiveCharts ColumnSeries
+3. Configure OxyPlot BarSeries/ColumnSeries
 4. Sort players by DPS (descending)
 5. Add metric selector (DPS, Total Damage, HPS)
+
+**OxyPlot Features:**
+- `BarSeries` or `ColumnSeries` for player comparison
+- `CategoryAxis` for player names
 
 **Features:**
 - Sorted bars
@@ -607,10 +679,19 @@ public sealed class ChartDataService : IDisposable
 **Tasks:**
 1. Implement dark/light theme switching
 2. Match BlueMeter's color scheme
-3. Add chart animations
-4. Add loading states
-5. Error handling (no data)
-6. Performance optimization
+3. Add loading states
+4. Error handling (no data)
+5. Performance optimization
+6. OxyPlot theme customization
+
+**OxyPlot Theming:**
+```csharp
+PlotModel.Background = OxyColors.Transparent;
+PlotModel.TextColor = OxyColors.White;
+PlotModel.PlotAreaBorderColor = OxyColors.Gray;
+axis.TicklineColor = OxyColors.Gray;
+axis.MajorGridlineColor = OxyColor.FromArgb(40, 255, 255, 255);
+```
 
 **Deliverable**: Polished, themed charts
 
@@ -633,19 +714,19 @@ public sealed class ChartDataService : IDisposable
 
 ## Time Estimates
 
-| Phase | Description | Estimated Time |
-|-------|-------------|----------------|
-| Phase 1 | Library Setup | 1-2 hours |
-| Phase 2A | Real-Time Windowing | 2-3 hours |
-| Phase 2B | Hook into DataStorage | 1-2 hours |
-| Phase 2C | ChartDataService | 2-3 hours |
-| Phase 3 | Charts Window UI | 3-4 hours |
-| Phase 4 | DPS Trend Chart | 3-4 hours |
-| Phase 5 | Skill Breakdown | 2-3 hours |
-| Phase 6 | Player Comparison | 2-3 hours |
-| Phase 7 | Theme & Polish | 2-3 hours |
-| Phase 8 | Testing | 2-3 hours |
-| **TOTAL** | | **20-29 hours** |
+| Phase | Description | Estimated Time | Status |
+|-------|-------------|----------------|--------|
+| Phase 1 | Library Setup (OxyPlot) | 1-2 hours | ✅ Complete |
+| Phase 2A | Real-Time Windowing | 2-3 hours | ⏳ Next |
+| Phase 2B | Hook into DataStorage | 1-2 hours | 📋 Pending |
+| Phase 2C | ChartDataService | 2-3 hours | 📋 Pending |
+| Phase 3 | Charts Window UI | 3-4 hours | 📋 Pending |
+| Phase 4 | DPS Trend Chart | 3-4 hours | 📋 Pending |
+| Phase 5 | Skill Breakdown | 2-3 hours | 📋 Pending |
+| Phase 6 | Player Comparison | 2-3 hours | 📋 Pending |
+| Phase 7 | Theme & Polish | 2-3 hours | 📋 Pending |
+| Phase 8 | Testing | 2-3 hours | 📋 Pending |
+| **TOTAL** | | **20-29 hours** | **~8% Done** |
 
 ---
 
@@ -653,15 +734,15 @@ public sealed class ChartDataService : IDisposable
 
 ### ✅ Decisions Made
 
-1. **Library**: LiveCharts2 (WPF native, MVVM support, real-time updates)
+1. **Library**: **OxyPlot 2.2.0** (stable, WPF native, MVVM support)
 2. **Sampling Rate**: 200ms (5 samples/second)
 3. **Window Size**: 1 second sliding window for instant stats
 4. **History Limit**: 500 data points per player (FIFO)
 5. **Chart Types**:
-   - DPS Trend (line chart)
-   - Skill Breakdown (pie chart)
-   - Player Comparison (bar chart)
-6. **Theme Support**: Dark/Light mode matching BlueMeter
+   - DPS Trend (LineSeries)
+   - Skill Breakdown (PieSeries)
+   - Player Comparison (BarSeries)
+6. **Theme Support**: Dark/Light mode with OxyPlot color customization
 
 ### 🔄 Implementation Strategy
 
@@ -669,6 +750,48 @@ public sealed class ChartDataService : IDisposable
 - **Test-Driven**: Test each phase before moving on
 - **Data-First**: Build data layer before UI
 - **Performance-Conscious**: Background sampling, limited history
+
+---
+
+## OxyPlot Quick Reference
+
+### Basic Line Chart
+```csharp
+var plotModel = new PlotModel { Title = "DPS Trend" };
+
+var lineSeries = new LineSeries
+{
+    Title = "Player DPS",
+    Color = OxyColors.CornflowerBlue
+};
+
+for (int i = 0; i < data.Length; i++)
+    lineSeries.Points.Add(new DataPoint(i, data[i]));
+
+plotModel.Series.Add(lineSeries);
+```
+
+### Dark Theme Setup
+```csharp
+PlotModel.Background = OxyColors.Transparent;
+PlotModel.TextColor = OxyColors.White;
+PlotModel.PlotAreaBorderColor = OxyColors.Gray;
+PlotModel.TitleColor = OxyColors.White;
+
+axis.TitleColor = OxyColors.White;
+axis.TextColor = OxyColors.White;
+axis.TicklineColor = OxyColors.Gray;
+axis.MajorGridlineColor = OxyColor.FromArgb(40, 255, 255, 255);
+```
+
+### Real-Time Updates
+```csharp
+// Add new data point
+lineSeries.Points.Add(new DataPoint(x, y));
+
+// Trigger refresh
+plotModel.InvalidatePlot(true);
+```
 
 ---
 
@@ -709,15 +832,16 @@ private void AutoRefreshTimer_Tick(object sender, EventArgs e)
 
 ## Next Steps
 
-When ready to implement:
+**Ready to proceed with Phase 2A: Real-Time Windowing**
 
-1. **Start with Phase 1**: Install LiveCharts2 and test basic rendering
-2. **Proceed sequentially**: Each phase builds on the previous
-3. **Test thoroughly**: Verify each component before moving on
-4. **Ask questions**: Clarify any technical details as needed
+1. ✅ **Phase 1 Complete**: OxyPlot integrated and tested
+2. ⏳ **Next**: Extend DpsData with sliding window logic
+3. 📋 **Then**: Hook into DataStorage for real damage events
+4. 📋 **Then**: Implement ChartDataService background sampling
 
 ---
 
-**Last Updated**: 2025-01-18
-**Status**: Planning Phase (Now)
-**Priority**: Medium (after current bug fixes)
+**Last Updated**: 2025-11-19
+**Status**: Phase 1 Complete ✅ - Ready for Phase 2A
+**Library**: OxyPlot 2.2.0 (Stable)
+**Priority**: High

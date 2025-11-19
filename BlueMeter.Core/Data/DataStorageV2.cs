@@ -646,6 +646,9 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             TrySetSubProfessionBySkillId(log.AttackerUuid, log.SkillID);
             fullData.TotalHeal += log.Value;
             sectionedData.TotalHeal += log.Value;
+
+            // Real-time windowing for charts (Phase 2B)
+            sectionedData.AddHealToWindow(log.Value);
         }
 
         // Track damage dealt by players (regardless of target type)
@@ -655,6 +658,9 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             TrySetSubProfessionBySkillId(log.AttackerUuid, log.SkillID);
             fullData.TotalAttackDamage += log.Value;
             sectionedData.TotalAttackDamage += log.Value;
+
+            // Real-time windowing for charts (Phase 2B)
+            sectionedData.AddDamageToWindow(log.Value);
         }
 
         // Track damage taken by players
@@ -694,6 +700,12 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     /// </summary>
     private void PrivateClearDpsDataNoEvents()
     {
+        // Clear sliding windows for charts (Phase 2B)
+        foreach (var dpsData in SectionedDpsData.Values)
+        {
+            dpsData.ClearWindows();
+        }
+
         SectionedDpsData.Clear();
     }
 
@@ -757,6 +769,12 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
 
     private void PrivateClearDpsData()
     {
+        // Clear sliding windows for charts (Phase 2B)
+        foreach (var dpsData in SectionedDpsData.Values)
+        {
+            dpsData.ClearWindows();
+        }
+
         SectionedDpsData.Clear();
 
         // Reset boss tracking when section clears
