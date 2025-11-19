@@ -210,6 +210,15 @@
   <data name="Settings_Shortcut_ClearData" xml:space="preserve">
     <value>Clear Data</value>
   </data>
+  <data name="Settings_Shortcut_EnableGlobalHotkeys" xml:space="preserve">
+    <value>Enable Global Hotkeys</value>
+  </data>
+  <data name="Settings_Shortcut_EnableGlobalHotkeys_Tooltip" xml:space="preserve">
+    <value>Turn on/off all global hotkeys. When disabled, no hotkeys will work.</value>
+  </data>
+  <data name="Settings_Shortcut_PressKeyToSet" xml:space="preserve">
+    <value>Press Key to Set</value>
+  </data>
   <data name="Settings_Shortcut_MouseThrough_Tooltip" xml:space="preserve">
     <value>Focus this box and press a shortcut (e.g. Ctrl+F6). Press Delete to clear.</value>
   </data>

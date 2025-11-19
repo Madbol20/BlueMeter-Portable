@@ -47,7 +47,23 @@ public sealed class GlobalHotkeyService(
 
     public void UpdateFromConfig(AppConfig config)
     {
+        // Check if hotkey keys/modifiers actually changed
+        bool hotkeysChanged =
+            _config.MouseThroughShortcut != config.MouseThroughShortcut ||
+            _config.ClearDataShortcut != config.ClearDataShortcut ||
+            _config.TopmostShortcut != config.TopmostShortcut;
+
+        // Check if the toggle changed
+        bool toggleChanged = _config.GlobalHotkeysEnabled != config.GlobalHotkeysEnabled;
+
         _config = config;
+
+        // Only re-register if hotkey keys/modifiers changed OR the toggle changed
+        if (!hotkeysChanged && !toggleChanged)
+        {
+            return;
+        }
+
         // Ensure all (un)registration runs on the UI thread owning the window/handle
         var dispatcher = windowManager.DpsStatisticsView.Dispatcher;
         if (dispatcher.CheckAccess())
@@ -227,7 +243,14 @@ public sealed class GlobalHotkeyService(
     {
         if (msg != WM_HOTKEY) return IntPtr.Zero;
 
+        // Check if global hotkeys are enabled - use current config directly
+        if (!configManager.CurrentConfig.GlobalHotkeysEnabled)
+        {
+            return IntPtr.Zero;
+        }
+
         var id = wParam.ToInt32();
+
         switch (id)
         {
             case HOTKEY_ID_MOUSETHROUGH:
@@ -283,7 +306,9 @@ public sealed class GlobalHotkeyService(
     {
         try
         {
-            dpsStatisticsViewModel.ResetSection();
+            logger.LogInformation("TriggerReset called - resetting ALL DPS statistics");
+            dpsStatisticsViewModel.ResetAll();
+            logger.LogInformation("TriggerReset completed successfully");
         }
         catch (Exception ex)
         {

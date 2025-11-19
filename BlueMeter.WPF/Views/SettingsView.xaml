@@ -47,6 +47,8 @@
         <converters:PanelColorModeConverter x:Key="PanelColorModeConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
         <converters:PanelTextColorModeConverter x:Key="PanelTextColorModeConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
         <converters:PanelBorderColorModeConverter x:Key="PanelBorderColorModeConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
+        <converters:ShowOverlayToColorConverter x:Key="ShowOverlayToColorConverter" xmlns:converters="clr-namespace:BlueMeter.WPF.Converters" />
 
         <Style x:Key="SelectedIconfont" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="pack://application:,,,/Assets/Fonts/#IconFont" />
@@ -517,13 +519,11 @@
                                             <TextBlock
                                                 Grid.Column="0"
                                                 Style="{StaticResource FieldName}"
-                                                Text="Enable Global Hotkeys"
-                                                ToolTip="Turn on/off all global hotkeys. When disabled, no hotkeys will work." />
-                                            <CheckBox
-                                                Grid.Column="2"
-                                                HorizontalAlignment="Left"
-                                                IsChecked="{Binding AppConfig.GlobalHotkeysEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                Style="{StaticResource CheckBoxSwitch}" />
+                                                Text="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_EnableGlobalHotkeys}}"
+                                                ToolTip="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_EnableGlobalHotkeys_Tooltip}}" />
+                                            <Border Grid.Column="2" HorizontalAlignment="Right">
+                                                <ctrl:SwitchControl IsChecked="{Binding AppConfig.GlobalHotkeysEnabled}" />
+                                            </Border>
                                         </Grid>
                                     </Border>
 
@@ -539,17 +539,37 @@
                                                 Grid.Column="0"
                                                 Style="{StaticResource FieldName}"
                                                 Text="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_MouseThrough}}" />
-                                            <TextBox
-                                                x:Name="MouseThroughTextBox"
-                                                Grid.Column="2"
-                                                IsReadOnly="True"
-                                                Style="{StaticResource AntTextBoxStyle}"
-                                                Text="{Binding AppConfig.MouseThroughShortcut, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource KeyToStringConverter}}"
-                                                ToolTip="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_MouseThrough_Tooltip}}">
-                                                <b:Interaction.Behaviors>
-                                                    <behaviors:KeyDownCommandBehavior Command="{Binding HandleMouseThroughShortcutCommand}" />
-                                                </b:Interaction.Behaviors>
-                                            </TextBox>
+                                            <Grid Grid.Column="2">
+                                                <TextBox
+                                                    x:Name="MouseThroughTextBox"
+                                                    IsEnabled="{Binding AppConfig.GlobalHotkeysEnabled}"
+                                                    IsReadOnly="True"
+                                                    Style="{StaticResource AntTextBoxStyle}"
+                                                    Text="{Binding AppConfig.MouseThroughShortcut, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource KeyToStringConverter}}"
+                                                    ToolTip="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_MouseThrough_Tooltip}}">
+                                                    <b:Interaction.Behaviors>
+                                                        <behaviors:HotkeyOverlayBehavior x:Name="MouseThroughOverlay" />
+                                                        <behaviors:KeyDownCommandBehavior Command="{Binding HandleMouseThroughShortcutCommand}" />
+                                                    </b:Interaction.Behaviors>
+                                                    <TextBox.Foreground>
+                                                        <SolidColorBrush>
+                                                            <SolidColorBrush.Color>
+                                                                <MultiBinding Converter="{StaticResource ShowOverlayToColorConverter}">
+                                                                    <Binding Path="ShowOverlay" ElementName="MouseThroughOverlay" />
+                                                                </MultiBinding>
+                                                            </SolidColorBrush.Color>
+                                                        </SolidColorBrush>
+                                                    </TextBox.Foreground>
+                                                </TextBox>
+                                                <TextBlock
+                                                    IsHitTestVisible="False"
+                                                    VerticalAlignment="Center"
+                                                    Margin="8,0,0,0"
+                                                    FontSize="12"
+                                                    Foreground="#000000"
+                                                    Text="Enter Hot Key"
+                                                    Visibility="{Binding ShowOverlay, ElementName=MouseThroughOverlay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            </Grid>
                                         </Grid>
                                     </Border>
 
@@ -565,17 +585,37 @@
                                                 Grid.Column="0"
                                                 Style="{StaticResource FieldName}"
                                                 Text="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_ClearData}}" />
-                                            <TextBox
-                                                x:Name="ClearDataTextBox"
-                                                Grid.Column="2"
-                                                IsReadOnly="True"
-                                                Style="{StaticResource AntTextBoxStyle}"
-                                                Text="{Binding AppConfig.ClearDataShortcut, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource KeyToStringConverter}}"
-                                                ToolTip="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_ClearData_Tooltip}}">
-                                                <b:Interaction.Behaviors>
-                                                    <behaviors:KeyDownCommandBehavior Command="{Binding HandleClearDataShortcutCommand}" />
-                                                </b:Interaction.Behaviors>
-                                            </TextBox>
+                                            <Grid Grid.Column="2">
+                                                <TextBox
+                                                    x:Name="ClearDataTextBox"
+                                                    IsEnabled="{Binding AppConfig.GlobalHotkeysEnabled}"
+                                                    IsReadOnly="True"
+                                                    Style="{StaticResource AntTextBoxStyle}"
+                                                    Text="{Binding AppConfig.ClearDataShortcut, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource KeyToStringConverter}}"
+                                                    ToolTip="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_ClearData_Tooltip}}">
+                                                    <b:Interaction.Behaviors>
+                                                        <behaviors:HotkeyOverlayBehavior x:Name="ClearDataOverlay" />
+                                                        <behaviors:KeyDownCommandBehavior Command="{Binding HandleClearDataShortcutCommand}" />
+                                                    </b:Interaction.Behaviors>
+                                                    <TextBox.Foreground>
+                                                        <SolidColorBrush>
+                                                            <SolidColorBrush.Color>
+                                                                <MultiBinding Converter="{StaticResource ShowOverlayToColorConverter}">
+                                                                    <Binding Path="ShowOverlay" ElementName="ClearDataOverlay" />
+                                                                </MultiBinding>
+                                                            </SolidColorBrush.Color>
+                                                        </SolidColorBrush>
+                                                    </TextBox.Foreground>
+                                                </TextBox>
+                                                <TextBlock
+                                                    IsHitTestVisible="False"
+                                                    VerticalAlignment="Center"
+                                                    Margin="8,0,0,0"
+                                                    FontSize="12"
+                                                    Foreground="#000000"
+                                                    Text="Enter Hot Key"
+                                                    Visibility="{Binding ShowOverlay, ElementName=ClearDataOverlay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            </Grid>
                                         </Grid>
                                     </Border>
 
@@ -591,19 +631,47 @@
                                                 Grid.Column="0"
                                                 Style="{StaticResource FieldName}"
                                                 Text="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_TopMost}}" />
-                                            <TextBox
-                                                x:Name="TopMostTextBox"
-                                                Grid.Column="2"
-                                                IsReadOnly="True"
-                                                Style="{StaticResource AntTextBoxStyle}"
-                                                Text="{Binding AppConfig.TopmostShortcut, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource KeyToStringConverter}}"
-                                                ToolTip="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_TopMost_Tooltip}}">
-                                                <b:Interaction.Behaviors>
-                                                    <behaviors:KeyDownCommandBehavior Command="{Binding HandleTopMostShortcutCommand}" />
-                                                </b:Interaction.Behaviors>
-                                            </TextBox>
+                                            <Grid Grid.Column="2">
+                                                <TextBox
+                                                    x:Name="TopMostTextBox"
+                                                    IsEnabled="{Binding AppConfig.GlobalHotkeysEnabled}"
+                                                    IsReadOnly="True"
+                                                    Style="{StaticResource AntTextBoxStyle}"
+                                                    Text="{Binding AppConfig.TopmostShortcut, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource KeyToStringConverter}}"
+                                                    ToolTip="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Shortcut_TopMost_Tooltip}}">
+                                                    <b:Interaction.Behaviors>
+                                                        <behaviors:HotkeyOverlayBehavior x:Name="TopMostOverlay" />
+                                                        <behaviors:KeyDownCommandBehavior Command="{Binding HandleTopMostShortcutCommand}" />
+                                                    </b:Interaction.Behaviors>
+                                                    <TextBox.Foreground>
+                                                        <SolidColorBrush>
+                                                            <SolidColorBrush.Color>
+                                                                <MultiBinding Converter="{StaticResource ShowOverlayToColorConverter}">
+                                                                    <Binding Path="ShowOverlay" ElementName="TopMostOverlay" />
+                                                                </MultiBinding>
+                                                            </SolidColorBrush.Color>
+                                                        </SolidColorBrush>
+                                                    </TextBox.Foreground>
+                                                </TextBox>
+                                                <TextBlock
+                                                    IsHitTestVisible="False"
+                                                    VerticalAlignment="Center"
+                                                    Margin="8,0,0,0"
+                                                    FontSize="12"
+                                                    Foreground="#000000"
+                                                    Text="Enter Hot Key"
+                                                    Visibility="{Binding ShowOverlay, ElementName=TopMostOverlay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            </Grid>
                                         </Grid>
                                     </Border>
+
+                                    <!-- Hint text for hotkey customization -->
+                                    <TextBlock
+                                        Margin="12,8,12,0"
+                                        FontSize="11"
+                                        Foreground="#888888"
+                                        TextWrapping="Wrap"
+                                        Text="💡 Tip: Click any hotkey field and press your desired key combination (e.g., Ctrl+F5). Press Delete to clear a hotkey." />
 
                                 </StackPanel>
                             </Border>

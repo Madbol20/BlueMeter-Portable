@@ -22,9 +22,13 @@ public partial class SettingsViewModel(
     IConfigManager configManager,
     IDeviceManagementService deviceManagementService,
     LocalizationManager localization,
-    IMessageDialogService messageDialogService)
+    IMessageDialogService messageDialogService,
+    IGlobalHotkeyService globalHotkeyService)
     : BaseViewModel, IDisposable
 {
+    // Expose the global hotkey service so it can be accessed by behaviors
+    public IGlobalHotkeyService GlobalHotkeyService => globalHotkeyService;
+
     [ObservableProperty] private AppConfig _appConfig = configManager.CurrentConfig.Clone(); // Initialized here with a cloned config; may be overwritten in LoadedAsync
 
     [ObservableProperty]
@@ -222,6 +226,15 @@ public partial class SettingsViewModel(
                 deviceManagementService.SetActiveNetworkAdapter(adapter);
             }
         }
+        else if (e.PropertyName == nameof(AppConfig.GlobalHotkeysEnabled))
+        {
+            // Save immediately when toggle changes to make it work live without Apply button
+            // This triggers ConfigurationUpdated event → GlobalHotkeyService.UpdateFromConfig()
+            if (_isLoaded)
+            {
+                _ = configManager.SaveAsync(config);
+            }
+        }
 
         if (_isLoaded)
         {
@@ -261,7 +274,7 @@ public partial class SettingsViewModel(
     private void UpdateShortcut(ShortcutType shortcutType, Key key, ModifierKeys modifiers)
     {
         // Validate that the key can be registered as a Windows global hotkey
-        if (!IsValidHotkeyKey(key, out var errorMessage))
+        if (!IsValidHotkeyKey(key, modifiers, out var errorMessage))
         {
             messageDialogService.Show(
                 "Invalid Hotkey",
@@ -291,11 +304,20 @@ public partial class SettingsViewModel(
     /// Validates if a key can be used for Windows global hotkeys
     /// </summary>
     /// <param name="key">The key to validate</param>
+    /// <param name="modifiers">The modifier keys</param>
     /// <param name="errorMessage">Error message if validation fails</param>
     /// <returns>True if valid, false otherwise</returns>
-    private bool IsValidHotkeyKey(Key key, out string? errorMessage)
+    private bool IsValidHotkeyKey(Key key, ModifierKeys modifiers, out string? errorMessage)
     {
         errorMessage = null;
+
+        // CRITICAL: Global hotkeys without modifiers block the key system-wide!
+        // This prevents normal typing/usage of the key in all applications.
+        if (modifiers == ModifierKeys.None)
+        {
+            errorMessage = $"Global hotkeys MUST have at least one modifier key (Ctrl, Alt, or Shift).\n\nWithout modifiers, the key '{key}' would be blocked system-wide and you couldn't type it anymore!\n\nExample: Ctrl+{key} or Alt+{key}";
+            return false;
+        }
 
         // Check if we can get a valid virtual key code
         var vk = KeyInterop.VirtualKeyFromKey(key);
@@ -514,7 +536,7 @@ public enum ShortcutType
 
 public sealed class SettingsDesignTimeViewModel : SettingsViewModel
 {
-    public SettingsDesignTimeViewModel() : base(new DesignConfigManager(), new DesignTimeDeviceManagementService(), new LocalizationManager(new LocalizationConfiguration(), NullLogger<LocalizationManager>.Instance), new DesignMessageDialogService())
+    public SettingsDesignTimeViewModel() : base(new DesignConfigManager(), new DesignTimeDeviceManagementService(), new LocalizationManager(new LocalizationConfiguration(), NullLogger<LocalizationManager>.Instance), new DesignMessageDialogService(), new DesignTimeGlobalHotkeyService())
     {
         AppConfig = new AppConfig
         {
