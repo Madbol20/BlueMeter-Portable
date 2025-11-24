@@ -37,7 +37,12 @@ public sealed class ApplicationStartup(
             // Initialize database for encounter history
             try
             {
-                await DataStorageExtensions.InitializeDatabaseAsync(dataStorage, chartDataService: chartDataService);
+                await DataStorageExtensions.InitializeDatabaseAsync(
+                    dataStorage,
+                    chartDataService: chartDataService,
+                    autoCleanup: configManager.CurrentConfig.AutoDatabaseCleanup,
+                    maxEncounters: configManager.CurrentConfig.MaxEncountersToKeep,
+                    maxSizeMB: configManager.CurrentConfig.MaxDatabaseSizeMB);
                 logger.LogInformation(WpfLogEvents.StartupInit, "Database initialized successfully");
 
                 // Preload player cache from database to reduce "Unknown" players

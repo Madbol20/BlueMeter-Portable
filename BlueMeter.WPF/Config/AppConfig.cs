@@ -230,6 +230,26 @@ public partial class AppConfig : ObservableObject
     [ObservableProperty]
     private long _manualPlayerUid = 0;
 
+    // ===== Database Cleanup Settings =====
+
+    /// <summary>
+    /// Enable automatic database cleanup on startup
+    /// </summary>
+    [ObservableProperty]
+    private bool _autoDatabaseCleanup = true;
+
+    /// <summary>
+    /// Maximum number of encounters to keep in database
+    /// </summary>
+    [ObservableProperty]
+    private int _maxEncountersToKeep = 100;
+
+    /// <summary>
+    /// Maximum database size in MB before triggering cleanup
+    /// </summary>
+    [ObservableProperty]
+    private double _maxDatabaseSizeMB = 100;
+
     public AppConfig Clone()
     {
         // TODO: Add unittest

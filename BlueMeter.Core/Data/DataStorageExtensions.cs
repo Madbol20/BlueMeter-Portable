@@ -22,7 +22,13 @@ public static class DataStorageExtensions
     /// <summary>
     /// Initialize database integration with DataStorage
     /// </summary>
-    public static async Task InitializeDatabaseAsync(IDataStorage? dataStorage = null, string? databasePath = null, object? chartDataService = null)
+    public static async Task InitializeDatabaseAsync(
+        IDataStorage? dataStorage = null,
+        string? databasePath = null,
+        object? chartDataService = null,
+        bool autoCleanup = true,
+        int maxEncounters = 100,
+        double maxSizeMB = 100)
     {
         if (_isInitialized) return;
 
@@ -30,8 +36,8 @@ public static class DataStorageExtensions
         _dataStorage = dataStorage;
         _chartDataService = chartDataService; // Store reference to chart service
 
-        // Initialize database
-        await DatabaseInitializer.InitializeAsync(databasePath);
+        // Initialize database with cleanup settings
+        await DatabaseInitializer.InitializeAsync(databasePath, autoCleanup, maxEncounters, maxSizeMB);
 
         // Create encounter service
         var contextFactory = DatabaseInitializer.CreateContextFactory(databasePath);

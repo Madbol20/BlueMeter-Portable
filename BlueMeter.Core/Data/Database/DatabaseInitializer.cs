@@ -13,7 +13,7 @@ public static class DatabaseInitializer
     /// <summary>
     /// Initialize database and run migrations
     /// </summary>
-    public static async Task InitializeAsync(string databasePath)
+    public static async Task InitializeAsync(string databasePath, bool autoCleanup = true, int maxEncounters = 100, double maxSizeMB = 100)
     {
         // Ensure directory exists
         var directory = Path.GetDirectoryName(databasePath);
@@ -35,6 +35,95 @@ public static class DatabaseInitializer
         // Deactivate any active encounters from previous session
         var repository = new EncounterRepository(context);
         await repository.DeactivateAllEncountersAsync();
+
+        // Automatic cleanup if enabled
+        if (autoCleanup)
+        {
+            await AutoCleanupDatabaseAsync(databasePath, context, maxEncounters, maxSizeMB);
+        }
+    }
+
+    /// <summary>
+    /// Automatically clean up old encounters based on size and count limits
+    /// </summary>
+    private static async Task AutoCleanupDatabaseAsync(string databasePath, BlueMeterDbContext context, int maxEncounters, double maxSizeMB)
+    {
+        try
+        {
+            var sizeMB = GetDatabaseSizeMB(databasePath);
+            DebugLogger.Log($"[DatabaseInitializer] Database size: {sizeMB:F2} MB (limit: {maxSizeMB} MB)");
+
+            // Check if cleanup is needed
+            if (sizeMB > maxSizeMB)
+            {
+                DebugLogger.Log($"[DatabaseInitializer] ⚠️ Database size exceeds limit! Starting automatic cleanup...");
+                Console.WriteLine($"Database size ({sizeMB:F2} MB) exceeds limit ({maxSizeMB} MB). Starting cleanup...");
+
+                var repository = new EncounterRepository(context);
+
+                // Get current encounter count
+                var currentCount = await repository.GetEncounterCountAsync();
+                DebugLogger.Log($"[DatabaseInitializer] Current encounters: {currentCount}");
+
+                // Clean up old encounters
+                var deletedCount = await repository.CleanupOldEncountersAsync(maxEncounters);
+                DebugLogger.Log($"[DatabaseInitializer] ✅ Deleted {deletedCount} old encounters, keeping most recent {maxEncounters}");
+                Console.WriteLine($"Deleted {deletedCount} old encounters, keeping most recent {maxEncounters}");
+
+                // Get new size after cleanup
+                var newSizeMB = GetDatabaseSizeMB(databasePath);
+                var savedMB = sizeMB - newSizeMB;
+                DebugLogger.Log($"[DatabaseInitializer] Database size after cleanup: {newSizeMB:F2} MB (saved {savedMB:F2} MB)");
+                Console.WriteLine($"Database cleaned up: {newSizeMB:F2} MB (freed {savedMB:F2} MB)");
+
+                // Vacuum database to reclaim space
+                DebugLogger.Log($"[DatabaseInitializer] Running VACUUM to reclaim disk space...");
+                await VacuumDatabaseAsync(context);
+
+                var finalSizeMB = GetDatabaseSizeMB(databasePath);
+                var totalSavedMB = sizeMB - finalSizeMB;
+                DebugLogger.Log($"[DatabaseInitializer] ✅ Final database size: {finalSizeMB:F2} MB (total saved: {totalSavedMB:F2} MB)");
+                Console.WriteLine($"Cleanup complete! Final size: {finalSizeMB:F2} MB (saved {totalSavedMB:F2} MB total)");
+            }
+            else
+            {
+                DebugLogger.Log($"[DatabaseInitializer] ✓ Database size is within limits, no cleanup needed");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugLogger.Log($"[DatabaseInitializer] ❌ ERROR during auto-cleanup: {ex.Message}");
+            Console.WriteLine($"Error during auto-cleanup: {ex.Message}");
+            // Don't throw - cleanup is optional
+        }
+    }
+
+    /// <summary>
+    /// Vacuum database to reclaim disk space after deletions
+    /// </summary>
+    private static async Task VacuumDatabaseAsync(BlueMeterDbContext context)
+    {
+        try
+        {
+            var connection = context.Database.GetDbConnection();
+            var wasOpen = connection.State == System.Data.ConnectionState.Open;
+
+            if (!wasOpen)
+            {
+                await connection.OpenAsync();
+            }
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "VACUUM";
+            await command.ExecuteNonQueryAsync();
+
+            DebugLogger.Log($"[DatabaseInitializer] VACUUM completed successfully");
+        }
+        catch (Exception ex)
+        {
+            DebugLogger.Log($"[DatabaseInitializer] WARNING: VACUUM failed: {ex.Message}");
+            // Don't throw - vacuum is optional optimization
+        }
     }
 
     /// <summary>
@@ -49,12 +138,16 @@ public static class DatabaseInitializer
             var connection = context.Database.GetDbConnection();
             await connection.OpenAsync();
 
+            DebugLogger.Log("[DatabaseInitializer] Checking for required database migrations...");
+
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('PlayerEncounterStats') WHERE name='TotalHits'";
             var exists = Convert.ToInt32(await command.ExecuteScalarAsync()) > 0;
 
             if (!exists)
             {
+                DebugLogger.Log("[DatabaseInitializer] TotalHits column missing, applying aggregate statistics migration...");
+
                 // Add aggregate statistics columns
                 var alterCommands = new[]
                 {
@@ -78,7 +171,12 @@ public static class DatabaseInitializer
                     await alterCmd.ExecuteNonQueryAsync();
                 }
 
+                DebugLogger.Log("[DatabaseInitializer] ✅ Successfully applied aggregate statistics migration to PlayerEncounterStats table");
                 Console.WriteLine("Successfully applied aggregate statistics migration to PlayerEncounterStats table");
+            }
+            else
+            {
+                DebugLogger.Log("[DatabaseInitializer] ✓ Aggregate statistics columns already exist");
             }
 
             // Migration: Add chart history JSON columns to PlayerEncounterStats
@@ -89,6 +187,8 @@ public static class DatabaseInitializer
 
             if (!historyColumnsExist)
             {
+                DebugLogger.Log("[DatabaseInitializer] DpsHistoryJson column missing, applying chart history migration...");
+
                 // Add chart history columns
                 var historyAlterCommands = new[]
                 {
@@ -101,13 +201,23 @@ public static class DatabaseInitializer
                     using var alterCmd = connection.CreateCommand();
                     alterCmd.CommandText = alterCommand;
                     await alterCmd.ExecuteNonQueryAsync();
+                    DebugLogger.Log($"[DatabaseInitializer]   Executed: {alterCommand}");
                 }
 
+                DebugLogger.Log("[DatabaseInitializer] ✅ Successfully applied chart history migration to PlayerEncounterStats table");
                 Console.WriteLine("Successfully applied chart history migration to PlayerEncounterStats table");
             }
+            else
+            {
+                DebugLogger.Log("[DatabaseInitializer] ✓ Chart history columns already exist");
+            }
+
+            DebugLogger.Log("[DatabaseInitializer] All migrations checked and applied successfully");
         }
         catch (Exception ex)
         {
+            DebugLogger.Log($"[DatabaseInitializer] ❌ ERROR applying manual migrations: {ex.Message}");
+            DebugLogger.Log($"[DatabaseInitializer] Stack trace: {ex.StackTrace}");
             Console.WriteLine($"Error applying manual migrations: {ex.Message}");
             // Continue anyway - new databases won't need these migrations
         }

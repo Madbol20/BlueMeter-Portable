@@ -454,7 +454,18 @@ public class EncounterRepository
     /// <summary>
     /// Clean up old encounters (keep last N)
     /// </summary>
-    public async Task CleanupOldEncountersAsync(int keepCount = 100)
+    /// <summary>
+    /// Get total count of encounters in database
+    /// </summary>
+    public async Task<int> GetEncounterCountAsync()
+    {
+        return await _context.Encounters.CountAsync();
+    }
+
+    /// <summary>
+    /// Clean up old encounters, keeping only the most recent ones
+    /// </summary>
+    public async Task<int> CleanupOldEncountersAsync(int keepCount = 100)
     {
         var encountersToKeep = await _context.Encounters
             .OrderByDescending(e => e.StartTime)
@@ -466,7 +477,11 @@ public class EncounterRepository
             .Where(e => !encountersToKeep.Contains(e.Id))
             .ToListAsync();
 
+        var deleteCount = encountersToDelete.Count;
+
         _context.Encounters.RemoveRange(encountersToDelete);
         await _context.SaveChangesAsync();
+
+        return deleteCount;
     }
 }
