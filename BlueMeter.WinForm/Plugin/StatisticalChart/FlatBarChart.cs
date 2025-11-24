@@ -16,6 +16,11 @@ namespace BlueMeter.WinForm.Plugin.Charts
         private string _yAxisLabel = "";
         private bool _showLegend = true;
 
+        // Tooltip support
+        private ToolTip _tooltip;
+        private bool _showTooltip = false;
+        private string _tooltipText = "";
+
         // 边距设置 - 减少边距以增大图表占比
         private const int PaddingLeft = 35;   // 从60减少到35
         private const int PaddingRight = 15;  // 从20减少到15
@@ -95,6 +100,20 @@ namespace BlueMeter.WinForm.Plugin.Charts
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                      ControlStyles.DoubleBuffer | ControlStyles.ResizeRedraw, true);
+
+            // Initialize tooltip
+            _tooltip = new ToolTip
+            {
+                AutoPopDelay = 5000,
+                InitialDelay = 100,
+                ReshowDelay = 500,
+                ShowAlways = true,
+                IsBalloon = true
+            };
+
+            // Register mouse events for tooltip
+            MouseMove += OnChartMouseMove;
+            MouseLeave += OnChartMouseLeave;
 
             ApplyTheme();
         }
@@ -185,11 +204,17 @@ namespace BlueMeter.WinForm.Plugin.Charts
 
             // 绘制标题（如果有）
             DrawTitle(g);
+
+            // 绘制图例（如果有）
+            if (_showLegend)
+            {
+                DrawLegend(g, chartRect);
+            }
         }
 
         private void DrawNoDataMessage(Graphics g)
         {
-            var message = "暂无数据";
+            var message = "No Data Available";
             var font = new Font("Microsoft YaHei", 12, FontStyle.Regular);
             var brush = new SolidBrush(_isDarkTheme ? Color.Gray : Color.DarkGray);
 
@@ -221,7 +246,7 @@ namespace BlueMeter.WinForm.Plugin.Charts
             var axisColor = _isDarkTheme ? Color.FromArgb(128, 128, 128) : Color.FromArgb(180, 180, 180);
             using var axisPen = new Pen(axisColor, 1);
             using var textBrush = new SolidBrush(ForeColor);
-            using var font = new Font("Microsoft YaHei", 7); // 从9减少到7
+            using var font = new Font("Microsoft YaHei", 9); // 增大字体从7到9以提高可读性
 
             // 绘制X轴
             g.DrawLine(axisPen, chartRect.X, chartRect.Bottom, chartRect.Right, chartRect.Bottom);
@@ -299,7 +324,7 @@ namespace BlueMeter.WinForm.Plugin.Charts
                 if (barHeight > 15) // 只有足够高的条形才显示标签
                 {
                     var valueText = $"{data.Value:F1}%"; // 简化数值格式显示
-                    using var font = new Font("Microsoft YaHei", 6, FontStyle.Regular); // 从8减少到6
+                    using var font = new Font("Microsoft YaHei", 8, FontStyle.Regular); // 增大字体从6到8
                     using var textBrush = new SolidBrush(ForeColor);
 
                     var textSize = g.MeasureString(valueText, font);
@@ -354,6 +379,117 @@ namespace BlueMeter.WinForm.Plugin.Charts
             var y = 10;
 
             g.DrawString(_titleText, font, brush, x, y);
+        }
+
+        private void DrawLegend(Graphics g, Rectangle chartRect)
+        {
+            if (!_showLegend || _data.Count == 0) return;
+
+            using var font = new Font("Microsoft YaHei", 9, FontStyle.Regular);
+            using var textBrush = new SolidBrush(ForeColor);
+
+            var legendItemHeight = 20;
+            var legendHeight = _data.Count * legendItemHeight + 10;
+            var maxTextWidth = _data.Max(d => (int)g.MeasureString(d.Label, font).Width);
+            var legendWidth = maxTextWidth + 35;
+            var legendX = Width - legendWidth - 15;
+            var legendY = chartRect.Y + 15;
+
+            var legendBg = _isDarkTheme ? Color.FromArgb(50, 50, 50) : Color.FromArgb(245, 245, 245);
+            using var bgBrush = new SolidBrush(legendBg);
+            using var borderPen = new Pen(_isDarkTheme ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200), 1);
+
+            var legendRect = new Rectangle(legendX - 8, legendY - 8, legendWidth + 6, legendHeight + 6);
+            g.FillRectangle(bgBrush, legendRect);
+            g.DrawRectangle(borderPen, legendRect);
+
+            for (int i = 0; i < _data.Count; i++)
+            {
+                var data = _data[i];
+                var y = legendY + i * legendItemHeight;
+
+                using var colorBrush = new SolidBrush(data.Color);
+                g.FillRectangle(colorBrush, legendX, y + 5, 20, 10);
+                g.DrawString(data.Label, font, textBrush, legendX + 25, y + 2);
+            }
+        }
+
+        #endregion
+
+        #region Mouse Events for Tooltip
+
+        private void OnChartMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_data.Count == 0) return;
+
+            var chartRect = new Rectangle(PaddingLeft, PaddingTop,
+                                        Width - PaddingLeft - PaddingRight,
+                                        Height - PaddingTop - PaddingBottom);
+
+            if (!chartRect.Contains(e.Location))
+            {
+                HideTooltip();
+                return;
+            }
+
+            var maxValue = _data.Max(d => d.Value);
+            var barWidth = (float)chartRect.Width / _data.Count * 0.85f;
+            var barSpacing = (float)chartRect.Width / _data.Count * 0.075f;
+
+            for (int i = 0; i < _data.Count; i++)
+            {
+                var data = _data[i];
+                var barHeight = (float)(data.Value / maxValue * chartRect.Height);
+                var x = chartRect.X + i * (barWidth + barSpacing * 2) + barSpacing;
+                var y = chartRect.Bottom - barHeight;
+                var barRect = new RectangleF(x, y, barWidth, barHeight);
+
+                if (barRect.Contains(e.Location))
+                {
+                    var tooltipText = $"{data.Label}\nValue: {data.Value:F2}%";
+                    ShowTooltip(tooltipText, e.Location);
+                    return;
+                }
+            }
+
+            HideTooltip();
+        }
+
+        private void OnChartMouseLeave(object sender, EventArgs e)
+        {
+            HideTooltip();
+        }
+
+        private void ShowTooltip(string text, Point location)
+        {
+            if (_tooltipText != text)
+            {
+                _tooltipText = text;
+                _showTooltip = true;
+                _tooltip.Show(text, this, location.X + 10, location.Y - 30, 3000);
+            }
+        }
+
+        private void HideTooltip()
+        {
+            if (_showTooltip)
+            {
+                _showTooltip = false;
+                _tooltip.Hide(this);
+            }
+        }
+
+        #endregion
+
+        #region Resource Cleanup
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _tooltip?.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         #endregion

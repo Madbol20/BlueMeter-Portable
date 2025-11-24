@@ -29,11 +29,11 @@ namespace BlueMeter.WinForm.Plugin.Charts
         private int _verticalGridLines = 5;    // 垂直网格线数量（默认6条线，0-5）
 
         // 字体大小设置（基础大小，会根据图表大小调整）
-        private const float BaseTitleFontSize = 12f;    // 减小标题字体从14到12
-        private const float BaseAxisLabelFontSize = 8f;  // 减少轴标签字体从9到8
-        private const float BaseAxisValueFontSize = 7f;  // 减少轴数值字体从8到7
-        private const float BaseLegendFontSize = 7f;     // 减小图例字体从8到7
-        private const float BaseNoDataFontSize = 9f;     // 减小无数据提示字体从10到9
+        private const float BaseTitleFontSize = 14f;    // 增大标题字体以提高可读性
+        private const float BaseAxisLabelFontSize = 10f;  // 增大轴标签字体
+        private const float BaseAxisValueFontSize = 9f;  // 增大轴数值字体
+        private const float BaseLegendFontSize = 9f;     // 增大图例字体
+        private const float BaseNoDataFontSize = 11f;     // 增大无数据提示字体
 
         // 缩放和视图相关
         private float _timeScale = 1.0f;
@@ -817,7 +817,7 @@ namespace BlueMeter.WinForm.Plugin.Charts
                         minDistance = distance;
                         var timeText = FormatTimeLabel(point.X);
                         var dpsText = Common.FormatWithEnglishUnits(point.Y);
-                        bestTooltip = $"{series.Name}\n时间: {timeText}\nDPS: {dpsText}";
+                        bestTooltip = $"{series.Name}\nTime: {timeText}\nDPS: {dpsText}";
                         found = true;
                     }
                 }
@@ -937,7 +937,7 @@ namespace BlueMeter.WinForm.Plugin.Charts
 
         private void DrawNoDataMessage(Graphics g)
         {
-            var message = "暂无数据\n\n使用方法：\n? Ctrl + 鼠标滚轮：缩放时间轴\n? 左键拖动：平移视图\n? R键：重置视图\n? 鼠标悬停：查看数据";
+            var message = "No Data Available\n\nHow to Use:\n• Ctrl + Mouse Wheel: Zoom time axis\n• Left-click + Drag: Pan view\n• R Key: Reset view\n• Hover: View data details";
             using var font = CreateScaledFont("Microsoft YaHei", BaseNoDataFontSize, FontStyle.Regular);
             using var brush = new SolidBrush(_isDarkTheme ? Color.Gray : Color.DarkGray);
 
@@ -1130,7 +1130,7 @@ namespace BlueMeter.WinForm.Plugin.Charts
 
         private void DrawViewInfo(Graphics g)
         {
-            var info = $"缩放: {_timeScale:F1}x | 当前时间: {FormatTimeLabel(_currentTimeSeconds)}";
+            var info = $"Zoom: {_timeScale:F1}x | Time: {FormatTimeLabel(_currentTimeSeconds)}";
 
             using var font = CreateScaledFont("Microsoft YaHei", BaseAxisValueFontSize);
             using var brush = new SolidBrush(_isDarkTheme ? Color.LightGray : Color.DarkGray);

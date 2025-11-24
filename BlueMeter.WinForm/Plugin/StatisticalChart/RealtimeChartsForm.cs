@@ -39,7 +39,7 @@ namespace BlueMeter.WinForm.Forms
             InitializeComponent();
             FormGui.SetDefaultGUI(this);
 
-            Text = "实时图表可视化";
+            Text = "Realtime Charts Visualization";
             Size = new Size(1000, 700);
             StartPosition = FormStartPosition.CenterScreen;
 
@@ -89,7 +89,7 @@ namespace BlueMeter.WinForm.Forms
 
             _refreshButton = new AntdUI.Button
             {
-                Text = "手动刷新",
+                Text = "Refresh",
                 Type = TTypeMini.Primary,
                 Size = new Size(80, 35),
                 Location = new Point(10, 8),
@@ -99,9 +99,9 @@ namespace BlueMeter.WinForm.Forms
 
             _autoRefreshToggle = new AntdUI.Button
             {
-                Text = "自动刷新: 开", // 默认显示为开启状态
+                Text = "Auto-Refresh: ON", // 默认显示为开启状态
                 Type = TTypeMini.Primary, // 默认使用Primary样式
-                Size = new Size(100, 35),
+                Size = new Size(130, 35),
                 Location = new Point(100, 8),
                 Font = Font
             };
@@ -109,7 +109,7 @@ namespace BlueMeter.WinForm.Forms
 
             _closeButton = new AntdUI.Button
             {
-                Text = "关闭",
+                Text = "Close",
                 Type = TTypeMini.Default,
                 Size = new Size(60, 35),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right,
@@ -132,27 +132,27 @@ namespace BlueMeter.WinForm.Forms
             // 添加TabPage - 纯文本标题
             _tabControl.Pages.Add(new AntdUI.TabPage
             {
-                Text = "DPS趋势图",
+                Text = "DPS Trend",
                 Font = Font
             });
             _tabControl.Pages.Add(new AntdUI.TabPage
             {
-                Text = "技能占比图",
+                Text = "Skill Breakdown",
                 Font = Font
             });
             _tabControl.Pages.Add(new AntdUI.TabPage
             {
-                Text = "团队DPS对比",
+                Text = "Team DPS Comparison",
                 Font = Font
             });
             _tabControl.Pages.Add(new AntdUI.TabPage
             {
-                Text = "多维度对比",
+                Text = "Multi-Dimensional",
                 Font = Font
             });
             _tabControl.Pages.Add(new AntdUI.TabPage
             {
-                Text = "伤害分布图",
+                Text = "Damage Distribution",
                 Font = Font
             });
 
@@ -180,7 +180,7 @@ namespace BlueMeter.WinForm.Forms
 
             var playerLabel = new AntdUI.Label
             {
-                Text = "选择玩家：",
+                Text = "Select Player:",
                 Location = new Point(10, 15),
                 AutoSize = true,
                 Font = Font
@@ -245,7 +245,7 @@ namespace BlueMeter.WinForm.Forms
         {
             _autoRefreshEnabled = true;
             _autoRefreshTimer.Enabled = true;
-            _autoRefreshToggle.Text = "自动刷新: 开";
+            _autoRefreshToggle.Text = "Auto-Refresh: ON";
             _autoRefreshToggle.Type = TTypeMini.Primary;
         }
 
@@ -289,8 +289,17 @@ namespace BlueMeter.WinForm.Forms
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"加载图表时出错: {ex.Message}");
-                MessageBox.Show($"加载图表时出错: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Console.WriteLine($"Error loading charts: {ex.Message}");
+                var result = MessageBox.Show(
+                    $"Error loading charts: {ex.Message}\n\nWould you like to try again?",
+                    "Chart Loading Error",
+                    MessageBoxButtons.RetryCancel,
+                    MessageBoxIcon.Warning);
+
+                if (result == DialogResult.Retry)
+                {
+                    LoadAllCharts();
+                }
             }
         }
 
@@ -298,7 +307,7 @@ namespace BlueMeter.WinForm.Forms
         {
             _autoRefreshTimer = new System.Windows.Forms.Timer
             {
-                Interval = 100, // 0.1秒 (100毫秒) 高频刷新
+                Interval = 500, // 0.5秒 (500毫秒) - 优化性能，降低CPU使用率
                 Enabled = false
             };
             _autoRefreshTimer.Tick += AutoRefreshTimer_Tick;
@@ -311,13 +320,13 @@ namespace BlueMeter.WinForm.Forms
             RefreshAllCharts();
 
             // 显示刷新状态
-            _refreshButton.Text = "刷新中...";
+            _refreshButton.Text = "Refreshing...";
             _refreshButton.Enabled = false;
 
             var resetTimer = new System.Windows.Forms.Timer { Interval = 300 };
             resetTimer.Tick += (s, args) =>
             {
-                _refreshButton.Text = "手动刷新";
+                _refreshButton.Text = "Refresh";
                 _refreshButton.Enabled = true;
                 resetTimer.Stop();
                 resetTimer.Dispose();
@@ -330,7 +339,7 @@ namespace BlueMeter.WinForm.Forms
             _autoRefreshEnabled = !_autoRefreshEnabled;
             _autoRefreshTimer.Enabled = _autoRefreshEnabled;
 
-            _autoRefreshToggle.Text = $"自动刷新: {(_autoRefreshEnabled ? "开" : "关")}";
+            _autoRefreshToggle.Text = $"Auto-Refresh: {(_autoRefreshEnabled ? "ON" : "OFF")}";
             _autoRefreshToggle.Type = _autoRefreshEnabled ? TTypeMini.Primary : TTypeMini.Default;
         }
 
@@ -388,7 +397,8 @@ namespace BlueMeter.WinForm.Forms
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"刷新图表时出错: {ex.Message}");
+                Console.WriteLine($"Error refreshing charts: {ex.Message}");
+                // Don't show error dialog during auto-refresh to avoid disruption
             }
         }
 
@@ -403,7 +413,7 @@ namespace BlueMeter.WinForm.Forms
 
             foreach (var player in players)
             {
-                var displayName = string.IsNullOrEmpty(player.Nickname) ? $"玩家{player.Uid}" : player.Nickname;
+                var displayName = string.IsNullOrEmpty(player.Nickname) ? $"Player {player.Uid}" : player.Nickname;
                 var item = new PlayerSelectorItem { Uid = player.Uid, DisplayName = displayName };
                 _playerSelector.Items.Add(item);
 

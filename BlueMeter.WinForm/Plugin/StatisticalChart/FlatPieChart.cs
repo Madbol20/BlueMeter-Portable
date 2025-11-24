@@ -15,6 +15,11 @@ namespace BlueMeter.WinForm.Plugin.Charts
         private bool _showLabels = true;
         private bool _showPercentages = true;
 
+        // Tooltip support
+        private ToolTip _tooltip;
+        private bool _showTooltip = false;
+        private string _tooltipText = "";
+
         // 现代化扁平配色
         private readonly Color[] _colors = {
             Color.FromArgb(255, 107, 107),  // 红
@@ -78,6 +83,20 @@ namespace BlueMeter.WinForm.Plugin.Charts
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                      ControlStyles.DoubleBuffer | ControlStyles.ResizeRedraw, true);
+
+            // Initialize tooltip
+            _tooltip = new ToolTip
+            {
+                AutoPopDelay = 5000,
+                InitialDelay = 100,
+                ReshowDelay = 500,
+                ShowAlways = true,
+                IsBalloon = true
+            };
+
+            // Register mouse events for tooltip
+            MouseMove += OnChartMouseMove;
+            MouseLeave += OnChartMouseLeave;
 
             ApplyTheme();
         }
@@ -179,7 +198,7 @@ namespace BlueMeter.WinForm.Plugin.Charts
 
         private void DrawNoDataMessage(Graphics g)
         {
-            var message = "暂无数据";
+            var message = "No Data Available";
             var font = new Font("Microsoft YaHei", 12, FontStyle.Regular);
             var brush = new SolidBrush(_isDarkTheme ? Color.Gray : Color.DarkGray);
 
@@ -225,8 +244,8 @@ namespace BlueMeter.WinForm.Plugin.Charts
 
         private void DrawLabels(Graphics g, Rectangle pieRect)
         {
-            // 使用更小的字体适应紧凑布局
-            using var font = new Font("Microsoft YaHei", 7, FontStyle.Regular); // 从9减少到7
+            // 增大字体以提高可读性
+            using var font = new Font("Microsoft YaHei", 9, FontStyle.Regular); // 从7增加到9
             using var brush = new SolidBrush(ForeColor);
 
             float startAngle = 0;
@@ -240,19 +259,18 @@ namespace BlueMeter.WinForm.Plugin.Charts
                 var labelAngle = startAngle + sweepAngle / 2;
 
                 // 调整标签位置，更靠近饼图中心
-                var labelRadius = radius * 0.75f; // 从0.7f增加到0.75f，稍微外移
+                var labelRadius = radius * 0.75f;
                 var labelX = centerX + labelRadius * (float)Math.Cos(labelAngle * Math.PI / 180);
                 var labelY = centerY + labelRadius * (float)Math.Sin(labelAngle * Math.PI / 180);
 
-                // 生成标签文本 - 简化文本以减少拥挤
+                // 改进标签显示 - 不再截断标签，降低最小显示阈值
                 var labelText = "";
-                if (_showLabels && _showPercentages && data.Percentage >= 5.0) // 只显示占比大于5%的标签
+                if (_showLabels && _showPercentages && data.Percentage >= 3.0) // 降低从5%到3%
                 {
-                    // 简化标签格式，技能名太长时截断
-                    var skillName = data.Label.Length > 6 ? data.Label.Substring(0, 6) + ".." : data.Label;
-                    labelText = $"{skillName}\n{data.Percentage:F1}%";
+                    // 不再截断标签，显示完整技能名
+                    labelText = $"{data.Label}\n{data.Percentage:F1}%";
                 }
-                else if (_showPercentages && data.Percentage >= 3.0) // 小占比只显示百分比
+                else if (_showPercentages && data.Percentage >= 1.0) // 降低从3%到1%
                 {
                     labelText = $"{data.Percentage:F1}%";
                 }
@@ -274,6 +292,101 @@ namespace BlueMeter.WinForm.Plugin.Charts
 
                 startAngle += sweepAngle;
             }
+        }
+
+        #endregion
+
+        #region Mouse Events for Tooltip
+
+        private void OnChartMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_data.Count == 0) return;
+
+            var titleHeight = string.IsNullOrEmpty(_titleText) ? 0 : 30;
+            var margin = 10;
+            var pieSize = Math.Min(Width - margin * 2, Height - titleHeight - margin * 2);
+            var pieRect = new Rectangle(
+                (Width - pieSize) / 2,
+                titleHeight + (Height - titleHeight - pieSize) / 2,
+                pieSize,
+                pieSize
+            );
+
+            var centerX = pieRect.X + pieRect.Width / 2f;
+            var centerY = pieRect.Y + pieRect.Height / 2f;
+            var radius = pieRect.Width / 2f;
+
+            // Calculate distance from center
+            var dx = e.X - centerX;
+            var dy = e.Y - centerY;
+            var distance = Math.Sqrt(dx * dx + dy * dy);
+
+            // Check if mouse is within pie circle
+            if (distance > radius)
+            {
+                HideTooltip();
+                return;
+            }
+
+            // Calculate angle
+            var angle = (Math.Atan2(dy, dx) * 180 / Math.PI);
+            if (angle < 0) angle += 360;
+
+            // Find which slice the mouse is over
+            float startAngle = 0;
+            foreach (var data in _data)
+            {
+                var sweepAngle = (float)(data.Percentage * 360 / 100);
+                var endAngle = startAngle + sweepAngle;
+
+                if (angle >= startAngle && angle < endAngle)
+                {
+                    var tooltipText = $"{data.Label}\nValue: {data.Value:F2}\nPercentage: {data.Percentage:F1}%";
+                    ShowTooltip(tooltipText, e.Location);
+                    return;
+                }
+
+                startAngle = endAngle;
+            }
+
+            HideTooltip();
+        }
+
+        private void OnChartMouseLeave(object sender, EventArgs e)
+        {
+            HideTooltip();
+        }
+
+        private void ShowTooltip(string text, Point location)
+        {
+            if (_tooltipText != text)
+            {
+                _tooltipText = text;
+                _showTooltip = true;
+                _tooltip.Show(text, this, location.X + 10, location.Y - 30, 3000);
+            }
+        }
+
+        private void HideTooltip()
+        {
+            if (_showTooltip)
+            {
+                _showTooltip = false;
+                _tooltip.Hide(this);
+            }
+        }
+
+        #endregion
+
+        #region Resource Cleanup
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _tooltip?.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         #endregion
