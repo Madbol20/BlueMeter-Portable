@@ -17,7 +17,7 @@
 - [ ] Healing skill list is incorrect
 - [x] Fix TryDetect Server when there is no process running
 - [x] RegisterHotKey failed for Topmost: F7+Control
-- [ ] Simplify logging
+- [x] Simplify logging
 - [ ] Logging detail for syncing
 - [ ] Optimize nuget references
 - [ ] i18n fallback
@@ -27,7 +27,7 @@
 
 ### Issues
 
-- [ ] Incorrect detection of the player's class
+- [x] Incorrect detection of the player's class
 - [ ] (WPF) Refresh promptly after retrieving cached user information
 - [ ] (WPF) Manual TopMost toggle sometimes fails to clear
 - [ ] Class, name, and specialization detection takes very long
@@ -74,8 +74,4 @@
 - [ ] Add scrollbar to DPS statistics
 - [ ] Add training dummy selection in dummy mode (select rightmost or NPC-behind dummy to avoid debuff stacking or damage interference from other players)
 - [ ] Add NPC data
-- [ ] Add level and armband level to data collection
-
-### CheckList
-
-- [ ] Synchronize window transparency with mouse-through; window should be transparent only when mouse-through is enabled
+- [ ] Add level and will level to data collection
