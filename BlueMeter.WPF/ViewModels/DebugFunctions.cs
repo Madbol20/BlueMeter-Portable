@@ -31,6 +31,7 @@ public partial class DebugFunctions : BaseViewModel, IDisposable
     private readonly IPacketAnalyzer _packetAnalyzer;
     private readonly Queue<LogEntry> _pendingLogs = new();
     [ObservableProperty] private bool _autoScrollEnabled = true;
+    [ObservableProperty] private bool _queueDetectionLoggingEnabled = false;
 
     [ObservableProperty] private List<Option<Language>> _availableLanguages =
     [
@@ -410,6 +411,12 @@ public partial class DebugFunctions : BaseViewModel, IDisposable
             _replayCts = null;
             _replayTask = null;
         }
+    }
+
+    partial void OnQueueDetectionLoggingEnabledChanged(bool value)
+    {
+        DataStorageV2.EnableQueueDetectionLogging = value;
+        _logger.LogInformation("[QUEUE DETECTION] Logging {Status}", value ? "ENABLED" : "DISABLED");
     }
 
     #endregion

@@ -36,6 +36,11 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     private DateTime? _bossDeathTime = null;
     private const int BossDeathDelaySeconds = 8;
 
+    // ===== Queue Pop Detection Logging =====
+    public static bool EnableQueueDetectionLogging { get; set; } = false;
+    private int _previousPlayerCount = 0;
+    private DateTime _lastPlayerCountChange = DateTime.MinValue;
+
     /// <summary>
     /// 玩家信息字典 (Key: UID)
     /// </summary>
@@ -334,6 +339,27 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
         }
 
         PlayerInfoData[uid] = new PlayerInfo { UID = uid };
+
+        // Queue detection logging
+        if (EnableQueueDetectionLogging)
+        {
+            var currentCount = PlayerInfoData.Count;
+            var timeSinceLastChange = DateTime.UtcNow - _lastPlayerCountChange;
+            var playerIncrease = currentCount - _previousPlayerCount;
+
+            logger.LogInformation("[QUEUE DETECTION] New player added: UID={Uid}, TotalPlayers={Count}, PlayerIncrease={Increase}, TimeSinceLastChange={Time}ms",
+                uid, currentCount, playerIncrease, timeSinceLastChange.TotalMilliseconds);
+
+            // Detect potential queue pop (3+ players joining within 2 seconds)
+            if (playerIncrease >= 3 && timeSinceLastChange.TotalSeconds <= 2)
+            {
+                logger.LogWarning("[QUEUE DETECTION] ⚠️ POTENTIAL QUEUE POP DETECTED! {Count} players joined within {Time}s",
+                    playerIncrease, timeSinceLastChange.TotalSeconds);
+            }
+
+            _previousPlayerCount = currentCount;
+            _lastPlayerCountChange = DateTime.UtcNow;
+        }
 
         TriggerPlayerInfoUpdatedImmediate(uid);
 

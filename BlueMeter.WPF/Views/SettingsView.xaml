@@ -352,6 +352,27 @@
                             </Button.Template>
                         </Button>
 
+                        <Button Click="Nav_Alerts_Click" Style="{StaticResource SectionTitleButton}">
+                            <Button.Template>
+                                <ControlTemplate>
+                                    <Border x:Name="bb" Style="{StaticResource SectionTitleBorder}">
+
+                                        <Grid>
+                                            <TextBlock Style="{StaticResource SectionListTitleText}" Text="Alerts" />
+
+                                            <Border Style="{StaticResource SectionTitlePointer}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="bb" Property="Background" Value="#EEE" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+
                         <Button Click="Nav_Shortcut_Click" Style="{StaticResource SectionTitleButton}">
                             <Button.Template>
                                 <ControlTemplate>
@@ -493,6 +514,135 @@
                                                     Content="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_NetworkAdapterAutoSelect_Button}}"
                                                     Style="{StaticResource AutoSelectButton}" />
                                             </Grid>
+                                        </Grid>
+                                    </Border>
+
+                                </StackPanel>
+                            </Border>
+
+                            <ctrl:CardHeader
+                                x:Name="SectionAlerts"
+                                Title="Alerts"
+                                Subtitle="Configure queue pop sound alerts" />
+
+                            <Border Style="{StaticResource SectionBorder}">
+                                <StackPanel Style="{StaticResource SectionStackPanel}">
+
+                                    <!-- Enable Queue Pop Sound -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Enable Queue Pop Sound" />
+                                            <Border Grid.Column="2" HorizontalAlignment="Right">
+                                                <ctrl:SwitchControl IsChecked="{Binding AppConfig.QueuePopSoundEnabled}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Sound Selection -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Alert Sound" />
+                                            <ComboBox
+                                                Grid.Column="2"
+                                                ItemsSource="{Binding AvailableQueuePopSounds}"
+                                                SelectedItem="{Binding AppConfig.QueuePopSound, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource FieldComboBox}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Volume Slider -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Volume" />
+                                            <Grid Grid.Column="2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="10" />
+                                                    <ColumnDefinition Width="Auto" MinWidth="50" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Slider
+                                                    Grid.Column="0"
+                                                    Minimum="0"
+                                                    Maximum="100"
+                                                    Value="{Binding AppConfig.QueuePopSoundVolume}"
+                                                    TickFrequency="10"
+                                                    IsSnapToTickEnabled="True" />
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Style="{StaticResource FieldName}"
+                                                    Text="{Binding AppConfig.QueuePopSoundVolume, StringFormat={}{0:0}%}" />
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Test Button -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Test Sound" />
+                                            <Button
+                                                Grid.Column="2"
+                                                Command="{Binding TestQueuePopSoundCommand}"
+                                                Content="Play Test Sound"
+                                                Style="{StaticResource AutoSelectButton}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Queue Detection Debug Toggle -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Queue Detection Logging (Debug)"
+                                                ToolTip="Logs when players join (for testing queue pop detection)" />
+                                            <Border Grid.Column="2" HorizontalAlignment="Right">
+                                                <ctrl:SwitchControl IsChecked="{Binding AppConfig.QueueDetectionLoggingEnabled}" />
+                                            </Border>
                                         </Grid>
                                     </Border>
 

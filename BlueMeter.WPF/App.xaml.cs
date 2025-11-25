@@ -168,6 +168,7 @@ public partial class App : Application
                 services.AddHttpClient(); // Required for UpdateChecker
                 services.AddSingleton<IUpdateChecker, UpdateChecker>();
                 services.AddSingleton<IChartDataService, ChartDataService>(); // Chart data sampling service
+                services.AddSingleton<ISoundPlayerService, SoundPlayerService>(); // Sound player for queue pop alerts
 
                 if (_logStream != null) services.AddSingleton<IObservable<LogEvent>>(_logStream);
 
