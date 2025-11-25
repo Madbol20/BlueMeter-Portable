@@ -16,7 +16,10 @@ internal sealed class MessageHandlerRegistry(IDataStorage storage, ILogger? logg
         { MessageMethod.SyncContainerData, new SyncContainerDataProcessor(storage, logger) },
         { MessageMethod.SyncContainerDirtyData, new SyncContainerDirtyDataProcessor(storage, logger) },
         { MessageMethod.SyncToMeDeltaInfo, new SyncToMeDeltaInfoProcessor(storage, logger) },
-        { MessageMethod.SyncNearDeltaInfo, new SyncNearDeltaInfoProcessor(storage, logger) }
+        { MessageMethod.SyncNearDeltaInfo, new SyncNearDeltaInfoProcessor(storage, logger) },
+
+        // TODO: Uncomment when the correct method ID for TeamMatching is found
+        // { MessageMethod.TeamMatching, new TeamMatchingProcessor(storage, logger) }
     };
 
     /// <summary>

@@ -41,6 +41,17 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     private int _previousPlayerCount = 0;
     private DateTime _lastPlayerCountChange = DateTime.MinValue;
 
+    // ===== Queue Pop Alert Event =====
+    public event Action? QueuePopDetected;
+
+    /// <summary>
+    /// Triggers the queue pop detected event
+    /// </summary>
+    public void TriggerQueuePopDetected()
+    {
+        QueuePopDetected?.Invoke();
+    }
+
     /// <summary>
     /// 玩家信息字典 (Key: UID)
     /// </summary>
@@ -355,6 +366,9 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             {
                 logger.LogWarning("[QUEUE DETECTION] ⚠️ POTENTIAL QUEUE POP DETECTED! {Count} players joined within {Time}s",
                     playerIncrease, timeSinceLastChange.TotalSeconds);
+
+                // Fire queue pop detected event
+                QueuePopDetected?.Invoke();
             }
 
             _previousPlayerCount = currentCount;

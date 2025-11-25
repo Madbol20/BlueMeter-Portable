@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Media;
 using System.Windows.Media;
 using System.Windows.Threading;
 using BlueMeter.WPF.Config;
@@ -97,7 +98,8 @@ public sealed class SoundPlayerService : ISoundPlayerService
 
                 if (!File.Exists(soundFile))
                 {
-                    _logger.LogWarning("Sound file not found: {File}", soundFile);
+                    _logger.LogWarning("Sound file not found: {File}. Using system sound fallback.", soundFile);
+                    PlaySystemSoundFallback(sound);
                     return;
                 }
 
@@ -130,6 +132,29 @@ public sealed class SoundPlayerService : ISoundPlayerService
         };
 
         return Path.Combine(SoundsDirectory, fileName);
+    }
+
+    private void PlaySystemSoundFallback(QueuePopSound sound)
+    {
+        try
+        {
+            // Use Windows system sounds as fallback
+            var systemSound = sound switch
+            {
+                QueuePopSound.Drum => SystemSounds.Exclamation,
+                QueuePopSound.Harp => SystemSounds.Asterisk,
+                QueuePopSound.Wow => SystemSounds.Beep,
+                QueuePopSound.Yoooo => SystemSounds.Hand,
+                _ => SystemSounds.Beep
+            };
+
+            systemSound.Play();
+            _logger.LogDebug("Playing system sound fallback for: {Sound}", sound);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to play system sound fallback for: {Sound}", sound);
+        }
     }
 
     public void Dispose()
