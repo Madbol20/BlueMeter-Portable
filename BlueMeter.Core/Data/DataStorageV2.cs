@@ -36,10 +36,11 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     private DateTime? _bossDeathTime = null;
     private const int BossDeathDelaySeconds = 8;
 
-    // ===== Queue Pop Detection Logging =====
+    // ===== Queue Pop Detection =====
     public static bool EnableQueueDetectionLogging { get; set; } = false;
-    private int _previousPlayerCount = 0;
-    private DateTime _lastPlayerCountChange = DateTime.MinValue;
+    private readonly List<DateTime> _recentPlayerJoinTimes = new();
+    private readonly TimeSpan _queueDetectionWindow = TimeSpan.FromSeconds(2);
+    private const int MinPlayersForQueuePop = 3;
 
     // ===== Queue Pop Alert Event =====
     public event Action? QueuePopDetected;
@@ -351,28 +352,38 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
 
         PlayerInfoData[uid] = new PlayerInfo { UID = uid };
 
-        // Queue detection logging
+        // Queue detection using sliding window (always active, logging optional)
+        var now = DateTime.UtcNow;
+
+        // Remove old timestamps outside the detection window
+        var cutoffTime = now - _queueDetectionWindow;
+        _recentPlayerJoinTimes.RemoveAll(time => time < cutoffTime);
+
+        // Add current player join time
+        _recentPlayerJoinTimes.Add(now);
+
+        var playersInWindow = _recentPlayerJoinTimes.Count;
+
         if (EnableQueueDetectionLogging)
         {
-            var currentCount = PlayerInfoData.Count;
-            var timeSinceLastChange = DateTime.UtcNow - _lastPlayerCountChange;
-            var playerIncrease = currentCount - _previousPlayerCount;
+            logger.LogInformation("[QUEUE DETECTION] New player added: UID={Uid}, TotalPlayers={TotalCount}, PlayersInWindow={WindowCount}, WindowSize={WindowSize}s",
+                uid, PlayerInfoData.Count, playersInWindow, _queueDetectionWindow.TotalSeconds);
+        }
 
-            logger.LogInformation("[QUEUE DETECTION] New player added: UID={Uid}, TotalPlayers={Count}, PlayerIncrease={Increase}, TimeSinceLastChange={Time}ms",
-                uid, currentCount, playerIncrease, timeSinceLastChange.TotalMilliseconds);
-
-            // Detect potential queue pop (3+ players joining within 2 seconds)
-            if (playerIncrease >= 3 && timeSinceLastChange.TotalSeconds <= 2)
+        // Detect potential queue pop (3+ players joining within the time window)
+        if (playersInWindow >= MinPlayersForQueuePop)
+        {
+            if (EnableQueueDetectionLogging)
             {
-                logger.LogWarning("[QUEUE DETECTION] ⚠️ POTENTIAL QUEUE POP DETECTED! {Count} players joined within {Time}s",
-                    playerIncrease, timeSinceLastChange.TotalSeconds);
-
-                // Fire queue pop detected event
-                QueuePopDetected?.Invoke();
+                logger.LogWarning("[QUEUE DETECTION] ⚠️ POTENTIAL QUEUE POP DETECTED! {Count} players joined within {Window}s window",
+                    playersInWindow, _queueDetectionWindow.TotalSeconds);
             }
 
-            _previousPlayerCount = currentCount;
-            _lastPlayerCountChange = DateTime.UtcNow;
+            // Fire queue pop detected event
+            QueuePopDetected?.Invoke();
+
+            // Clear the window after triggering to avoid repeated alerts
+            _recentPlayerJoinTimes.Clear();
         }
 
         TriggerPlayerInfoUpdatedImmediate(uid);

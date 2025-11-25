@@ -8,10 +8,9 @@ public enum MessageMethod : uint
     SyncToMeDeltaInfo = 0x0000002EU,
     SyncNearDeltaInfo = 0x0000002DU,
 
-    // TODO: Find the actual method ID for CharTeam messages
-    // To find it: Enable queue detection logging in settings, join a queue,
-    // and check the logs for "UNKNOWN METHOD ID" messages
-    TeamMatching = 0x00000000U, // PLACEHOLDER - needs to be replaced with actual ID
+    // CharTeam messages - detected through logging during queue pops
+    // This ID appears regularly (~5s intervals) and may track team/matching status
+    TeamMatching = 0x0000002BU, // Method ID 43 (decimal)
 }
 
 public static class MessageMethodExtensions

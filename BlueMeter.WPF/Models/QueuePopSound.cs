@@ -8,5 +8,7 @@ public enum QueuePopSound
     Drum,
     Harp,
     Wow,
-    Yoooo
+    Yoooo,
+    DungeonFound,
+    QPop
 }

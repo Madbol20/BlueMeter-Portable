@@ -133,7 +133,13 @@ public sealed class MessageAnalyzerV2
         _ = packet.ReadUInt32BE(); // stubId
         var methodId = packet.ReadUInt32BE();
 
-        if (serviceUuid != 0x0000000063335342UL) return; // Not a combat-related service
+        // Log non-combat services to detect queue pop messages
+        if (serviceUuid != 0x0000000063335342UL)
+        {
+            _logger?.LogWarning("[NON-COMBAT-MSG] ServiceUuid: 0x{ServiceUuid:X16}, MethodId: 0x{MethodId:X8} ({MethodId})",
+                serviceUuid, methodId, methodId);
+            return; // Not a combat-related service
+        }
 
         var msgPayload = packet.ReadRemaining();
         if (isZstdCompressed)
@@ -158,7 +164,13 @@ public sealed class MessageAnalyzerV2
         _ = r.ReadUInt32BE(); // stubId
         var methodId = r.ReadUInt32BE();
 
-        if (serviceUuid != 0x0000000063335342UL) return;
+        // Log non-combat services to detect queue pop messages
+        if (serviceUuid != 0x0000000063335342UL)
+        {
+            _logger?.LogWarning("[NON-COMBAT-MSG] ServiceUuid: 0x{ServiceUuid:X16}, MethodId: 0x{MethodId:X8} ({MethodId})",
+                serviceUuid, methodId, methodId);
+            return;
+        }
 
         var msgPayloadSpan = r.ReadRemainingSpan();
         byte[] msgPayload;

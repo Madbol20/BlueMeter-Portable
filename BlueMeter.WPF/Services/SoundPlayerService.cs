@@ -128,6 +128,8 @@ public sealed class SoundPlayerService : ISoundPlayerService
             QueuePopSound.Harp => "harp.mp3",
             QueuePopSound.Wow => "wow.mp3",
             QueuePopSound.Yoooo => "yoooo.mp3",
+            QueuePopSound.DungeonFound => "dungeonfound.mp3",
+            QueuePopSound.QPop => "qpop.mp3",
             _ => throw new ArgumentOutOfRangeException(nameof(sound), sound, "Unknown sound type")
         };
 
@@ -145,6 +147,8 @@ public sealed class SoundPlayerService : ISoundPlayerService
                 QueuePopSound.Harp => SystemSounds.Asterisk,
                 QueuePopSound.Wow => SystemSounds.Beep,
                 QueuePopSound.Yoooo => SystemSounds.Hand,
+                QueuePopSound.DungeonFound => SystemSounds.Exclamation,
+                QueuePopSound.QPop => SystemSounds.Asterisk,
                 _ => SystemSounds.Beep
             };
 

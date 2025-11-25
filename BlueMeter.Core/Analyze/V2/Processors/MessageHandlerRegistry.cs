@@ -18,8 +18,8 @@ internal sealed class MessageHandlerRegistry(IDataStorage storage, ILogger? logg
         { MessageMethod.SyncToMeDeltaInfo, new SyncToMeDeltaInfoProcessor(storage, logger) },
         { MessageMethod.SyncNearDeltaInfo, new SyncNearDeltaInfoProcessor(storage, logger) },
 
-        // TODO: Uncomment when the correct method ID for TeamMatching is found
-        // { MessageMethod.TeamMatching, new TeamMatchingProcessor(storage, logger) }
+        // TeamMatching processor for queue pop detection (Method ID: 0x0000002B / 43)
+        { MessageMethod.TeamMatching, new TeamMatchingProcessor(storage, logger) }
     };
 
     /// <summary>

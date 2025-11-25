@@ -56,7 +56,9 @@ public partial class SettingsViewModel(
         QueuePopSound.Drum,
         QueuePopSound.Harp,
         QueuePopSound.Wow,
-        QueuePopSound.Yoooo
+        QueuePopSound.Yoooo,
+        QueuePopSound.DungeonFound,
+        QueuePopSound.QPop
     ];
 
     [ObservableProperty]
