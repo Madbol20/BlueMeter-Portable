@@ -519,13 +519,17 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
                 playerSpec = ClassSpec.Unknown;
             }
 
+            // Pre-compute mitigation stats for all types
+            var damageTaken = dpsData.TotalTakenDamage.ConvertToUnsigned();
+            var damageMitigated = dpsData.TotalDamageMitigated.ConvertToUnsigned();
+
             // Process Damage (only for players, not NPCs)
             var damageValue = dpsData.TotalAttackDamage.ConvertToUnsigned();
             if (damageValue > 0 && !dpsData.IsNpcData)
             {
                 result[StatisticType.Damage][dpsData.UID] = new DpsDataProcessed(
                     dpsData, damageValue, duration, skillList, playerName, playerClass, playerSpec,
-                    powerLevel);
+                    powerLevel, damageTaken, damageMitigated);
             }
 
             // Process Healing (only for players, not NPCs)
@@ -533,7 +537,8 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
             if (healingValue > 0 && !dpsData.IsNpcData)
             {
                 result[StatisticType.Healing][dpsData.UID] = new DpsDataProcessed(
-                    dpsData, healingValue, duration, skillList, playerName, playerClass, playerSpec, powerLevel);
+                    dpsData, healingValue, duration, skillList, playerName, playerClass, playerSpec, powerLevel,
+                    damageTaken, damageMitigated);
             }
 
             // Process TakenDamage
@@ -544,12 +549,14 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
                 if (dpsData.IsNpcData)
                 {
                     result[StatisticType.NpcTakenDamage][dpsData.UID] = new DpsDataProcessed(
-                        dpsData, takenDamageValue, duration, skillList, playerName, playerClass, playerSpec, powerLevel);
+                        dpsData, takenDamageValue, duration, skillList, playerName, playerClass, playerSpec, powerLevel,
+                        damageTaken, damageMitigated);
                 }
                 else
                 {
                     result[StatisticType.TakenDamage][dpsData.UID] = new DpsDataProcessed(
-                        dpsData, takenDamageValue, duration, skillList, playerName, playerClass, playerSpec, powerLevel);
+                        dpsData, takenDamageValue, duration, skillList, playerName, playerClass, playerSpec, powerLevel,
+                        damageTaken, damageMitigated);
                 }
             }
         }
