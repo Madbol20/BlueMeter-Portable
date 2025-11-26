@@ -16,15 +16,18 @@ public sealed class MessageAnalyzerV2
     private readonly ILogger<MessageAnalyzerV2>? _logger;
     private readonly Dictionary<MessageType, Action<ByteReader, bool>> _messageHandlerMap;
     private readonly MessageHandlerRegistry _registry;
+    private readonly IDataStorage _storage;
 
     public MessageAnalyzerV2(IDataStorage storage, ILogger<MessageAnalyzerV2>? logger = null)
     {
         _logger = logger;
+        _storage = storage;
         _registry = new MessageHandlerRegistry(storage, logger);
         _messageHandlerMap = new Dictionary<MessageType, Action<ByteReader, bool>>
         {
             { MessageType.Notify, ProcessNotifyMsg },
-            { MessageType.FrameDown, ProcessFrameDown }
+            { MessageType.FrameDown, ProcessFrameDown },
+            { MessageType.Return, ProcessReturnMsg }
         };
     }
 
@@ -48,6 +51,20 @@ public sealed class MessageAnalyzerV2
             var packetType = packetReader.ReadUInt16BE();
             var isZstdCompressed = (packetType & 0x8000) != 0;
             var msgTypeId = (MessageType)(packetType & 0x7FFF);
+
+            // DEBUG: Log ALL message types to find queue pop
+            if (Data.DataStorageV2.EnableQueueDetectionLogging)
+            {
+                try
+                {
+                    var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "all-messages.log");
+                    var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                    var logMsg = $"[{timestamp}] MessageType: {msgTypeId} (0x{(int)msgTypeId:X}), Compressed: {isZstdCompressed}\n";
+                    Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                    File.AppendAllText(logPath, logMsg);
+                }
+                catch { }
+            }
 
             if (!_messageHandlerMap.TryGetValue(msgTypeId, out var handler))
             {
@@ -97,6 +114,20 @@ public sealed class MessageAnalyzerV2
             var isZstdCompressed = (packetType & 0x8000) != 0;
             var msgTypeId = (MessageType)(packetType & 0x7FFF);
 
+            // DEBUG: Log ALL message types to find queue pop (span-based path)
+            if (Data.DataStorageV2.EnableQueueDetectionLogging)
+            {
+                try
+                {
+                    var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "all-messages.log");
+                    var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                    var logMsg = $"[{timestamp}] [SPAN] MessageType: {msgTypeId} (0x{(int)msgTypeId:X}), Compressed: {isZstdCompressed}\n";
+                    Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                    File.AppendAllText(logPath, logMsg);
+                }
+                catch { }
+            }
+
             var frameConsumed = 6; // 4 length + 2 type already consumed within this frame
             var frameRemaining = (int)packetSize - frameConsumed;
             if (frameRemaining < 0 || frameRemaining > reader.Remaining)
@@ -117,6 +148,9 @@ public sealed class MessageAnalyzerV2
                 case MessageType.FrameDown:
                     ProcessFrameDown(inner, isZstdCompressed);
                     break;
+                case MessageType.Return:
+                    ProcessReturnMsg(inner, isZstdCompressed);
+                    break;
                 default:
                     // Unknown, skip
                     break;
@@ -133,11 +167,36 @@ public sealed class MessageAnalyzerV2
         _ = packet.ReadUInt32BE(); // stubId
         var methodId = packet.ReadUInt32BE();
 
+        // DEBUG: Log ALL Notify messages (all services) to find queue pop
+        if (Data.DataStorageV2.EnableQueueDetectionLogging)
+        {
+            try
+            {
+                var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "all-notify-messages.log");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                var isCombat = serviceUuid == 0x0000000063335342UL;
+                var logMsg = $"[{timestamp}] ServiceUuid: 0x{serviceUuid:X16}, MethodId: 0x{methodId:X8} ({methodId}), Combat: {isCombat}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                File.AppendAllText(logPath, logMsg);
+            }
+            catch { }
+        }
+
         // Log non-combat services to detect queue pop messages
         if (serviceUuid != 0x0000000063335342UL)
         {
-            _logger?.LogWarning("[NON-COMBAT-MSG] ServiceUuid: 0x{ServiceUuid:X16}, MethodId: 0x{MethodId:X8} ({MethodId})",
-                serviceUuid, methodId, methodId);
+            if (Data.DataStorageV2.EnableQueueDetectionLogging)
+            {
+                try
+                {
+                    var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "non-combat-services.log");
+                    var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                    var logMsg = $"[{timestamp}] NON-COMBAT SERVICE - ServiceUuid: 0x{serviceUuid:X16}, MethodId: 0x{methodId:X8} ({methodId})\n";
+                    Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                    File.AppendAllText(logPath, logMsg);
+                }
+                catch { }
+            }
             return; // Not a combat-related service
         }
 
@@ -167,6 +226,18 @@ public sealed class MessageAnalyzerV2
         // Log non-combat services to detect queue pop messages
         if (serviceUuid != 0x0000000063335342UL)
         {
+            if (Data.DataStorageV2.EnableQueueDetectionLogging)
+            {
+                try
+                {
+                    var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "non-combat-services.log");
+                    var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                    var logMsg = $"[{timestamp}] [SPAN] NON-COMBAT SERVICE - ServiceUuid: 0x{serviceUuid:X16}, MethodId: 0x{methodId:X8} ({methodId})\n";
+                    Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                    File.AppendAllText(logPath, logMsg);
+                }
+                catch { }
+            }
             _logger?.LogWarning("[NON-COMBAT-MSG] ServiceUuid: 0x{ServiceUuid:X16}, MethodId: 0x{MethodId:X8} ({MethodId})",
                 serviceUuid, methodId, methodId);
             return;
@@ -226,6 +297,102 @@ public sealed class MessageAnalyzerV2
         else
         {
             Process(nestedSpan);
+        }
+    }
+
+    /// <summary>
+    /// Processes Return messages (RPC responses) to detect queue pops.
+    /// </summary>
+    private void ProcessReturnMsg(ByteReader packet, bool isZstdCompressed)
+    {
+        if (packet.Remaining < 4) return;
+
+        var stubId = packet.ReadUInt32BE();
+        var payload = packet.ReadRemaining();
+
+        if (isZstdCompressed)
+        {
+            payload = DecompressZstdIfNeeded(payload);
+        }
+
+        // DEBUG: Log Return message details to identify queue pop
+        if (Data.DataStorageV2.EnableQueueDetectionLogging)
+        {
+            try
+            {
+                var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "return-messages.log");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                var logMsg = $"[{timestamp}] Return StubId: 0x{stubId:X8}, PayloadSize: {payload.Length} bytes\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                File.AppendAllText(logPath, logMsg);
+
+                // Log payload hex for analysis
+                if (payload.Length > 0 && payload.Length <= 256)
+                {
+                    var hexDump = BitConverter.ToString(payload).Replace("-", " ");
+                    File.AppendAllText(logPath, $"  Payload: {hexDump}\n");
+                }
+            }
+            catch { }
+        }
+
+        _logger?.LogInformation("[RETURN MSG] StubId: 0x{StubId:X8}, PayloadSize: {Size}", stubId, payload.Length);
+
+        // Track Return messages for queue pop detection (burst pattern)
+        if (_storage is Data.DataStorageV2 dataStorageV2)
+        {
+            dataStorageV2.TrackReturnMessage();
+        }
+    }
+
+    /// <summary>
+    /// Span-based Return message parser.
+    /// </summary>
+    private void ProcessReturnMsg(ReadOnlySpan<byte> packet, bool isZstdCompressed)
+    {
+        var r = new SpanReader(packet);
+        if (r.Remaining < 4) return;
+
+        var stubId = r.ReadUInt32BE();
+        var payloadSpan = r.ReadRemainingSpan();
+
+        byte[] payload;
+        if (isZstdCompressed)
+        {
+            payload = DecompressZstdIfNeeded(payloadSpan.ToArray());
+        }
+        else
+        {
+            payload = payloadSpan.ToArray();
+        }
+
+        // DEBUG: Log Return message details to identify queue pop
+        if (Data.DataStorageV2.EnableQueueDetectionLogging)
+        {
+            try
+            {
+                var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "return-messages.log");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                var logMsg = $"[{timestamp}] [SPAN] Return StubId: 0x{stubId:X8}, PayloadSize: {payload.Length} bytes\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                File.AppendAllText(logPath, logMsg);
+
+                // Log payload hex for analysis
+                if (payload.Length > 0 && payload.Length <= 256)
+                {
+                    var hexDump = BitConverter.ToString(payload).Replace("-", " ");
+                    File.AppendAllText(logPath, $"  Payload: {hexDump}\n");
+                }
+            }
+            catch { }
+        }
+
+        _logger?.LogInformation("[RETURN MSG] StubId: 0x{StubId:X8}, PayloadSize: {Size}", stubId, payload.Length);
+
+        // Track Return messages for queue pop detection (burst pattern)
+        if (_storage is Data.DataStorageV2 dataStorageV2)
+        {
+            dataStorageV2.TrackReturnMessage();
         }
     }
 

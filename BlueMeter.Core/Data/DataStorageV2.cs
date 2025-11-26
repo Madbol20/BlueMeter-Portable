@@ -36,14 +36,22 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     private DateTime? _bossDeathTime = null;
     private const int BossDeathDelaySeconds = 8;
 
-    // ===== Queue Pop Detection =====
-    public static bool EnableQueueDetectionLogging { get; set; } = false;
+    // ===== Queue Pop Detection (Packet-based) =====
+    public static bool EnableQueueDetectionLogging { get; set; } = true;
     private readonly List<DateTime> _recentPlayerJoinTimes = new();
     private readonly TimeSpan _queueDetectionWindow = TimeSpan.FromSeconds(2);
     private const int MinPlayersForQueuePop = 3;
 
+    // ===== Return Message Burst Detection (More Reliable) =====
+    private readonly List<DateTime> _recentReturnMessageTimes = new();
+    private readonly TimeSpan _returnBurstWindow = TimeSpan.FromSeconds(2);
+    private const int MinReturnMessagesForQueuePop = 5;
+    private DateTime _lastQueuePopAlertTime = DateTime.MinValue;
+    private readonly TimeSpan _queuePopCooldown = TimeSpan.FromSeconds(30);
+
     // ===== Queue Pop Alert Event =====
     public event Action? QueuePopDetected;
+
 
     /// <summary>
     /// Triggers the queue pop detected event
@@ -51,6 +59,37 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     public void TriggerQueuePopDetected()
     {
         QueuePopDetected?.Invoke();
+    }
+
+    /// <summary>
+    /// Track Return messages and detect queue pop via burst pattern
+    /// </summary>
+    public void TrackReturnMessage()
+    {
+        var now = DateTime.UtcNow;
+
+        // Add current time to the list
+        _recentReturnMessageTimes.Add(now);
+
+        // Remove messages older than the detection window
+        _recentReturnMessageTimes.RemoveAll(time => (now - time) > _returnBurstWindow);
+
+        // Check if we have enough Return messages in the window
+        if (_recentReturnMessageTimes.Count >= MinReturnMessagesForQueuePop)
+        {
+            // Check cooldown to prevent spam
+            if ((now - _lastQueuePopAlertTime) > _queuePopCooldown)
+            {
+                logger.LogInformation("[RETURN BURST] Queue pop detected! {Count} Return messages in {Window:F1}s",
+                    _recentReturnMessageTimes.Count, _returnBurstWindow.TotalSeconds);
+
+                _lastQueuePopAlertTime = now;
+                QueuePopDetected?.Invoke();
+
+                // Clear the list to avoid immediate re-trigger
+                _recentReturnMessageTimes.Clear();
+            }
+        }
     }
 
     /// <summary>
@@ -141,6 +180,10 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
 
             // ensure background timeout monitor is running when connected
             if (value) EnsureSectionMonitorStarted();
+
+            // Note: UI Automation queue pop detector disabled - game doesn't expose UI elements
+            // Using packet-based detection instead (3+ players joining within 2s)
+            // EnsureQueuePopDetectorStarted();
 
             RaiseServerConnectionStateChanged(value);
         }
@@ -370,7 +413,10 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
                 uid, PlayerInfoData.Count, playersInWindow, _queueDetectionWindow.TotalSeconds);
         }
 
-        // Detect potential queue pop (3+ players joining within the time window)
+        // OLD DETECTION METHOD - DISABLED (unreliable, too many false positives)
+        // Now using Return message burst detection instead (more reliable)
+        // Keeping this code for reference only
+        /*
         if (playersInWindow >= MinPlayersForQueuePop)
         {
             if (EnableQueueDetectionLogging)
@@ -385,6 +431,7 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             // Clear the window after triggering to avoid repeated alerts
             _recentPlayerJoinTimes.Clear();
         }
+        */
 
         TriggerPlayerInfoUpdatedImmediate(uid);
 

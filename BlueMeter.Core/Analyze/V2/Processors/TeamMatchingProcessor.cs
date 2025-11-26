@@ -1,22 +1,31 @@
 using Microsoft.Extensions.Logging;
 using BlueMeter.WPF.Data;
 using BlueProto;
+using BlueMeter.Core.Data;
 
 namespace BlueMeter.Core.Analyze.V2.Processors;
 
 /// <summary>
 /// Processes team/matching-related messages to detect queue pops
 /// </summary>
-internal sealed class TeamMatchingProcessor : IMessageProcessor
+internal sealed class TeamMatchingProcessor : IMessageProcessor, IDisposable
 {
     private readonly IDataStorage _storage;
     private readonly ILogger? _logger;
-    private bool _wasMatching = false; // Track previous matching state
+    private readonly object _lock = new();
 
     public TeamMatchingProcessor(IDataStorage storage, ILogger? logger = null)
     {
         _storage = storage;
         _logger = logger;
+
+        // NOTE: Message gap detection disabled - using Return message burst detection instead
+        // CharTeam.IsMatching field is always NULL in this game, so cannot be used for detection
+    }
+
+    public void Dispose()
+    {
+        // Timer removed - no longer using gap-based detection
     }
 
     public void Process(byte[] payload)
@@ -32,36 +41,32 @@ internal sealed class TeamMatchingProcessor : IMessageProcessor
                 return;
             }
 
-            // Log team info if queue detection logging is enabled
-            if (Data.DataStorageV2.EnableQueueDetectionLogging)
+            // DEBUG: Log CharTeam fields to identify queue pop patterns
+            if (DataStorageV2.EnableQueueDetectionLogging)
             {
-                _logger?.LogInformation(
-                    "[TeamMatchingProcessor] CharTeam parsed - TeamId: {TeamId}, LeaderId: {LeaderId}, IsMatching: {IsMatching}, TeamNum: {TeamNum}",
-                    charTeam.HasTeamId ? charTeam.TeamId : "N/A",
-                    charTeam.HasLeaderId ? charTeam.LeaderId : "N/A",
-                    charTeam.HasIsMatching ? charTeam.IsMatching : false,
-                    charTeam.HasTeamNum ? charTeam.TeamNum : 0);
-            }
-
-            // Detect queue pop: IsMatching changed from true to false
-            if (charTeam.HasIsMatching)
-            {
-                var currentMatching = charTeam.IsMatching;
-
-                if (_wasMatching && !currentMatching)
+                try
                 {
-                    // Queue pop detected! Matching state changed from true to false
-                    _logger?.LogWarning("[TeamMatchingProcessor] 🎉 QUEUE POP DETECTED! IsMatching changed from true to false");
+                    var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "charteam-messages.log");
+                    var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                    var charIds = string.Join(", ", charTeam.CharIds);
+                    var teamMemberCount = charTeam.TeamMemberData?.Count ?? 0;
 
-                    // Fire the queue pop event if DataStorage supports it
-                    if (_storage is Data.DataStorageV2 dataStorageV2)
-                    {
-                        dataStorageV2.TriggerQueuePopDetected();
-                    }
+                    var logMsg = $"[{timestamp}] CharTeam - " +
+                        $"TeamId: {(charTeam.HasTeamId ? charTeam.TeamId.ToString() : "NULL")}, " +
+                        $"LeaderId: {(charTeam.HasLeaderId ? charTeam.LeaderId.ToString() : "NULL")}, " +
+                        $"TeamNum: {(charTeam.HasTeamNum ? charTeam.TeamNum.ToString() : "NULL")}, " +
+                        $"IsMatching: {(charTeam.HasIsMatching ? charTeam.IsMatching.ToString() : "NULL")}, " +
+                        $"MemberCount: {teamMemberCount}, " +
+                        $"CharIds: [{charIds}]\n";
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                    File.AppendAllText(logPath, logMsg);
                 }
-
-                _wasMatching = currentMatching;
+                catch { }
             }
+
+            // Note: Queue pop detection is now handled by Return message burst detection
+            // CharTeam.IsMatching field is always NULL and cannot be used for detection
         }
         catch (Exception ex)
         {
