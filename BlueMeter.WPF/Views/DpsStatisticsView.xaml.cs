@@ -23,12 +23,16 @@ public partial class DpsStatisticsView : Window
     private double _beforePilingHeight;
     private readonly IWindowManagementService _windowManagement;
     private readonly WindowSettings _windowSettings;
+    private readonly IMousePenetrationService _mousePenetration;
+    private readonly IConfigManager _configManager;
     private bool _isLoadingPosition;
 
-    public DpsStatisticsView(DpsStatisticsViewModel vm, IWindowManagementService windowManagement)
+    public DpsStatisticsView(DpsStatisticsViewModel vm, IWindowManagementService windowManagement, IMousePenetrationService mousePenetration, IConfigManager configManager)
     {
         DataContext = vm;
         _windowManagement = windowManagement;
+        _mousePenetration = mousePenetration;
+        _configManager = configManager;
         _windowSettings = WindowSettings.Load();
         InitializeComponent();
 
@@ -191,6 +195,13 @@ public partial class DpsStatisticsView : Window
             EnsureWindowIsVisible();
 
             _isLoadingPosition = false;
+        }
+
+        // Apply saved MouseThroughEnabled state on startup
+        // This ensures the window style matches the saved config when the app starts
+        if (_configManager.CurrentConfig.MouseThroughEnabled)
+        {
+            _mousePenetration.SetMousePenetrate(this, true);
         }
     }
 
