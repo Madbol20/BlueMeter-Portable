@@ -111,24 +111,34 @@ public class PacketAnalyzer(ILogger<PacketAnalyzer>? logger = null) : IPacketAna
 
 
     /// <summary>
-    /// 服务器签名
+    /// 服务器签名 - 支持多个签名以兼容不同区域的客户端
+    /// Server signatures - supports multiple signatures for different regional clients
     /// </summary>
     /// <remarks>
     /// 不确定是不是服务器签名, StarResonanceDamageCounter 中, 后面还跟了 //c3SB?? 这样的注释
+    /// Different regional clients (CN, SEA, etc.) may use different signatures
     /// </remarks>
-    private readonly byte[] ServerSignature = [0x00, 0x63, 0x33, 0x53, 0x42, 0x00];
+    private readonly byte[][] ServerSignatures =
+    [
+        [0x00, 0x63, 0x33, 0x53, 0x42, 0x00],  // Original signature (CN client)
+        // Add more regional signatures here as they are discovered
+    ];
 
     /// <summary>
-    /// 切换服务器时的登录返回包签名
+    /// 切换服务器时的登录返回包签名 - 支持多个签名
+    /// Login return packet signatures - supports multiple regional variants
     /// </summary>
-    private readonly byte[] LoginReturnSignature =
+    private readonly byte[][] LoginReturnSignatures =
     [
-        0x00, 0x00, 0x00, 0x62,
-        0x00, 0x03,
-        0x00, 0x00, 0x00, 0x01,
-        0x00, 0x11, 0x45, 0x14, // seq?
-        0x00, 0x00, 0x00, 0x00,
-        0x0a, 0x4e, 0x08, 0x01, 0x22, 0x24
+        [
+            0x00, 0x00, 0x00, 0x62,
+            0x00, 0x03,
+            0x00, 0x00, 0x00, 0x01,
+            0x00, 0x11, 0x45, 0x14, // seq?
+            0x00, 0x00, 0x00, 0x00,
+            0x0a, 0x4e, 0x08, 0x01, 0x22, 0x24
+        ],
+        // Add more regional login signatures here as they are discovered
     ];
 
     #endregion
@@ -249,8 +259,29 @@ public class PacketAnalyzer(ILogger<PacketAnalyzer>? logger = null) : IPacketAna
                                         break;
                                     }
 
-                                    if (!tmp.Skip(5).Take(ServerSignature.Length).SequenceEqual(ServerSignature))
+                                    // Check against all known server signatures (supports multiple regional clients)
+                                    var actualSignature = tmp.Skip(5).Take(6).ToArray(); // Take 6 bytes like original signature
+                                    bool signatureMatched = false;
+
+                                    foreach (var signature in ServerSignatures)
                                     {
+                                        if (actualSignature.Length >= signature.Length &&
+                                            actualSignature.Take(signature.Length).SequenceEqual(signature))
+                                        {
+                                            signatureMatched = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!signatureMatched)
+                                    {
+                                        // Log unknown signature for potential new regional client support
+                                        logger?.LogDebug(CoreLogEvents.ServerDetected,
+                                            "Unknown signature at offset 5: {ActualSignature}. " +
+                                            "First 20 bytes of payload: {PayloadStart}. " +
+                                            "This may be a regional client variant. Please report this signature.",
+                                            BitConverter.ToString(actualSignature).Replace("-", " "),
+                                            BitConverter.ToString(tmp.Take(Math.Min(20, tmp.Length)).ToArray()).Replace("-", " "));
                                         break;
                                     }
 
@@ -280,11 +311,34 @@ public class PacketAnalyzer(ILogger<PacketAnalyzer>? logger = null) : IPacketAna
                             }
                         }
 
-                        // 尝试通过登录返回包识别服务器(仍需测试)
+                        // 尝试通过登录返回包识别服务器(仍需测试) - Check all login signatures
                         if (payload.Length == 0x62)
                         {
-                            if (payload.AsSpan(0, 10).SequenceEqual(LoginReturnSignature.AsSpan(0, 10)) &&
-                                payload.AsSpan(14, 6).SequenceEqual(LoginReturnSignature.AsSpan(14, 6)))
+                            bool loginSignatureMatched = false;
+
+                            foreach (var loginSig in LoginReturnSignatures)
+                            {
+                                var firstPartMatch = payload.AsSpan(0, 10).SequenceEqual(loginSig.AsSpan(0, 10));
+                                var secondPartMatch = payload.AsSpan(14, 6).SequenceEqual(loginSig.AsSpan(14, 6));
+
+                                if (firstPartMatch && secondPartMatch)
+                                {
+                                    loginSignatureMatched = true;
+                                    break;
+                                }
+                            }
+
+                            // Debug logging for login signature mismatch
+                            if (!loginSignatureMatched)
+                            {
+                                logger?.LogDebug(CoreLogEvents.ServerDetected,
+                                    "Unknown login signature. Payload[0-10]: {FirstPart}, Payload[14-20]: {SecondPart}. " +
+                                    "This may be a regional client variant. Please report this signature.",
+                                    BitConverter.ToString(payload.AsSpan(0, 10).ToArray()).Replace("-", " "),
+                                    BitConverter.ToString(payload.AsSpan(14, 6).ToArray()).Replace("-", " "));
+                            }
+
+                            if (loginSignatureMatched)
                             {
                                 if (CurrentServer != srcServer)
                                 {
