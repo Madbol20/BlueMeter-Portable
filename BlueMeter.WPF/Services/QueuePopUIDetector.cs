@@ -324,14 +324,7 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
                     int playerCardCount = System.Text.RegularExpressions.Regex.Matches(allText, @"lv\.?\s*\d+").Count;
 
                     // Queue pop = 3+ player cards (OCR doesn't always catch all 5)
-                    bool isQueuePop = playerCardCount >= 3;
-
-                    if (isQueuePop)
-                    {
-                        _logger.LogInformation("[OCR] Queue pop detected! Player cards: {Count}", playerCardCount);
-                    }
-
-                    return isQueuePop;
+                    return playerCardCount >= 3;
                 }
                 catch (Exception ex)
                 {
@@ -350,9 +343,6 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     {
         try
         {
-            _logger.LogInformation(WpfLogEvents.QueueDetector,
-                "★★★ QUEUE POP DETECTED via OCR! ★★★ Playing alert sound...");
-
             _soundPlayerService.PlayQueuePopSound();
         }
         catch (Exception ex)
