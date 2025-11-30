@@ -50,17 +50,10 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
         "BPSR"            // Generic version
     };
 
-    // Button text patterns for multi-language support
-    // Cancel: Abbrechen (DE), Cancel (EN), キャンセル (JP), 取消 (CN)
-    // Confirm: Bestätigen (DE), Confirm/Accept/OK (EN), 確認 (JP), 确认 (CN)
-    private static readonly string[] CancelPatterns =
+    // Blacklist - if these are found, it's NOT a queue pop (e.g., "Challenge" button)
+    private static readonly string[] BlacklistPatterns =
     {
-        "cancel", "abbrechen", "キャンセル", "取消", "annuler"
-    };
-
-    private static readonly string[] ConfirmPatterns =
-    {
-        "confirm", "accept", "ok", "bestätigen", "確認", "确认", "accepter"
+        "challenge", "challen", "challe", "match", "single", "dual", "team"
     };
 
     // P/Invoke declarations for screen capture
@@ -86,6 +79,11 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     private static extern bool BitBlt(IntPtr hdcDest, int xDest, int yDest, int wDest, int hDest,
         IntPtr hdcSource, int xSrc, int ySrc, CopyPixelOperation rop);
 
+    [DllImport("user32.dll")]
+    private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, uint nFlags);
+
+    private const uint PW_RENDERFULLCONTENT = 0x00000002;
+
     [DllImport("gdi32.dll")]
     private static extern bool DeleteDC(IntPtr hDC);
 
@@ -105,8 +103,7 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     private bool _isRunning;
     private bool _disposed;
     private DateTime _lastAlertTime = DateTime.MinValue;
-    private DateTime _lastDebugLog = DateTime.MinValue;
-    private readonly TimeSpan _alertCooldown = TimeSpan.FromSeconds(10); // Prevent duplicate alerts
+    private readonly TimeSpan _alertCooldown = TimeSpan.FromSeconds(10); // Cooldown between alerts
     private TesseractEngine? _ocrEngine;
     private readonly SemaphoreSlim _ocrLock = new(1, 1); // Ensure only one OCR operation at a time
 
@@ -183,51 +180,25 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
         if (!_isRunning || _ocrEngine == null)
             return;
 
-        // Log status every 30 seconds for debugging
-        var now = DateTime.Now;
-        var shouldLogDebug = (now - _lastDebugLog).TotalSeconds >= 30;
-        if (shouldLogDebug)
-            _lastDebugLog = now;
-
         try
         {
             // Find game process
             var gameProcess = FindGameProcess();
             if (gameProcess == null)
-            {
-                if (shouldLogDebug)
-                    _logger.LogDebug("[OCR] Game process not found (looking for: {Processes})",
-                        string.Join(", ", GameProcessNames));
                 return;
-            }
-
-            if (shouldLogDebug)
-                _logger.LogDebug("[OCR] Found game process: {ProcessName} (PID: {ProcessId})",
-                    gameProcess.ProcessName, gameProcess.Id);
 
             // Get main window handle
             var mainWindowHandle = gameProcess.MainWindowHandle;
             if (mainWindowHandle == IntPtr.Zero)
-            {
-                if (shouldLogDebug)
-                    _logger.LogDebug("[OCR] MainWindowHandle is zero");
                 return;
-            }
 
             // Capture screenshot of game window
             using var screenshot = CaptureWindow(mainWindowHandle);
             if (screenshot == null)
-            {
-                if (shouldLogDebug)
-                    _logger.LogDebug("[OCR] Failed to capture window screenshot");
                 return;
-            }
-
-            if (shouldLogDebug)
-                _logger.LogDebug("[OCR] Captured screenshot: {Width}x{Height}", screenshot.Width, screenshot.Height);
 
             // Run OCR on screenshot
-            var hasQueuePop = Task.Run(async () => await DetectQueuePopTextAsync(screenshot, shouldLogDebug)).Result;
+            var hasQueuePop = Task.Run(async () => await DetectQueuePopTextAsync(screenshot)).Result;
 
             if (hasQueuePop)
             {
@@ -270,29 +241,47 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
             if (fullWidth <= 0 || fullHeight <= 0)
                 return null;
 
-            // Capture center area (where queue pop dialog typically appears)
-            // Capture 60% width x 60% height from the center
-            int captureWidth = (int)(fullWidth * 0.6);
-            int captureHeight = (int)(fullHeight * 0.6);
-            int captureX = (int)(fullWidth * 0.2);   // Start at 20% from left (centered)
-            int captureY = (int)(fullHeight * 0.2);  // Start at 20% from top (centered)
-
+            // First, capture the full window using PrintWindow (works even when minimized/covered)
             var hdcSrc = GetDC(hWnd);
             var hdcDest = CreateCompatibleDC(hdcSrc);
-            var hBitmap = CreateCompatibleBitmap(hdcSrc, captureWidth, captureHeight);
+            var hBitmap = CreateCompatibleBitmap(hdcSrc, fullWidth, fullHeight);
             var hOld = SelectObject(hdcDest, hBitmap);
 
-            // Copy only the bottom center portion
-            BitBlt(hdcDest, 0, 0, captureWidth, captureHeight, hdcSrc, captureX, captureY, CopyPixelOperation.SourceCopy);
+            // Use PrintWindow instead of BitBlt - this captures even minimized/background windows
+            bool success = PrintWindow(hWnd, hdcDest, PW_RENDERFULLCONTENT);
 
             SelectObject(hdcDest, hOld);
             DeleteDC(hdcDest);
             ReleaseDC(hWnd, hdcSrc);
 
-            var bitmap = Image.FromHbitmap(hBitmap);
+            if (!success)
+            {
+                DeleteObject(hBitmap);
+                return null;
+            }
+
+            var fullBitmap = Image.FromHbitmap(hBitmap);
             DeleteObject(hBitmap);
 
-            return bitmap;
+            // Now crop to bottom area (where Cancel/Confirm buttons appear)
+            // Capture 100% width x 70% height from the bottom (include ALL buttons!)
+            int captureWidth = fullWidth;
+            int captureHeight = (int)(fullHeight * 0.7);
+            int captureX = 0;                        // Full width - no horizontal cropping
+            int captureY = (int)(fullHeight * 0.3);  // Start at 30% from top (bottom 70%)
+
+            var croppedBitmap = new Bitmap(captureWidth, captureHeight);
+            using (var g = Graphics.FromImage(croppedBitmap))
+            {
+                g.DrawImage(fullBitmap,
+                    new Rectangle(0, 0, captureWidth, captureHeight),
+                    new Rectangle(captureX, captureY, captureWidth, captureHeight),
+                    GraphicsUnit.Pixel);
+            }
+
+            fullBitmap.Dispose();
+
+            return croppedBitmap;
         }
         catch
         {
@@ -300,15 +289,11 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
         }
     }
 
-    private async Task<bool> DetectQueuePopTextAsync(Bitmap screenshot, bool shouldLogDebug)
+    private async Task<bool> DetectQueuePopTextAsync(Bitmap screenshot)
     {
         // Use semaphore to ensure only one OCR operation at a time (Tesseract is not thread-safe)
         if (!await _ocrLock.WaitAsync(0)) // Try to acquire immediately, don't block
-        {
-            if (shouldLogDebug)
-                _logger.LogDebug("[OCR] Skipping OCR - previous operation still running");
             return false;
-        }
 
         try
         {
@@ -329,34 +314,24 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 
                     var allText = page.GetText()?.ToLowerInvariant() ?? string.Empty;
 
-                    // Log ALL text detections to catch queue pop (not just every 30 seconds)
-                    if (!string.IsNullOrWhiteSpace(allText) && allText.Length > 5)
-                    {
-                        _logger.LogInformation("[OCR] Text: {Text}", allText.Substring(0, Math.Min(300, allText.Length)));
+                    // Check for blacklisted patterns first (Challenge button, etc.)
+                    bool foundBlacklist = BlacklistPatterns.Any(pattern => allText.Contains(pattern));
+                    if (foundBlacklist)
+                        return false;
 
-                        // Save screenshot when we detect significant text
-                        try
-                        {
-                            var debugPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ocr_debug");
-                            Directory.CreateDirectory(debugPath);
-                            var screenshotPath = Path.Combine(debugPath, $"screenshot_{DateTime.Now:HHmmss}.png");
-                            screenshot.Save(screenshotPath, System.Drawing.Imaging.ImageFormat.Png);
-                        }
-                        catch { }
+                    // Detect queue pop by player card layout pattern
+                    // Queue pop shows 5 player cards with "Lv.60"
+                    int playerCardCount = System.Text.RegularExpressions.Regex.Matches(allText, @"lv\.?\s*\d+").Count;
+
+                    // Queue pop = 3+ player cards (OCR doesn't always catch all 5)
+                    bool isQueuePop = playerCardCount >= 3;
+
+                    if (isQueuePop)
+                    {
+                        _logger.LogInformation("[OCR] Queue pop detected! Player cards: {Count}", playerCardCount);
                     }
 
-                    // Check for Cancel and Confirm patterns
-                    bool foundCancel = CancelPatterns.Any(pattern => allText.Contains(pattern));
-                    bool foundConfirm = ConfirmPatterns.Any(pattern => allText.Contains(pattern));
-
-                    if (foundCancel)
-                        _logger.LogInformation("[OCR] ✓ Found Cancel text");
-
-                    if (foundConfirm)
-                        _logger.LogInformation("[OCR] ✓ Found Confirm text");
-
-                    // If we found both, it's a queue pop!
-                    return foundCancel && foundConfirm;
+                    return isQueuePop;
                 }
                 catch (Exception ex)
                 {

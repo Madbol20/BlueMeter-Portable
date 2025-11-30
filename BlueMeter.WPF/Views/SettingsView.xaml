@@ -358,7 +358,7 @@
                                     <Border x:Name="bb" Style="{StaticResource SectionTitleBorder}">
 
                                         <Grid>
-                                            <TextBlock Style="{StaticResource SectionListTitleText}" Text="Alerts" />
+                                            <TextBlock Style="{StaticResource SectionListTitleText}" Text="Alerts (Beta)" />
 
                                             <Border Style="{StaticResource SectionTitlePointer}" />
                                         </Grid>
@@ -522,7 +522,7 @@
 
                             <ctrl:CardHeader
                                 x:Name="SectionAlerts"
-                                Title="Alerts"
+                                Title="Alerts (Beta)"
                                 Subtitle="Configure queue pop sound alerts" />
 
                             <Border Style="{StaticResource SectionBorder}">
