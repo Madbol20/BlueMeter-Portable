@@ -1,6 +1,14 @@
 # BlueMeter
 
+**A powerful DPS Meter and Combat Analytics Tool for Blue Protocol**
+
+Track your damage per second (DPS), analyze combat performance, monitor tank mitigation stats, and get queue pop alerts. Features real-time DPS tracking, detailed skill breakdowns, combat history replay, and comprehensive statistics for optimizing your gameplay.
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-brightgreen.svg)](https://www.gnu.org/licenses/agpl-3.0.txt)
+
+**Keywords:** DPS Meter, Blue Protocol DPS, Combat Tracker, Damage Meter, DPS Parser, Combat Analytics, Tank Stats, Mitigation Tracker, Performance Monitor
+
+---
 
 This project is based on [StarResonanceDps](https://github.com/anying1073/StarResonanceDps), which implements the network packet capture technique originally developed by [StarResonanceDamageCounter](https://github.com/dmlgzs/StarResonanceDamageCounter). Many thanks to both authors for their contributions.
 
