@@ -65,7 +65,6 @@
 ### Features - General
 
 - [ ] Local data caching feature
-- [ ] (WinForm) Attempt GPU-accelerated control rendering
 - [ ] Allow launching with Shift/Ctrl held to reset user settings
 
 ### Remaining issues to be examined

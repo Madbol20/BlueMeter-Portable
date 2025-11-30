@@ -40,7 +40,6 @@
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <!-- Link WinForm default monster names to WPF output for fallback -->
     <!-- Copy localization JSON files -->
     <Content Include="Localization\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
