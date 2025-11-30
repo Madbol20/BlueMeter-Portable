@@ -48,6 +48,11 @@
     <Content Include="Assets\sounds\*.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Copy Tesseract OCR language data for queue pop alerts -->
+    <Content Include="tessdata\eng.traineddata">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>tessdata\eng.traineddata</Link>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Remove="App.xaml" />
