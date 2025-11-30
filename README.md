@@ -6,6 +6,29 @@ This project is based on [StarResonanceDps](https://github.com/anying1073/StarRe
 
 The tool does not require modifying the game client and does not violate the game's Terms of Service. It is intended to help players better understand combat data, avoid ineffective optimizations, and improve overall gameplay. Please do not use the results to justify power-level discrimination or any behavior that harms the community.
 
+## 📋 Changelog
+
+### Version 1.4.0 (Latest)
+
+**🎯 New Features:**
+- **Tank/Mitigation Statistics** - Comprehensive tank metrics including:
+  - HP Damage Taken vs Shield Damage Absorbed
+  - Total Effective Damage (threat tracking)
+  - Mitigation Percentage calculation
+  - Effective TPS (Threat Per Second)
+- **Queue Pop Alerts (Beta)** - Audio notifications when dungeon/raid queue pops
+  - OCR-based detection works even when game is minimized
+  - Multiple customizable alert sounds
+  - Configurable in Settings → Alerts (Beta)
+
+**🔧 Improvements:**
+- Removed deprecated WinForms dependencies
+- Cleaned up alert system logging
+- Code cleanup and optimization
+
+**🐛 Bug Fixes:**
+- Fixed damage tracking to properly separate HP damage from shield absorption
+
 ## ✨ Features
 
 - **Real-time DPS Tracking** - See your damage per second live during combat
