@@ -8,7 +8,13 @@ The tool does not require modifying the game client and does not violate the gam
 
 ## 📋 Changelog
 
-### Version 1.4.0 (Latest)
+### Version 1.4.1 (Latest)
+
+**🐛 Hotfix:**
+- Fixed missing Tesseract OCR data file (eng.traineddata) in Release builds
+- Queue Pop Alerts (Beta) now working correctly in all build configurations
+
+### Version 1.4.0
 
 **🎯 New Features:**
 - **Tank/Mitigation Statistics** - Comprehensive tank metrics including:
