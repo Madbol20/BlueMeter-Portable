@@ -149,6 +149,14 @@
                     IsChecked="{Binding AutoScrollEnabled}" />
                 <Separator Margin="5,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
 
+                <CheckBox
+                    Margin="5,0"
+                    VerticalAlignment="Center"
+                    Content="Queue Detection"
+                    IsChecked="{Binding QueueDetectionLoggingEnabled}"
+                    ToolTip="Enable logging for queue pop detection (logs when players join)" />
+                <Separator Margin="5,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
                 <TextBlock
                     Margin="5,0"
                     VerticalAlignment="Center"

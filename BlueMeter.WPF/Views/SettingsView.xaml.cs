@@ -334,6 +334,7 @@ public partial class SettingsView : Window
 
     private void Nav_Language_Click(object sender, RoutedEventArgs e) => ScrollToSection(SectionLanguage);
     private void Nav_Basic_Click(object sender, RoutedEventArgs e) => ScrollToSection(SectionBasic);
+    private void Nav_Alerts_Click(object sender, RoutedEventArgs e) => ScrollToSection(SectionAlerts);
     private void Nav_Shortcut_Click(object sender, RoutedEventArgs e) => ScrollToSection(SectionShortcut);
     private void Nav_Combat_Click(object sender, RoutedEventArgs e) => ScrollToSection(SectionCombat);
     private void Nav_Theme_Click(object sender, RoutedEventArgs e) => ScrollToSection(SectionTheme);

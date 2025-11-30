@@ -7,6 +7,10 @@ public enum MessageMethod : uint
     SyncContainerDirtyData = 0x00000016U,
     SyncToMeDeltaInfo = 0x0000002EU,
     SyncNearDeltaInfo = 0x0000002DU,
+
+    // CharTeam messages - detected through logging during queue pops
+    // This ID appears regularly (~5s intervals) and may track team/matching status
+    TeamMatching = 0x0000002BU, // Method ID 43 (decimal)
 }
 
 public static class MessageMethodExtensions

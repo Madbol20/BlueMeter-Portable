@@ -23,7 +23,8 @@ public partial class SettingsViewModel(
     IDeviceManagementService deviceManagementService,
     LocalizationManager localization,
     IMessageDialogService messageDialogService,
-    IGlobalHotkeyService globalHotkeyService)
+    IGlobalHotkeyService globalHotkeyService,
+    ISoundPlayerService soundPlayerService)
     : BaseViewModel, IDisposable
 {
     // Expose the global hotkey service so it can be accessed by behaviors
@@ -47,6 +48,17 @@ public partial class SettingsViewModel(
     [
         new(NumberDisplayMode.Wan, NumberDisplayMode.Wan.GetLocalizedDescription()),
         new(NumberDisplayMode.KMB, NumberDisplayMode.KMB.GetLocalizedDescription())
+    ];
+
+    [ObservableProperty]
+    private List<QueuePopSound> _availableQueuePopSounds =
+    [
+        QueuePopSound.Drum,
+        QueuePopSound.Harp,
+        QueuePopSound.Wow,
+        QueuePopSound.Yoooo,
+        QueuePopSound.DungeonFound,
+        QueuePopSound.QPop
     ];
 
     [ObservableProperty]
@@ -409,6 +421,15 @@ public partial class SettingsViewModel(
         }
     }
 
+    [RelayCommand]
+    private void TestQueuePopSound()
+    {
+        soundPlayerService.TestSound(
+            AppConfig.QueuePopSound,
+            AppConfig.QueuePopSoundVolume
+        );
+    }
+
     private void OnCultureChanged(object? sender, CultureInfo culture)
     {
         UpdateLanguageDependentCollections();
@@ -536,7 +557,7 @@ public enum ShortcutType
 
 public sealed class SettingsDesignTimeViewModel : SettingsViewModel
 {
-    public SettingsDesignTimeViewModel() : base(new DesignConfigManager(), new DesignTimeDeviceManagementService(), new LocalizationManager(new LocalizationConfiguration(), NullLogger<LocalizationManager>.Instance), new DesignMessageDialogService(), new DesignTimeGlobalHotkeyService())
+    public SettingsDesignTimeViewModel() : base(new DesignConfigManager(), new DesignTimeDeviceManagementService(), new LocalizationManager(new LocalizationConfiguration(), NullLogger<LocalizationManager>.Instance), new DesignMessageDialogService(), new DesignTimeGlobalHotkeyService(), new DesignTimeSoundPlayerService())
     {
         AppConfig = new AppConfig
         {
@@ -577,4 +598,24 @@ public sealed class SettingsDesignTimeViewModel : SettingsViewModel
 internal sealed class DesignMessageDialogService : IMessageDialogService
 {
     public bool? Show(string title, string content, Window? owner = null) => true;
+}
+
+internal sealed class DesignTimeSoundPlayerService : ISoundPlayerService
+{
+    public void PlayQueuePopSound() { }
+    public void TestSound(QueuePopSound sound, double volume) { }
+    public void Dispose() { }
+}
+
+internal sealed class DesignTimeDebugFunctions : DebugFunctions
+{
+    public DesignTimeDebugFunctions() : base(
+        System.Windows.Application.Current.Dispatcher,
+        NullLogger<DebugFunctions>.Instance,
+        null!,
+        null!,
+        null!,
+        new LocalizationManager(new LocalizationConfiguration(), NullLogger<LocalizationManager>.Instance))
+    {
+    }
 }

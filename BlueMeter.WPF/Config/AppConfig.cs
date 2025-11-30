@@ -250,6 +250,37 @@ public partial class AppConfig : ObservableObject
     [ObservableProperty]
     private double _maxDatabaseSizeMB = 100;
 
+    // ===== Queue Pop Alert Settings =====
+
+    /// <summary>
+    /// Enable queue pop sound alerts
+    /// </summary>
+    [ObservableProperty]
+    private bool _queuePopSoundEnabled = true;
+
+    /// <summary>
+    /// Selected queue pop sound
+    /// </summary>
+    [ObservableProperty]
+    private QueuePopSound _queuePopSound = QueuePopSound.Harp;
+
+    /// <summary>
+    /// Queue pop sound volume (0-100%)
+    /// </summary>
+    [ObservableProperty]
+    private double _queuePopSoundVolume = 10.0;
+
+    /// <summary>
+    /// Enable queue detection logging for debugging
+    /// </summary>
+    [ObservableProperty]
+    private bool _queueDetectionLoggingEnabled = false;
+
+    partial void OnQueueDetectionLoggingEnabledChanged(bool value)
+    {
+        BlueMeter.Core.Data.DataStorageV2.EnableQueueDetectionLogging = value;
+    }
+
     public AppConfig Clone()
     {
         // TODO: Add unittest

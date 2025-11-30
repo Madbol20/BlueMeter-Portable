@@ -36,6 +36,90 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     private DateTime? _bossDeathTime = null;
     private const int BossDeathDelaySeconds = 8;
 
+    // ===== Queue Pop Detection (Packet-based) =====
+    public static bool EnableQueueDetectionLogging { get; set; } = true;
+    private readonly List<DateTime> _recentPlayerJoinTimes = new();
+    private readonly TimeSpan _queueDetectionWindow = TimeSpan.FromSeconds(2);
+    private const int MinPlayersForQueuePop = 3;
+
+    // ===== Return Message Burst Detection (More Reliable) =====
+    private readonly List<DateTime> _recentReturnMessageTimes = new();
+    private readonly TimeSpan _returnBurstWindow = TimeSpan.FromSeconds(2);
+    private const int MinReturnMessagesForQueuePop = 5;
+    private DateTime _lastQueuePopAlertTime = DateTime.MinValue;
+    private readonly TimeSpan _queuePopCooldown = TimeSpan.FromSeconds(30);
+
+    // ===== Queue Pop Alert Event =====
+    public event Action? QueuePopDetected;
+
+
+    /// <summary>
+    /// Triggers the queue pop detected event
+    /// </summary>
+    public void TriggerQueuePopDetected()
+    {
+        QueuePopDetected?.Invoke();
+    }
+
+    /// <summary>
+    /// Track Return messages and detect queue pop via burst pattern
+    /// </summary>
+    public void TrackReturnMessage()
+    {
+        var now = DateTime.UtcNow;
+
+        // Add current time to the list
+        _recentReturnMessageTimes.Add(now);
+
+        // Remove messages older than the detection window
+        _recentReturnMessageTimes.RemoveAll(time => (now - time) > _returnBurstWindow);
+
+        // Log burst activity in real-time
+        if (EnableQueueDetectionLogging && _recentReturnMessageTimes.Count >= 3)
+        {
+            try
+            {
+                var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "queue-detection-summary.log");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                var logMsg = $"[{timestamp}] RETURN BURST: {_recentReturnMessageTimes.Count} messages in last {_returnBurstWindow.TotalSeconds}s\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                File.AppendAllText(logPath, logMsg);
+            }
+            catch { }
+        }
+
+        // Check if we have enough Return messages in the window
+        if (_recentReturnMessageTimes.Count >= MinReturnMessagesForQueuePop)
+        {
+            // Check cooldown to prevent spam
+            if ((now - _lastQueuePopAlertTime) > _queuePopCooldown)
+            {
+                logger.LogInformation("[RETURN BURST] Queue pop detected! {Count} Return messages in {Window:F1}s",
+                    _recentReturnMessageTimes.Count, _returnBurstWindow.TotalSeconds);
+
+                // Log queue pop detection
+                if (EnableQueueDetectionLogging)
+                {
+                    try
+                    {
+                        var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "queue-detection-summary.log");
+                        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                        var logMsg = $"[{timestamp}] ★★★ QUEUE POP DETECTED! ★★★ {_recentReturnMessageTimes.Count} Return messages triggered alert\n";
+                        Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+                        File.AppendAllText(logPath, logMsg);
+                    }
+                    catch { }
+                }
+
+                _lastQueuePopAlertTime = now;
+                QueuePopDetected?.Invoke();
+
+                // Clear the list to avoid immediate re-trigger
+                _recentReturnMessageTimes.Clear();
+            }
+        }
+    }
+
     /// <summary>
     /// 玩家信息字典 (Key: UID)
     /// </summary>
@@ -124,6 +208,10 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
 
             // ensure background timeout monitor is running when connected
             if (value) EnsureSectionMonitorStarted();
+
+            // Note: UI Automation queue pop detector disabled - game doesn't expose UI elements
+            // Using packet-based detection instead (3+ players joining within 2s)
+            // EnsureQueuePopDetectorStarted();
 
             RaiseServerConnectionStateChanged(value);
         }
@@ -334,6 +422,44 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
         }
 
         PlayerInfoData[uid] = new PlayerInfo { UID = uid };
+
+        // Queue detection using sliding window (always active, logging optional)
+        var now = DateTime.UtcNow;
+
+        // Remove old timestamps outside the detection window
+        var cutoffTime = now - _queueDetectionWindow;
+        _recentPlayerJoinTimes.RemoveAll(time => time < cutoffTime);
+
+        // Add current player join time
+        _recentPlayerJoinTimes.Add(now);
+
+        var playersInWindow = _recentPlayerJoinTimes.Count;
+
+        if (EnableQueueDetectionLogging)
+        {
+            logger.LogInformation("[QUEUE DETECTION] New player added: UID={Uid}, TotalPlayers={TotalCount}, PlayersInWindow={WindowCount}, WindowSize={WindowSize}s",
+                uid, PlayerInfoData.Count, playersInWindow, _queueDetectionWindow.TotalSeconds);
+        }
+
+        // OLD DETECTION METHOD - DISABLED (unreliable, too many false positives)
+        // Now using Return message burst detection instead (more reliable)
+        // Keeping this code for reference only
+        /*
+        if (playersInWindow >= MinPlayersForQueuePop)
+        {
+            if (EnableQueueDetectionLogging)
+            {
+                logger.LogWarning("[QUEUE DETECTION] ⚠️ POTENTIAL QUEUE POP DETECTED! {Count} players joined within {Window}s window",
+                    playersInWindow, _queueDetectionWindow.TotalSeconds);
+            }
+
+            // Fire queue pop detected event
+            QueuePopDetected?.Invoke();
+
+            // Clear the window after triggering to avoid repeated alerts
+            _recentPlayerJoinTimes.Clear();
+        }
+        */
 
         TriggerPlayerInfoUpdatedImmediate(uid);
 

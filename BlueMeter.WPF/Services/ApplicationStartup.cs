@@ -20,7 +20,9 @@ public sealed class ApplicationStartup(
     IDataStorage dataStorage,
     LocalizationManager localization,
     IChecklistService checklistService,
-    IChartDataService chartDataService) : IApplicationStartup
+    IChartDataService chartDataService,
+    IQueueAlertManager queueAlertManager,
+    IQueuePopUIDetector queuePopUIDetector) : IApplicationStartup
 {
     public async Task InitializeAsync()
     {
@@ -63,6 +65,31 @@ public sealed class ApplicationStartup(
             catch (Exception checklistEx)
             {
                 logger.LogWarning(checklistEx, "Checklist initialization failed, continuing without checklist features");
+            }
+
+            // Initialize queue alert manager
+            try
+            {
+                if (dataStorage is DataStorageV2 dataStorageV2)
+                {
+                    queueAlertManager.Initialize(dataStorageV2);
+                    logger.LogInformation(WpfLogEvents.StartupInit, "Queue alert manager initialized successfully");
+                }
+            }
+            catch (Exception queueEx)
+            {
+                logger.LogWarning(queueEx, "Queue alert manager initialization failed, continuing without queue alerts");
+            }
+
+            // Start queue pop UI detector
+            try
+            {
+                queuePopUIDetector.Start();
+                logger.LogInformation(WpfLogEvents.StartupInit, "Queue pop UI detector started successfully");
+            }
+            catch (Exception uiDetectorEx)
+            {
+                logger.LogWarning(uiDetectorEx, "Queue pop UI detector startup failed, continuing without UI detection");
             }
 
             // Start analyzer
@@ -122,6 +149,7 @@ public sealed class ApplicationStartup(
             deviceManagementService.StopActiveCapture();
             packetAnalyzer.Stop();
             hotkeyService.Stop();
+            queuePopUIDetector.Stop();
             dataStorage.SavePlayerInfoToFile();
 
             // Shutdown database
