@@ -29,7 +29,9 @@ public readonly record struct DpsDataProcessed(
     string PlayerName,
     Classes PlayerClass,
     ClassSpec PlayerSpec,
-    int PowerLevel);
+    int PowerLevel,
+    ulong DamageTaken,
+    ulong DamageMitigated);
 
 public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
 {
@@ -245,6 +247,8 @@ public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
             slot.Value = processed.Value;
             slot.Duration = processed.Duration;
             slot.SkillList = processed.SkillList;
+            slot.DamageTaken = processed.DamageTaken;
+            slot.DamageMitigated = processed.DamageMitigated;
 
             // Update player info
             slot.Player.Name = processed.PlayerName;
