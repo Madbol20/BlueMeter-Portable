@@ -4,6 +4,18 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.4.3
+
+**🐛 Bug Fixes:**
+- Fixed queue pop alert toggle - alerts now stop immediately when disabled
+- Added real-time start/stop when toggling alert settings (no restart needed)
+- Fixed false alerts inside dungeons (expanded OCR blacklist)
+- Detector now respects settings at app startup
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.4.3.md)
+
+---
+
 ## Version 1.4.2
 
 **🐛 Hotfix:**

@@ -18,10 +18,11 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.4.2**
-- Fixed queue pop alerts looping continuously
-- Fixed application crashes during queue detection
-- Improved resource cleanup and threading stability
+**Latest Version: 1.4.3**
+- Fixed queue pop alert toggle - alerts now stop immediately when disabled
+- Added real-time start/stop when toggling alert settings
+- Fixed false alerts inside dungeons
+- Detector now respects settings at app startup
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

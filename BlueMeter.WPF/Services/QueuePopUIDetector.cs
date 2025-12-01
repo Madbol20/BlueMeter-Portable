@@ -55,8 +55,18 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     // Blacklist - if these are found, it's NOT a queue pop (e.g., "Challenge" button, dungeon UI)
     private static readonly string[] BlacklistPatterns =
     {
-        "challenge", "challen", "challe", "match", "single", "dual", "team", "confirm",
-        "hp", "damage", "dps", "party", "objective", "boss", "elite", "mission"
+        // Challenge/Match UI
+        "challenge", "challen", "challe", "match", "single", "dual", "team",
+        // Dungeon/Combat UI indicators
+        "hp", "damage", "dps", "party", "objective", "boss", "elite", "mission",
+        "combo", "skill", "attack", "defense", "enemy", "wave", "round",
+        // Player status indicators that appear in dungeons
+        "health", "shield", "buff", "debuff", "cooldown", "stamina",
+        // Common dungeon UI text
+        "defeat", "victory", "reward", "loot", "exp", "level up",
+        // Results/Completion screens (when leaving dungeon)
+        "result", "results", "complete", "completed", "clear", "cleared",
+        "time", "rank", "score", "rating", "grade", "total", "summary"
     };
 
     // P/Invoke declarations for screen capture
@@ -106,7 +116,7 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     private bool _isRunning;
     private bool _disposed;
     private DateTime _lastAlertTime = DateTime.MinValue;
-    private readonly TimeSpan _alertCooldown = TimeSpan.FromSeconds(10); // Cooldown between alerts
+    private readonly TimeSpan _alertCooldown = TimeSpan.FromSeconds(30); // Cooldown between alerts (30s to reduce false positives)
     private TesseractEngine? _ocrEngine;
     private readonly SemaphoreSlim _ocrLock = new(1, 1); // Ensure only one OCR operation at a time
 
@@ -166,6 +176,7 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 
         _logger.LogInformation(WpfLogEvents.QueueDetector,
             "QueuePopUIDetector started - monitoring via screen capture + OCR");
+        _logger.LogInformation("[Queue Alert] ✓ Detector is RUNNING and will check every 500ms");
     }
 
     public void Stop()
@@ -182,25 +193,49 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 
     private void CheckForQueuePopUI()
     {
-        if (!_isRunning || _ocrEngine == null)
+        if (!_isRunning)
+        {
+            _logger.LogDebug("[Queue Alert] Detector not running, skipping check");
             return;
+        }
+
+        if (_ocrEngine == null)
+        {
+            _logger.LogWarning("[Queue Alert] OCR engine is null, skipping check");
+            return;
+        }
 
         try
         {
             // Find game process
             var gameProcess = FindGameProcess();
             if (gameProcess == null)
+            {
+                _logger.LogDebug("[Queue Alert] Game process not found, skipping check");
                 return;
+            }
+
+            _logger.LogDebug("[Queue Alert] Found game process: {ProcessName}", gameProcess.ProcessName);
 
             // Get main window handle
             var mainWindowHandle = gameProcess.MainWindowHandle;
             if (mainWindowHandle == IntPtr.Zero)
+            {
+                _logger.LogWarning("[Queue Alert] Game window handle is zero, skipping check");
                 return;
+            }
+
+            _logger.LogDebug("[Queue Alert] Capturing window screenshot...");
 
             // Capture screenshot of game window
             using var screenshot = CaptureWindow(mainWindowHandle);
             if (screenshot == null)
+            {
+                _logger.LogWarning("[Queue Alert] Failed to capture window screenshot");
                 return;
+            }
+
+            _logger.LogDebug("[Queue Alert] Screenshot captured, running OCR...");
 
             // Run OCR on screenshot (use synchronous version to avoid Task deadlocks)
             var hasQueuePop = DetectQueuePopTextSync(screenshot);
@@ -281,12 +316,13 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 
             fullBitmap = Image.FromHbitmap(hBitmap);
 
-            // Now crop to bottom area (where Cancel/Confirm buttons appear)
-            // Capture 100% width x 70% height from the bottom (include ALL buttons!)
+            // Now crop to bottom area (where queue pop UI appears)
+            // Capture 100% width x 60% height from the bottom
+            // This includes queue pop UI while minimizing party UI at top
             int captureWidth = fullWidth;
-            int captureHeight = (int)(fullHeight * 0.7);
-            int captureX = 0;                        // Full width - no horizontal cropping
-            int captureY = (int)(fullHeight * 0.3);  // Start at 30% from top (bottom 70%)
+            int captureHeight = (int)(fullHeight * 0.6);
+            int captureX = 0;
+            int captureY = (int)(fullHeight * 0.4);  // Start at 40% from top (bottom 60%)
 
             var croppedBitmap = new Bitmap(captureWidth, captureHeight);
             using (var g = Graphics.FromImage(croppedBitmap))
@@ -341,17 +377,36 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 
             var allText = page.GetText()?.ToLowerInvariant() ?? string.Empty;
 
-            // Check for blacklisted patterns first (Challenge button, Confirm-only, etc.)
-            bool foundBlacklist = BlacklistPatterns.Any(pattern => allText.Contains(pattern));
-            if (foundBlacklist)
+            // Count player cards first
+            int playerCardCount = System.Text.RegularExpressions.Regex.Matches(allText, @"lv\.?\s*\d+").Count;
+
+            // Always log when we find ANY player cards (changed to Information level for visibility)
+            if (playerCardCount > 0)
+            {
+                _logger.LogInformation("[Queue Alert] OCR found {Count} player cards. Full text: {Text}",
+                    playerCardCount,
+                    allText.Length > 200 ? allText.Substring(0, 200) + "..." : allText);
+            }
+
+            // Check for blacklisted patterns (Challenge button, dungeon UI, etc.)
+            var foundBlacklistPatterns = BlacklistPatterns.Where(pattern => allText.Contains(pattern)).ToList();
+            if (foundBlacklistPatterns.Any() && playerCardCount >= 3)
+            {
+                _logger.LogInformation("[Queue Alert] Blacklist blocked alert. Patterns: {Patterns}, Cards: {Count}",
+                    string.Join(", ", foundBlacklistPatterns), playerCardCount);
                 return false;
+            }
 
             // Detect queue pop by player card layout pattern
             // Queue pop shows 5 player cards with "Lv.60" or similar level text
-            int playerCardCount = System.Text.RegularExpressions.Regex.Matches(allText, @"lv\.?\s*\d+").Count;
+            // Threshold: 3+ player cards (OCR doesn't always catch all 5)
+            if (playerCardCount >= 3)
+            {
+                _logger.LogInformation("[Queue Alert] ✓ QUEUE POP DETECTED! Cards: {Count}, Playing sound...", playerCardCount);
+                return true;
+            }
 
-            // Queue pop = 3+ player cards (OCR doesn't always catch all 5)
-            return playerCardCount >= 3;
+            return false;
         }
         catch (Exception ex)
         {
@@ -371,15 +426,17 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
             // Check if queue pop alerts are enabled before playing sound
             if (!_configManager.CurrentConfig.QueuePopSoundEnabled)
             {
-                _logger.LogDebug("[Queue Alert] Alert detected but QueuePopSoundEnabled is disabled, skipping sound");
+                _logger.LogWarning("[Queue Alert] ⚠ Detection succeeded but QueuePopSoundEnabled is OFF - Enable in Settings!");
                 return;
             }
 
+            _logger.LogInformation("[Queue Alert] ♪ Playing queue pop sound (setting is enabled)");
             _soundPlayerService.PlayQueuePopSound();
+            _logger.LogInformation("[Queue Alert] ✓ Sound played successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to play queue pop alert sound");
+            _logger.LogError(ex, "[Queue Alert] ✗ Failed to play queue pop alert sound");
         }
     }
 
