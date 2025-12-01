@@ -53,7 +53,7 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     // Blacklist - if these are found, it's NOT a queue pop (e.g., "Challenge" button)
     private static readonly string[] BlacklistPatterns =
     {
-        "challenge", "challen", "challe", "match", "single", "dual", "team"
+        "challenge", "challen", "challe", "match", "single", "dual", "team", "confirm"
     };
 
     // P/Invoke declarations for screen capture
@@ -197,8 +197,8 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
             if (screenshot == null)
                 return;
 
-            // Run OCR on screenshot
-            var hasQueuePop = Task.Run(async () => await DetectQueuePopTextAsync(screenshot)).Result;
+            // Run OCR on screenshot (use synchronous version to avoid Task deadlocks)
+            var hasQueuePop = DetectQueuePopTextSync(screenshot);
 
             if (hasQueuePop)
             {
@@ -209,6 +209,11 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
                 _lastAlertTime = DateTime.Now;
                 OnQueuePopDetected();
             }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Expected during shutdown, ignore
+            _isRunning = false;
         }
         catch (Exception ex)
         {
@@ -230,6 +235,11 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 
     private Bitmap? CaptureWindow(IntPtr hWnd)
     {
+        IntPtr hdcSrc = IntPtr.Zero;
+        IntPtr hdcDest = IntPtr.Zero;
+        IntPtr hBitmap = IntPtr.Zero;
+        Bitmap? fullBitmap = null;
+
         try
         {
             var rect = new RECT();
@@ -242,26 +252,29 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
                 return null;
 
             // First, capture the full window using PrintWindow (works even when minimized/covered)
-            var hdcSrc = GetDC(hWnd);
-            var hdcDest = CreateCompatibleDC(hdcSrc);
-            var hBitmap = CreateCompatibleBitmap(hdcSrc, fullWidth, fullHeight);
+            hdcSrc = GetDC(hWnd);
+            if (hdcSrc == IntPtr.Zero)
+                return null;
+
+            hdcDest = CreateCompatibleDC(hdcSrc);
+            if (hdcDest == IntPtr.Zero)
+                return null;
+
+            hBitmap = CreateCompatibleBitmap(hdcSrc, fullWidth, fullHeight);
+            if (hBitmap == IntPtr.Zero)
+                return null;
+
             var hOld = SelectObject(hdcDest, hBitmap);
 
             // Use PrintWindow instead of BitBlt - this captures even minimized/background windows
             bool success = PrintWindow(hWnd, hdcDest, PW_RENDERFULLCONTENT);
 
             SelectObject(hdcDest, hOld);
-            DeleteDC(hdcDest);
-            ReleaseDC(hWnd, hdcSrc);
 
             if (!success)
-            {
-                DeleteObject(hBitmap);
                 return null;
-            }
 
-            var fullBitmap = Image.FromHbitmap(hBitmap);
-            DeleteObject(hBitmap);
+            fullBitmap = Image.FromHbitmap(hBitmap);
 
             // Now crop to bottom area (where Cancel/Confirm buttons appear)
             // Capture 100% width x 70% height from the bottom (include ALL buttons!)
@@ -279,59 +292,66 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
                     GraphicsUnit.Pixel);
             }
 
-            fullBitmap.Dispose();
-
             return croppedBitmap;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "[OCR] Error capturing window");
             return null;
+        }
+        finally
+        {
+            // Clean up GDI resources to prevent memory leaks
+            if (hBitmap != IntPtr.Zero)
+                DeleteObject(hBitmap);
+
+            if (hdcDest != IntPtr.Zero)
+                DeleteDC(hdcDest);
+
+            if (hdcSrc != IntPtr.Zero)
+                ReleaseDC(hWnd, hdcSrc);
+
+            fullBitmap?.Dispose();
         }
     }
 
-    private async Task<bool> DetectQueuePopTextAsync(Bitmap screenshot)
+    private bool DetectQueuePopTextSync(Bitmap screenshot)
     {
         // Use semaphore to ensure only one OCR operation at a time (Tesseract is not thread-safe)
-        if (!await _ocrLock.WaitAsync(0)) // Try to acquire immediately, don't block
+        if (!_ocrLock.Wait(0)) // Try to acquire immediately, don't block
             return false;
 
         try
         {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    if (_ocrEngine == null)
-                        return false;
+            if (_ocrEngine == null || _disposed)
+                return false;
 
-                    // Save bitmap to memory stream and process with Tesseract
-                    using var ms = new MemoryStream();
-                    screenshot.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                    ms.Position = 0;
+            // Save bitmap to memory stream and process with Tesseract
+            using var ms = new MemoryStream();
+            screenshot.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+            ms.Position = 0;
 
-                    using var img = Pix.LoadFromMemory(ms.ToArray());
-                    using var page = _ocrEngine.Process(img);
+            using var img = Pix.LoadFromMemory(ms.ToArray());
+            using var page = _ocrEngine.Process(img);
 
-                    var allText = page.GetText()?.ToLowerInvariant() ?? string.Empty;
+            var allText = page.GetText()?.ToLowerInvariant() ?? string.Empty;
 
-                    // Check for blacklisted patterns first (Challenge button, etc.)
-                    bool foundBlacklist = BlacklistPatterns.Any(pattern => allText.Contains(pattern));
-                    if (foundBlacklist)
-                        return false;
+            // Check for blacklisted patterns first (Challenge button, Confirm-only, etc.)
+            bool foundBlacklist = BlacklistPatterns.Any(pattern => allText.Contains(pattern));
+            if (foundBlacklist)
+                return false;
 
-                    // Detect queue pop by player card layout pattern
-                    // Queue pop shows 5 player cards with "Lv.60"
-                    int playerCardCount = System.Text.RegularExpressions.Regex.Matches(allText, @"lv\.?\s*\d+").Count;
+            // Detect queue pop by player card layout pattern
+            // Queue pop shows 5 player cards with "Lv.60" or similar level text
+            int playerCardCount = System.Text.RegularExpressions.Regex.Matches(allText, @"lv\.?\s*\d+").Count;
 
-                    // Queue pop = 3+ player cards (OCR doesn't always catch all 5)
-                    return playerCardCount >= 3;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "[OCR] Error during text recognition");
-                    return false;
-                }
-            });
+            // Queue pop = 3+ player cards (OCR doesn't always catch all 5)
+            return playerCardCount >= 3;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[OCR] Error during text recognition");
+            return false;
         }
         finally
         {
@@ -357,9 +377,40 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
             return;
 
         _disposed = true;
+
+        // Stop the timer first to prevent new operations
         Stop();
-        _ocrEngine?.Dispose();
-        _ocrLock.Dispose();
+
+        // Wait for any ongoing OCR operations to complete (max 2 seconds)
+        try
+        {
+            _ocrLock.Wait(TimeSpan.FromSeconds(2));
+            _ocrLock.Release();
+        }
+        catch
+        {
+            // Ignore timeout or disposal errors
+        }
+
+        // Dispose OCR engine and semaphore
+        try
+        {
+            _ocrEngine?.Dispose();
+            _ocrEngine = null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[OCR] Error disposing OCR engine");
+        }
+
+        try
+        {
+            _ocrLock.Dispose();
+        }
+        catch
+        {
+            // Ignore disposal errors
+        }
 
         _logger.LogDebug("QueuePopUIDetector disposed");
     }
