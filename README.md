@@ -16,32 +16,14 @@ The tool does not require modifying the game client and does not violate the gam
 
 ## 📋 Changelog
 
-### Version 1.4.1 (Latest)
+For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**🐛 Hotfix:**
-- Fixed missing Tesseract OCR data file (eng.traineddata) in Release builds
-- Queue Pop Alerts (Beta) now working correctly in all build configurations
+**Latest Version: 1.4.2**
+- Fixed queue pop alerts looping continuously
+- Fixed application crashes during queue detection
+- Improved resource cleanup and threading stability
 
-### Version 1.4.0
-
-**🎯 New Features:**
-- **Tank/Mitigation Statistics** - Comprehensive tank metrics including:
-  - HP Damage Taken vs Shield Damage Absorbed
-  - Total Effective Damage (threat tracking)
-  - Mitigation Percentage calculation
-  - Effective TPS (Threat Per Second)
-- **Queue Pop Alerts (Beta)** - Audio notifications when dungeon/raid queue pops
-  - OCR-based detection works even when game is minimized
-  - Multiple customizable alert sounds
-  - Configurable in Settings → Alerts (Beta)
-
-**🔧 Improvements:**
-- Removed deprecated WinForms dependencies
-- Cleaned up alert system logging
-- Code cleanup and optimization
-
-**🐛 Bug Fixes:**
-- Fixed damage tracking to properly separate HP damage from shield absorption
+For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 
 ## ✨ Features
 
