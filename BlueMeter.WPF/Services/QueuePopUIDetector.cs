@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using BlueMeter.WPF.Config;
 using BlueMeter.WPF.Logging;
 using Tesseract;
 
@@ -40,6 +41,7 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 {
     private readonly ILogger<QueuePopUIDetector> _logger;
     private readonly ISoundPlayerService _soundPlayerService;
+    private readonly IConfigManager _configManager;
 
     // Game process names to monitor
     private static readonly string[] GameProcessNames =
@@ -50,10 +52,11 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
         "BPSR"            // Generic version
     };
 
-    // Blacklist - if these are found, it's NOT a queue pop (e.g., "Challenge" button)
+    // Blacklist - if these are found, it's NOT a queue pop (e.g., "Challenge" button, dungeon UI)
     private static readonly string[] BlacklistPatterns =
     {
-        "challenge", "challen", "challe", "match", "single", "dual", "team", "confirm"
+        "challenge", "challen", "challe", "match", "single", "dual", "team", "confirm",
+        "hp", "damage", "dps", "party", "objective", "boss", "elite", "mission"
     };
 
     // P/Invoke declarations for screen capture
@@ -111,10 +114,12 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
 
     public QueuePopUIDetector(
         ILogger<QueuePopUIDetector> logger,
-        ISoundPlayerService soundPlayerService)
+        ISoundPlayerService soundPlayerService,
+        IConfigManager configManager)
     {
         _logger = logger;
         _soundPlayerService = soundPlayerService;
+        _configManager = configManager;
     }
 
     public void Start()
@@ -363,6 +368,13 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     {
         try
         {
+            // Check if queue pop alerts are enabled before playing sound
+            if (!_configManager.CurrentConfig.QueuePopSoundEnabled)
+            {
+                _logger.LogDebug("[Queue Alert] Alert detected but QueuePopSoundEnabled is disabled, skipping sound");
+                return;
+            }
+
             _soundPlayerService.PlayQueuePopSound();
         }
         catch (Exception ex)

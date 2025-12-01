@@ -81,11 +81,18 @@ public sealed class ApplicationStartup(
                 logger.LogWarning(queueEx, "Queue alert manager initialization failed, continuing without queue alerts");
             }
 
-            // Start queue pop UI detector
+            // Start queue pop UI detector (only if enabled in settings)
             try
             {
-                queuePopUIDetector.Start();
-                logger.LogInformation(WpfLogEvents.StartupInit, "Queue pop UI detector started successfully");
+                if (configManager.CurrentConfig.QueuePopSoundEnabled)
+                {
+                    queuePopUIDetector.Start();
+                    logger.LogInformation(WpfLogEvents.StartupInit, "Queue pop UI detector started successfully");
+                }
+                else
+                {
+                    logger.LogInformation(WpfLogEvents.StartupInit, "Queue pop UI detector disabled in settings");
+                }
             }
             catch (Exception uiDetectorEx)
             {

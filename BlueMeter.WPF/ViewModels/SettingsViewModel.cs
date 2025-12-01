@@ -24,7 +24,8 @@ public partial class SettingsViewModel(
     LocalizationManager localization,
     IMessageDialogService messageDialogService,
     IGlobalHotkeyService globalHotkeyService,
-    ISoundPlayerService soundPlayerService)
+    ISoundPlayerService soundPlayerService,
+    IQueuePopUIDetector queuePopUIDetector)
     : BaseViewModel, IDisposable
 {
     // Expose the global hotkey service so it can be accessed by behaviors
@@ -229,6 +230,24 @@ public partial class SettingsViewModel(
         {
             localization.ApplyLanguage(config.Language);
             UpdateLanguageDependentCollections();
+        }
+        else if (e.PropertyName == nameof(AppConfig.QueuePopSoundEnabled))
+        {
+            // Start or stop the queue pop UI detector based on the setting
+            if (config.QueuePopSoundEnabled)
+            {
+                if (!queuePopUIDetector.IsRunning)
+                {
+                    queuePopUIDetector.Start();
+                }
+            }
+            else
+            {
+                if (queuePopUIDetector.IsRunning)
+                {
+                    queuePopUIDetector.Stop();
+                }
+            }
         }
         else if (e.PropertyName == nameof(AppConfig.PreferredNetworkAdapter))
         {
@@ -557,7 +576,7 @@ public enum ShortcutType
 
 public sealed class SettingsDesignTimeViewModel : SettingsViewModel
 {
-    public SettingsDesignTimeViewModel() : base(new DesignConfigManager(), new DesignTimeDeviceManagementService(), new LocalizationManager(new LocalizationConfiguration(), NullLogger<LocalizationManager>.Instance), new DesignMessageDialogService(), new DesignTimeGlobalHotkeyService(), new DesignTimeSoundPlayerService())
+    public SettingsDesignTimeViewModel() : base(new DesignConfigManager(), new DesignTimeDeviceManagementService(), new LocalizationManager(new LocalizationConfiguration(), NullLogger<LocalizationManager>.Instance), new DesignMessageDialogService(), new DesignTimeGlobalHotkeyService(), new DesignTimeSoundPlayerService(), new DesignTimeQueuePopUIDetector())
     {
         AppConfig = new AppConfig
         {
@@ -604,6 +623,14 @@ internal sealed class DesignTimeSoundPlayerService : ISoundPlayerService
 {
     public void PlayQueuePopSound() { }
     public void TestSound(QueuePopSound sound, double volume) { }
+    public void Dispose() { }
+}
+
+internal sealed class DesignTimeQueuePopUIDetector : IQueuePopUIDetector
+{
+    public bool IsRunning => false;
+    public void Start() { }
+    public void Stop() { }
     public void Dispose() { }
 }
 
