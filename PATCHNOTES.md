@@ -4,6 +4,17 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.4.4
+
+**🐛 Critical Hotfix:**
+- Fixed crash when interacting with damage meter after disabling mouse-through mode
+- Fixed XAML binding errors on read-only tank stat properties (EffectiveDamage, MitigationPercent, EffectiveTps)
+- Popup tooltips now display reliably without crashes
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.4.4.md)
+
+---
+
 ## Version 1.4.3
 
 **🐛 Bug Fixes:**

@@ -305,7 +305,7 @@
                         <!--  Effective Damage (Total Threat)  -->
                         <TextBlock Style="{StaticResource FooterTextContent}">
                             <Run Foreground="#FFD93D" Text="Effective Damage: " />
-                            <Run FontWeight="Bold" Foreground="White" Text="{Binding EffectiveDamage, StringFormat=N0}" />
+                            <Run FontWeight="Bold" Foreground="White" Text="{Binding EffectiveDamage, Mode=OneWay, StringFormat=N0}" />
                             <Run Foreground="Gray" Text=" (HP + Shield)" />
                         </TextBlock>
 
@@ -318,13 +318,13 @@
                                 FontSize="13"
                                 FontWeight="Bold"
                                 Foreground="#6BCF7F"
-                                Text="{Binding MitigationPercent, StringFormat='{}{0:F1}%'}" />
+                                Text="{Binding MitigationPercent, Mode=OneWay, StringFormat='{}{0:F1}%'}" />
                         </TextBlock>
 
                         <!--  Effective TPS  -->
                         <TextBlock Style="{StaticResource FooterTextContent}">
                             <Run Foreground="#C8A2C8" Text="Effective TPS: " />
-                            <Run FontWeight="Bold" Foreground="White" Text="{Binding EffectiveTps, StringFormat='{}{0:F0}'}" />
+                            <Run FontWeight="Bold" Foreground="White" Text="{Binding EffectiveTps, Mode=OneWay, StringFormat='{}{0:F0}'}" />
                         </TextBlock>
                     </StackPanel>
                 </Border>
