@@ -19,6 +19,15 @@ public static class DataStorageExtensions
     private static DateTime _lastSaveTime = DateTime.MinValue;
     private static readonly TimeSpan MinSaveDuration = TimeSpan.FromSeconds(3);
 
+    // Cache for chart history snapshots received from BeforeHistoryCleared event
+    private static Dictionary<long, List<Database.ChartDataPoint>>? _cachedDpsHistory;
+    private static Dictionary<long, List<Database.ChartDataPoint>>? _cachedHpsHistory;
+
+    // Advanced Combat Logging (BSON)
+    private static BattleLogManager? _battleLogManager;
+    private static BattleLogRecorder? _currentRecorder;
+    private static bool _advancedLoggingEnabled = false;
+
     /// <summary>
     /// Initialize database integration with DataStorage
     /// </summary>
@@ -28,7 +37,10 @@ public static class DataStorageExtensions
         object? chartDataService = null,
         bool autoCleanup = true,
         int maxEncounters = 20,
-        double maxSizeMB = 100)
+        double maxSizeMB = 100,
+        bool enableAdvancedLogging = false,
+        int maxStoredEncounters = 10,
+        string? battleLogDirectory = null)
     {
         if (_isInitialized) return;
 
@@ -42,6 +54,35 @@ public static class DataStorageExtensions
         // Create encounter service
         var contextFactory = DatabaseInitializer.CreateContextFactory(databasePath);
         _encounterService = new EncounterService(contextFactory);
+
+        // Subscribe to ChartDataService events (if available)
+        if (_chartDataService != null)
+        {
+            try
+            {
+                var serviceType = _chartDataService.GetType();
+                var eventInfo = serviceType.GetEvent("BeforeHistoryCleared");
+
+                if (eventInfo != null)
+                {
+                    // Create delegate and subscribe to event
+                    var handlerType = eventInfo.EventHandlerType;
+                    var handler = Delegate.CreateDelegate(handlerType!, typeof(DataStorageExtensions).GetMethod(nameof(OnChartHistoryClearing),
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!);
+                    eventInfo.AddEventHandler(_chartDataService, handler);
+
+                    Console.WriteLine("[DataStorageExtensions] Successfully subscribed to ChartDataService.BeforeHistoryCleared event");
+                }
+                else
+                {
+                    Console.WriteLine("[DataStorageExtensions] WARNING: BeforeHistoryCleared event not found on ChartDataService");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DataStorageExtensions] ERROR subscribing to ChartDataService events: {ex.Message}");
+            }
+        }
 
         // Subscribe to DataStorage events
         if (_dataStorage != null)
@@ -59,6 +100,20 @@ public static class DataStorageExtensions
             DataStorage.PlayerInfoUpdated += OnPlayerInfoUpdated;
         }
 
+        // Initialize Advanced Combat Logging (BSON)
+        _advancedLoggingEnabled = enableAdvancedLogging;
+        if (_advancedLoggingEnabled)
+        {
+            _battleLogManager = new BattleLogManager(battleLogDirectory, maxStoredEncounters);
+            Console.WriteLine($"[DataStorageExtensions] Advanced Combat Logging enabled:");
+            Console.WriteLine($"  Directory: {_battleLogManager.LogDirectory}");
+            Console.WriteLine($"  Max encounters: {_battleLogManager.MaxEncounters}");
+        }
+        else
+        {
+            Console.WriteLine("[DataStorageExtensions] Advanced Combat Logging disabled (fast mode)");
+        }
+
         _isInitialized = true;
     }
 
@@ -68,6 +123,16 @@ public static class DataStorageExtensions
     public static EncounterService? GetEncounterService() => _encounterService;
 
     /// <summary>
+    /// Get the battle log manager instance (for advanced combat logging)
+    /// </summary>
+    public static BattleLogManager? GetBattleLogManager() => _battleLogManager;
+
+    /// <summary>
+    /// Check if advanced combat logging is enabled
+    /// </summary>
+    public static bool IsAdvancedLoggingEnabled() => _advancedLoggingEnabled;
+
+    /// <summary>
     /// Start a new encounter manually
     /// </summary>
     public static async Task StartNewEncounterAsync()
@@ -75,6 +140,13 @@ public static class DataStorageExtensions
         if (_encounterService == null) return;
 
         await _encounterService.StartEncounterAsync();
+
+        // Start BSON recorder if advanced logging enabled
+        if (_advancedLoggingEnabled && _battleLogManager != null)
+        {
+            _currentRecorder = BattleLogRecorder.StartNew();
+            Console.WriteLine("[DataStorageExtensions] BattleLogRecorder started for advanced logging");
+        }
     }
 
     /// <summary>
@@ -105,50 +177,30 @@ public static class DataStorageExtensions
                 dpsData = DataStorage.ReadOnlySectionedDpsDatas.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             }
 
-            // Get chart history snapshots (using reflection to avoid circular dependency)
-            Dictionary<long, List<Database.ChartDataPoint>>? dpsHistory = null;
-            Dictionary<long, List<Database.ChartDataPoint>>? hpsHistory = null;
+            // Get chart history from cache (populated by BeforeHistoryCleared event)
+            Dictionary<long, List<Database.ChartDataPoint>>? dpsHistory = _cachedDpsHistory;
+            Dictionary<long, List<Database.ChartDataPoint>>? hpsHistory = _cachedHpsHistory;
 
-            if (_chartDataService != null)
+            if (dpsHistory != null && hpsHistory != null)
             {
-                try
-                {
-                    var serviceType = _chartDataService.GetType();
-                    var getDpsMethod = serviceType.GetMethod("GetDpsHistorySnapshot");
-                    var getHpsMethod = serviceType.GetMethod("GetHpsHistorySnapshot");
-
-                    if (getDpsMethod != null && getHpsMethod != null)
-                    {
-                        // Get snapshots from WPF service (returns Dictionary<long, List<WPF.ChartDataPoint>>)
-                        var wpfDpsHistory = getDpsMethod.Invoke(_chartDataService, null) as dynamic;
-                        var wpfHpsHistory = getHpsMethod.Invoke(_chartDataService, null) as dynamic;
-
-                        // Convert WPF ChartDataPoints to Core ChartDataPoints
-                        dpsHistory = ConvertChartHistory(wpfDpsHistory);
-                        hpsHistory = ConvertChartHistory(wpfHpsHistory);
-
-                        // DEBUG: Log chart history capture
-                        Console.WriteLine($"[DataStorageExtensions] Chart history captured:");
-                        Console.WriteLine($"  - DPS History: {dpsHistory?.Count ?? 0} players, {dpsHistory?.Sum(kvp => kvp.Value.Count) ?? 0} total points");
-                        Console.WriteLine($"  - HPS History: {hpsHistory?.Count ?? 0} players, {hpsHistory?.Sum(kvp => kvp.Value.Count) ?? 0} total points");
-                    }
-                    else
-                    {
-                        Console.WriteLine("[DataStorageExtensions] WARNING: Chart snapshot methods not found!");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[DataStorageExtensions] ERROR getting chart history: {ex.Message}");
-                    Console.WriteLine($"  Stack trace: {ex.StackTrace}");
-                }
+                Console.WriteLine($"[DataStorageExtensions] Using cached chart history from BeforeHistoryCleared event:");
+                Console.WriteLine($"  - DPS History: {dpsHistory.Count} players, {dpsHistory.Sum(kvp => kvp.Value.Count)} total points");
+                Console.WriteLine($"  - HPS History: {hpsHistory.Count} players, {hpsHistory.Sum(kvp => kvp.Value.Count)} total points");
             }
             else
             {
-                Console.WriteLine("[DataStorageExtensions] WARNING: ChartDataService is null, no chart data will be saved!");
+                Console.WriteLine("[DataStorageExtensions] WARNING: No cached chart history available!");
+                Console.WriteLine("  This may be normal if:");
+                Console.WriteLine("    1. This is the first save before any combat");
+                Console.WriteLine("    2. The BeforeHistoryCleared event hasn't fired yet");
+                Console.WriteLine("    3. There was no chart data to save");
             }
 
             await _encounterService.SavePlayerStatsAsync(playerInfos, dpsData, dpsHistory, hpsHistory);
+
+            // Clear cache after successful save
+            _cachedDpsHistory = null;
+            _cachedHpsHistory = null;
 
             _lastSaveTime = DateTime.Now;
         }
@@ -195,6 +247,46 @@ public static class DataStorageExtensions
 
         // Final save before ending
         await SaveCurrentEncounterAsync();
+
+        // Save BSON if advanced logging enabled
+        if (_advancedLoggingEnabled && _battleLogManager != null && _currentRecorder != null)
+        {
+            try
+            {
+                Console.WriteLine("[DataStorageExtensions] Stopping BattleLogRecorder and saving to BSON...");
+
+                // Stop recorder
+                _currentRecorder.Stop();
+
+                // Get battle logs
+                var battleLogs = _currentRecorder.BattleLogs;
+
+                // Get player infos
+                var playerInfos = DataStorage.BuildPlayerDicFromBattleLog(battleLogs);
+                var playerInfoList = playerInfos.Values.ToList();
+
+                // Generate encounter ID
+                var encounterId = _encounterService.CurrentEncounterId ?? Guid.NewGuid().ToString();
+
+                // Save to BSON via BattleLogManager
+                await _battleLogManager.SaveEncounterAsync(
+                    encounterId,
+                    bossName,
+                    battleLogs,
+                    playerInfoList
+                );
+
+                Console.WriteLine($"[DataStorageExtensions] BSON saved: {battleLogs.Count} events, {playerInfoList.Count} players");
+
+                // Clear recorder
+                _currentRecorder = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DataStorageExtensions] ERROR saving BSON: {ex.Message}");
+                Console.WriteLine($"  Stack trace: {ex.StackTrace}");
+            }
+        }
 
         await _encounterService.EndCurrentEncounterAsync(durationMs, 0, bossName, bossUuid);
     }
@@ -250,6 +342,46 @@ public static class DataStorageExtensions
     }
 
     // Event handlers
+
+    /// <summary>
+    /// Event handler for ChartDataService.BeforeHistoryCleared
+    /// Receives chart history snapshots BEFORE they are cleared
+    /// </summary>
+    private static void OnChartHistoryClearing(object? sender, object eventArgs)
+    {
+        try
+        {
+            Console.WriteLine("[DataStorageExtensions] OnChartHistoryClearing event received");
+
+            // Extract snapshots from event args using reflection (cross-assembly)
+            var eventArgsType = eventArgs.GetType();
+            var dpsProperty = eventArgsType.GetProperty("DpsHistorySnapshot");
+            var hpsProperty = eventArgsType.GetProperty("HpsHistorySnapshot");
+
+            if (dpsProperty != null && hpsProperty != null)
+            {
+                var wpfDpsHistory = dpsProperty.GetValue(eventArgs) as dynamic;
+                var wpfHpsHistory = hpsProperty.GetValue(eventArgs) as dynamic;
+
+                // Convert WPF ChartDataPoints to Core ChartDataPoints
+                _cachedDpsHistory = ConvertChartHistory(wpfDpsHistory);
+                _cachedHpsHistory = ConvertChartHistory(wpfHpsHistory);
+
+                Console.WriteLine($"[DataStorageExtensions] Chart history cached from event:");
+                Console.WriteLine($"  - DPS History: {_cachedDpsHistory?.Count ?? 0} players, {_cachedDpsHistory?.Sum(kvp => kvp.Value.Count) ?? 0} total points");
+                Console.WriteLine($"  - HPS History: {_cachedHpsHistory?.Count ?? 0} players, {_cachedHpsHistory?.Sum(kvp => kvp.Value.Count) ?? 0} total points");
+            }
+            else
+            {
+                Console.WriteLine("[DataStorageExtensions] ERROR: Could not find snapshot properties in event args");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DataStorageExtensions] ERROR in OnChartHistoryClearing: {ex.Message}");
+            Console.WriteLine($"  Stack trace: {ex.StackTrace}");
+        }
+    }
 
     private static async void OnNewSectionCreated()
     {
@@ -382,7 +514,31 @@ public static class DataStorageExtensions
     {
         if (!_isInitialized) return;
 
-        // Unsubscribe from events
+        // Unsubscribe from ChartDataService events
+        if (_chartDataService != null)
+        {
+            try
+            {
+                var serviceType = _chartDataService.GetType();
+                var eventInfo = serviceType.GetEvent("BeforeHistoryCleared");
+
+                if (eventInfo != null)
+                {
+                    var handlerType = eventInfo.EventHandlerType;
+                    var handler = Delegate.CreateDelegate(handlerType!, typeof(DataStorageExtensions).GetMethod(nameof(OnChartHistoryClearing),
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!);
+                    eventInfo.RemoveEventHandler(_chartDataService, handler);
+
+                    Console.WriteLine("[DataStorageExtensions] Unsubscribed from ChartDataService.BeforeHistoryCleared event");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DataStorageExtensions] ERROR unsubscribing from ChartDataService events: {ex.Message}");
+            }
+        }
+
+        // Unsubscribe from DataStorage events
         if (_dataStorage != null)
         {
             _dataStorage.NewSectionCreated -= OnNewSectionCreated;
@@ -396,8 +552,29 @@ public static class DataStorageExtensions
             DataStorage.PlayerInfoUpdated -= OnPlayerInfoUpdated;
         }
 
+        // Clear cached data
+        _cachedDpsHistory = null;
+        _cachedHpsHistory = null;
+
+        // Cleanup advanced logging
+        if (_currentRecorder != null)
+        {
+            try
+            {
+                if (_currentRecorder.State == RunningState.Running)
+                {
+                    _currentRecorder.Stop();
+                }
+            }
+            catch { }
+            _currentRecorder = null;
+        }
+        _battleLogManager = null;
+        _advancedLoggingEnabled = false;
+
         _encounterService = null;
         _dataStorage = null;
+        _chartDataService = null;
         _isInitialized = false;
     }
 }

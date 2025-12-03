@@ -28,6 +28,12 @@ public sealed class ChartDataService : IChartDataService
 
     public bool IsRunning => _samplingTimer.IsEnabled;
 
+    /// <summary>
+    /// Event fired BEFORE chart history is cleared
+    /// Provides snapshots of the data so subscribers can save it
+    /// </summary>
+    public event EventHandler<ChartHistoryClearingEventArgs>? BeforeHistoryCleared;
+
     public ChartDataService(
         ILogger<ChartDataService> logger,
         IDataStorage dataStorage,
@@ -129,16 +135,57 @@ public sealed class ChartDataService : IChartDataService
     {
         try
         {
-            // Clear all history when new section starts
-            _logger.LogInformation("New section created - clearing chart history ({DpsPlayers} DPS, {HpsPlayers} HPS tracked players)",
-                _dpsHistory.Count, _hpsHistory.Count);
+            var dpsPlayerCount = _dpsHistory.Count;
+            var hpsPlayerCount = _hpsHistory.Count;
+            var totalDpsPoints = _dpsHistory.Sum(kvp => kvp.Value.Count);
+            var totalHpsPoints = _hpsHistory.Sum(kvp => kvp.Value.Count);
 
+            _logger.LogInformation("New section created - saving and clearing chart history ({DpsPlayers} DPS players, {HpsPlayers} HPS players, {DpsPoints} DPS points, {HpsPoints} HPS points)",
+                dpsPlayerCount, hpsPlayerCount, totalDpsPoints, totalHpsPoints);
+
+            // 1️⃣ FIRST: Create deep copy snapshots of current data
+            var dpsSnapshot = new Dictionary<long, List<ChartDataPoint>>();
+            foreach (var kvp in _dpsHistory)
+            {
+                dpsSnapshot[kvp.Key] = kvp.Value.Select(dp => new ChartDataPoint(dp.Timestamp, dp.Value)).ToList();
+            }
+
+            var hpsSnapshot = new Dictionary<long, List<ChartDataPoint>>();
+            foreach (var kvp in _hpsHistory)
+            {
+                hpsSnapshot[kvp.Key] = kvp.Value.Select(dp => new ChartDataPoint(dp.Timestamp, dp.Value)).ToList();
+            }
+
+            _logger.LogDebug("Created chart history snapshots: {DpsPlayers} DPS players with {DpsPoints} points, {HpsPlayers} HPS players with {HpsPoints} points",
+                dpsSnapshot.Count, dpsSnapshot.Sum(kvp => kvp.Value.Count),
+                hpsSnapshot.Count, hpsSnapshot.Sum(kvp => kvp.Value.Count));
+
+            // 2️⃣ SECOND: Fire event to allow subscribers to save the data
+            // This happens BEFORE clearing, so data is available for saving
+            if (BeforeHistoryCleared != null)
+            {
+                _logger.LogDebug("Firing BeforeHistoryCleared event with {DpsPlayers} DPS and {HpsPlayers} HPS players",
+                    dpsSnapshot.Count, hpsSnapshot.Count);
+
+                var eventArgs = new ChartHistoryClearingEventArgs(dpsSnapshot, hpsSnapshot);
+                BeforeHistoryCleared.Invoke(this, eventArgs);
+
+                _logger.LogDebug("BeforeHistoryCleared event completed");
+            }
+            else
+            {
+                _logger.LogWarning("BeforeHistoryCleared event has no subscribers - chart data will be lost!");
+            }
+
+            // 3️⃣ THIRD: Now safe to clear the history
             _dpsHistory.Clear();
             _hpsHistory.Clear();
+
+            _logger.LogInformation("Chart history cleared successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error clearing chart history on new section");
+            _logger.LogError(ex, "Error in OnNewSectionCreated while saving/clearing chart history");
         }
     }
 

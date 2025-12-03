@@ -56,6 +56,11 @@ public sealed class DpsStatisticsDesignTimeViewModel : DpsStatisticsViewModel
     {
         public bool IsRunning => false;
 
+        // Event required by interface - design-time stub never fires this
+#pragma warning disable CS0067 // Event is never used (design-time only)
+        public event EventHandler<Services.ChartHistoryClearingEventArgs>? BeforeHistoryCleared;
+#pragma warning restore CS0067
+
         public void Start() { }
         public void Stop() { }
         public ObservableCollection<Models.ChartDataPoint>? GetDpsHistory(long playerId) => null;

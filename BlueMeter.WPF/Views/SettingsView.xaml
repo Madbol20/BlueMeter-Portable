@@ -894,6 +894,82 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Advanced Combat Logging Section -->
+                            <ctrl:CardHeader
+                                Title="Advanced Combat Logging (Beta)"
+                                Subtitle="Save detailed packet-level battle logs for replay and analysis" />
+
+                            <Border Style="{StaticResource SectionBorder}">
+                                <StackPanel Style="{StaticResource SectionStackPanel}">
+
+                                    <!-- Enable Advanced Combat Logging -->
+                                    <Border Style="{StaticResource SectionFieldBorder}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Enable Advanced Combat Logging"
+                                                ToolTip="Save full packet-level logs (BSON format) for detailed replay. Requires more disk space." />
+                                            <Border Grid.Column="2" HorizontalAlignment="Right">
+                                                <ctrl:SwitchControl IsChecked="{Binding AppConfig.EnableAdvancedCombatLogging}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Max Stored Encounters -->
+                                    <Border Style="{StaticResource SectionFieldBorder}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="Max Stored Encounters"
+                                                ToolTip="Maximum number of encounters to keep. Oldest logs are automatically deleted." />
+                                            <ComboBox
+                                                Grid.Column="2"
+                                                IsEnabled="{Binding AppConfig.EnableAdvancedCombatLogging}"
+                                                SelectedItem="{Binding AppConfig.MaxStoredEncounters, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource FieldComboBox}">
+                                                <ComboBox.Items>
+                                                    <System:Int32 xmlns:System="clr-namespace:System;assembly=mscorlib">5</System:Int32>
+                                                    <System:Int32 xmlns:System="clr-namespace:System;assembly=mscorlib">10</System:Int32>
+                                                    <System:Int32 xmlns:System="clr-namespace:System;assembly=mscorlib">20</System:Int32>
+                                                    <System:Int32 xmlns:System="clr-namespace:System;assembly=mscorlib">50</System:Int32>
+                                                </ComboBox.Items>
+                                            </ComboBox>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Info Text -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <TextBlock
+                                            Margin="0,0,10,0"
+                                            FontSize="11"
+                                            Foreground="#888888"
+                                            TextWrapping="Wrap">
+                                            <Run Text="ℹ️ " FontWeight="Bold" />
+                                            <Run Text="Advanced logging saves full packet-level data to BSON files (~45MB per encounter). "/>
+                                            <Run Text="Storage location: %LocalAppData%\BlueMeter\CombatLogs\" FontFamily="Consolas" FontSize="10" />
+                                            <LineBreak />
+                                            <Run Text="💡 Tip: " FontWeight="Bold" />
+                                            <Run Text="Use 'View Logs' in History window to manage stored encounters. Requires restart to take effect." />
+                                        </TextBlock>
+                                    </Border>
+
+                                </StackPanel>
+                            </Border>
+
                             <ctrl:CardHeader
                                 x:Name="SectionTheme"
                                 Title="{lex:Loc Key={x:Static loc:ResourcesKeys.Settings_Section_Theme_Title}}"

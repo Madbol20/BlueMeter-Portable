@@ -254,6 +254,86 @@ public partial class EncounterHistoryViewModel : BaseViewModel
     {
         RequestClose?.Invoke();
     }
+
+    [RelayCommand]
+    private void ManageAdvancedLogs()
+    {
+        try
+        {
+            var manager = DataStorageExtensions.GetBattleLogManager();
+            if (manager == null || !DataStorageExtensions.IsAdvancedLoggingEnabled())
+            {
+                MessageBox.Show(
+                    "Advanced Combat Logging is not enabled.\n\n" +
+                    "To enable it:\n" +
+                    "1. Go to Settings\n" +
+                    "2. Scroll to 'Advanced Combat Logging (Beta)'\n" +
+                    "3. Enable the toggle\n" +
+                    "4. Restart BlueMeter",
+                    "Feature Not Enabled",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var storedEncounters = manager.GetStoredEncounters();
+            var diskUsage = manager.GetTotalDiskUsageBytes();
+
+            if (storedEncounters.Count == 0)
+            {
+                MessageBox.Show(
+                    "No advanced logs found.\n\n" +
+                    $"Storage location: {manager.LogDirectory}\n" +
+                    "Run some battles with Advanced Combat Logging enabled to create logs.",
+                    "No Logs Found",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            // Build summary message
+            var summary = $"Advanced Combat Logs Summary:\n\n" +
+                         $"📁 Location: {manager.LogDirectory}\n" +
+                         $"📊 Total Logs: {storedEncounters.Count} / {manager.MaxEncounters}\n" +
+                         $"💾 Disk Usage: {FormatBytes(diskUsage)}\n\n" +
+                         "Stored Encounters:\n";
+
+            foreach (var encounter in storedEncounters.Take(10))
+            {
+                summary += $"  • {encounter.FormattedDate} - {encounter.BossName} ({encounter.FormattedSize})\n";
+            }
+
+            if (storedEncounters.Count > 10)
+            {
+                summary += $"  ... and {storedEncounters.Count - 10} more\n";
+            }
+
+            summary += "\n💡 Tip: These logs can be used for detailed replay and analysis.";
+
+            MessageBox.Show(summary, "Advanced Combat Logs", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Error loading advanced logs:\n\n{ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
 }
 
 /// <summary>
@@ -262,10 +342,12 @@ public partial class EncounterHistoryViewModel : BaseViewModel
 public partial class EncounterSummaryViewModel : BaseViewModel
 {
     private readonly EncounterSummary _encounter;
+    private bool? _hasBsonLog;
 
     public EncounterSummaryViewModel(EncounterSummary encounter)
     {
         _encounter = encounter;
+        CheckForBsonLog();
     }
 
     public string EncounterId => _encounter.EncounterId;
@@ -284,6 +366,36 @@ public partial class EncounterSummaryViewModel : BaseViewModel
 
     public string FormattedTotalDamage => FormatNumber(TotalDamage);
     public string FormattedTotalHealing => FormatNumber(TotalHealing);
+
+    /// <summary>
+    /// Check if a BSON log exists for this encounter
+    /// </summary>
+    public bool HasBsonLog => _hasBsonLog ?? false;
+
+    /// <summary>
+    /// Display text for BSON log availability
+    /// </summary>
+    public string BsonLogStatus => HasBsonLog ? "✓ Available" : "✗ N/A";
+
+    private void CheckForBsonLog()
+    {
+        try
+        {
+            var manager = DataStorageExtensions.GetBattleLogManager();
+            if (manager == null)
+            {
+                _hasBsonLog = false;
+                return;
+            }
+
+            var storedEncounters = manager.GetStoredEncounters();
+            _hasBsonLog = storedEncounters.Any(e => e.EncounterId == EncounterId);
+        }
+        catch
+        {
+            _hasBsonLog = false;
+        }
+    }
 
     private string FormatNumber(long value)
     {

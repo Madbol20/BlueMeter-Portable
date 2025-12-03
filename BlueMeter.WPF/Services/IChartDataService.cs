@@ -4,11 +4,35 @@ using BlueMeter.WPF.Models;
 namespace BlueMeter.WPF.Services;
 
 /// <summary>
+/// Event arguments for chart history being cleared
+/// Contains snapshots of the data before clearing
+/// </summary>
+public class ChartHistoryClearingEventArgs : EventArgs
+{
+    public Dictionary<long, List<ChartDataPoint>> DpsHistorySnapshot { get; }
+    public Dictionary<long, List<ChartDataPoint>> HpsHistorySnapshot { get; }
+
+    public ChartHistoryClearingEventArgs(
+        Dictionary<long, List<ChartDataPoint>> dpsHistory,
+        Dictionary<long, List<ChartDataPoint>> hpsHistory)
+    {
+        DpsHistorySnapshot = dpsHistory;
+        HpsHistorySnapshot = hpsHistory;
+    }
+}
+
+/// <summary>
 /// Service for collecting and managing chart data in real-time
 /// Samples DPS/HPS data at regular intervals for chart visualization
 /// </summary>
 public interface IChartDataService : IDisposable
 {
+    /// <summary>
+    /// Fired BEFORE chart history is cleared, providing snapshots of the data
+    /// This allows subscribers to save the data before it's lost
+    /// </summary>
+    event EventHandler<ChartHistoryClearingEventArgs>? BeforeHistoryCleared;
+
     /// <summary>
     /// Start background sampling timer
     /// </summary>
