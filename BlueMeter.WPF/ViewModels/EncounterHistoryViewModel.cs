@@ -13,6 +13,7 @@ using BlueMeter.Core.Models;
 using Newtonsoft.Json;
 using BlueMeter.WPF.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlueMeter.WPF.ViewModels;
 
@@ -23,11 +24,16 @@ public partial class EncounterHistoryViewModel : BaseViewModel
 {
     private readonly IChartDataService _chartDataService;
     private readonly ILogger<EncounterHistoryViewModel> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
-    public EncounterHistoryViewModel(IChartDataService chartDataService, ILogger<EncounterHistoryViewModel> logger)
+    public EncounterHistoryViewModel(
+        IChartDataService chartDataService,
+        ILogger<EncounterHistoryViewModel> logger,
+        IServiceProvider serviceProvider)
     {
         _chartDataService = chartDataService;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
     [ObservableProperty]
     private ObservableCollection<EncounterSummaryViewModel> _encounters = new();
@@ -260,62 +266,28 @@ public partial class EncounterHistoryViewModel : BaseViewModel
     {
         try
         {
-            var manager = DataStorageExtensions.GetBattleLogManager();
-            if (manager == null || !DataStorageExtensions.IsAdvancedLoggingEnabled())
+            // Open the dedicated Combat Logs Window
+            var combatLogsWindow = _serviceProvider.GetService<Views.CombatLogsWindow>();
+            if (combatLogsWindow != null)
             {
+                combatLogsWindow.Owner = Application.Current.MainWindow;
+                combatLogsWindow.ShowDialog();
+            }
+            else
+            {
+                _logger.LogError("Failed to create CombatLogsWindow - service not registered");
                 MessageBox.Show(
-                    "Advanced Combat Logging is not enabled.\n\n" +
-                    "To enable it:\n" +
-                    "1. Go to Settings\n" +
-                    "2. Scroll to 'Advanced Combat Logging (Beta)'\n" +
-                    "3. Enable the toggle\n" +
-                    "4. Restart BlueMeter",
-                    "Feature Not Enabled",
+                    "Failed to open Combat Logs window.\n\nPlease check the logs for details.",
+                    "Error",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                return;
+                    MessageBoxImage.Error);
             }
-
-            var storedEncounters = manager.GetStoredEncounters();
-            var diskUsage = manager.GetTotalDiskUsageBytes();
-
-            if (storedEncounters.Count == 0)
-            {
-                MessageBox.Show(
-                    "No advanced logs found.\n\n" +
-                    $"Storage location: {manager.LogDirectory}\n" +
-                    "Run some battles with Advanced Combat Logging enabled to create logs.",
-                    "No Logs Found",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                return;
-            }
-
-            // Build summary message
-            var summary = $"Advanced Combat Logs Summary:\n\n" +
-                         $"📁 Location: {manager.LogDirectory}\n" +
-                         $"📊 Total Logs: {storedEncounters.Count} / {manager.MaxEncounters}\n" +
-                         $"💾 Disk Usage: {FormatBytes(diskUsage)}\n\n" +
-                         "Stored Encounters:\n";
-
-            foreach (var encounter in storedEncounters.Take(10))
-            {
-                summary += $"  • {encounter.FormattedDate} - {encounter.BossName} ({encounter.FormattedSize})\n";
-            }
-
-            if (storedEncounters.Count > 10)
-            {
-                summary += $"  ... and {storedEncounters.Count - 10} more\n";
-            }
-
-            summary += "\n💡 Tip: These logs can be used for detailed replay and analysis.";
-
-            MessageBox.Show(summary, "Advanced Combat Logs", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error opening Combat Logs window");
             MessageBox.Show(
-                $"Error loading advanced logs:\n\n{ex.Message}",
+                $"Error opening Combat Logs window:\n\n{ex.Message}",
                 "Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);

@@ -84,9 +84,10 @@ public partial class SkillBreakdownChartViewModel : ObservableObject
             Interval = TimeSpan.FromMilliseconds(1000)
         };
         _updateTimer.Tick += OnUpdateTick;
-        _updateTimer.Start();
+        // Don't start timer immediately - wait for view to load
+        // _updateTimer.Start();
 
-        _logger.LogDebug("SkillBreakdownChartViewModel created, update interval: 1000ms");
+        _logger.LogDebug("SkillBreakdownChartViewModel created, update interval: 1000ms (timer not started yet)");
     }
 
     private PlotModel CreatePlotModel()
@@ -175,10 +176,13 @@ public partial class SkillBreakdownChartViewModel : ObservableObject
     {
         if (SelectedPlayer == null)
         {
-            PlotModel.Series.Clear();
-            PlotModel.Title = "Skill Damage Breakdown - No Player Selected";
+            // Don't clear the chart if we're just waiting for a player to be selected
+            // Keep the empty chart but show a message
+            PlotModel.Title = "Skill Damage Breakdown - Select a Player";
+            StatusText = AvailablePlayers.Count > 0
+                ? "Select a player from the dropdown above"
+                : "Waiting for combat data...";
             PlotModel.InvalidatePlot(true);
-            StatusText = "No player selected";
             return;
         }
 
@@ -199,7 +203,9 @@ public partial class SkillBreakdownChartViewModel : ObservableObject
             PlotModel.Series.Clear();
             PlotModel.Title = $"Skill Damage Breakdown - {SelectedPlayer.PlayerName}";
             PlotModel.InvalidatePlot(true);
-            StatusText = "No skill data available";
+            StatusText = IsHistoricalDataMode
+                ? "No skill data in this encounter"
+                : "No skill data yet - start attacking to see data";
             return;
         }
 
@@ -476,6 +482,15 @@ public partial class SkillBreakdownChartViewModel : ObservableObject
     /// </summary>
     public void OnViewLoaded()
     {
+        _logger.LogDebug("SkillBreakdownChartViewModel view loaded");
+
+        // Update player list immediately on load
+        if (!IsHistoricalDataMode)
+        {
+            UpdateAvailablePlayers();
+        }
+
+        // Start timer if not already running and not in historical mode
         if (!_updateTimer.IsEnabled && !IsHistoricalDataMode)
         {
             _updateTimer.Start();
