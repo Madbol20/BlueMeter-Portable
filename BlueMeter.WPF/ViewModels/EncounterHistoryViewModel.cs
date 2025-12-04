@@ -13,6 +13,7 @@ using BlueMeter.Core.Models;
 using Newtonsoft.Json;
 using BlueMeter.WPF.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlueMeter.WPF.ViewModels;
 
@@ -23,11 +24,16 @@ public partial class EncounterHistoryViewModel : BaseViewModel
 {
     private readonly IChartDataService _chartDataService;
     private readonly ILogger<EncounterHistoryViewModel> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
-    public EncounterHistoryViewModel(IChartDataService chartDataService, ILogger<EncounterHistoryViewModel> logger)
+    public EncounterHistoryViewModel(
+        IChartDataService chartDataService,
+        ILogger<EncounterHistoryViewModel> logger,
+        IServiceProvider serviceProvider)
     {
         _chartDataService = chartDataService;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
     [ObservableProperty]
     private ObservableCollection<EncounterSummaryViewModel> _encounters = new();
@@ -254,6 +260,52 @@ public partial class EncounterHistoryViewModel : BaseViewModel
     {
         RequestClose?.Invoke();
     }
+
+    [RelayCommand]
+    private void ManageAdvancedLogs()
+    {
+        try
+        {
+            // Open the dedicated Combat Logs Window
+            var combatLogsWindow = _serviceProvider.GetService<Views.CombatLogsWindow>();
+            if (combatLogsWindow != null)
+            {
+                combatLogsWindow.Owner = Application.Current.MainWindow;
+                combatLogsWindow.ShowDialog();
+            }
+            else
+            {
+                _logger.LogError("Failed to create CombatLogsWindow - service not registered");
+                MessageBox.Show(
+                    "Failed to open Combat Logs window.\n\nPlease check the logs for details.",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening Combat Logs window");
+            MessageBox.Show(
+                $"Error opening Combat Logs window:\n\n{ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len /= 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
 }
 
 /// <summary>
@@ -262,10 +314,12 @@ public partial class EncounterHistoryViewModel : BaseViewModel
 public partial class EncounterSummaryViewModel : BaseViewModel
 {
     private readonly EncounterSummary _encounter;
+    private bool? _hasBsonLog;
 
     public EncounterSummaryViewModel(EncounterSummary encounter)
     {
         _encounter = encounter;
+        CheckForBsonLog();
     }
 
     public string EncounterId => _encounter.EncounterId;
@@ -284,6 +338,36 @@ public partial class EncounterSummaryViewModel : BaseViewModel
 
     public string FormattedTotalDamage => FormatNumber(TotalDamage);
     public string FormattedTotalHealing => FormatNumber(TotalHealing);
+
+    /// <summary>
+    /// Check if a BSON log exists for this encounter
+    /// </summary>
+    public bool HasBsonLog => _hasBsonLog ?? false;
+
+    /// <summary>
+    /// Display text for BSON log availability
+    /// </summary>
+    public string BsonLogStatus => HasBsonLog ? "✓ Available" : "✗ N/A";
+
+    private void CheckForBsonLog()
+    {
+        try
+        {
+            var manager = DataStorageExtensions.GetBattleLogManager();
+            if (manager == null)
+            {
+                _hasBsonLog = false;
+                return;
+            }
+
+            var storedEncounters = manager.GetStoredEncounters();
+            _hasBsonLog = storedEncounters.Any(e => e.EncounterId == EncounterId);
+        }
+        catch
+        {
+            _hasBsonLog = false;
+        }
+    }
 
     private string FormatNumber(long value)
     {

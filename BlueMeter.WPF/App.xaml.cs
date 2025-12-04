@@ -150,6 +150,14 @@ public partial class App : Application
                 services.AddTransient<SkillBreakdownChartViewModel>();
                 services.AddTransient<SkillBreakdownChartView>();
 
+                // Combat Logs Window (Phase 3)
+                services.AddTransient<CombatLogsWindowViewModel>();
+                services.AddTransient<CombatLogsWindow>();
+
+                // Replay Window (Phase 4)
+                services.AddTransient<ReplayWindowViewModel>();
+                services.AddTransient<ReplayWindow>();
+
                 services.AddSingleton<DebugFunctions>();
                 services.AddSingleton(CaptureDeviceList.Instance);
                 services.AddSingleton<IApplicationControlService, ApplicationControlService>();

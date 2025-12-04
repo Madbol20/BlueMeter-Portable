@@ -62,11 +62,11 @@ public partial class ChartsWindow : Window
             skillViewModel.LoadHistoricalEncounter(encounterData);
         }
 
-        // Note: DpsTrendChart doesn't support historical data yet
-        // if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
-        // {
-        //     dpsViewModel.LoadHistoricalEncounter(encounterData);
-        // }
+        // Notify DpsTrendChart ViewModel
+        if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
+        {
+            dpsViewModel.LoadHistoricalEncounter(encounterData);
+        }
     }
 
     /// <summary>
@@ -80,10 +80,11 @@ public partial class ChartsWindow : Window
             skillViewModel.RestoreLiveData();
         }
 
-        // if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
-        // {
-        //     dpsViewModel.RestoreLiveData();
-        // }
+        // Notify DpsTrendChart ViewModel
+        if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
+        {
+            dpsViewModel.RestoreLiveData();
+        }
     }
 
     /// <summary>

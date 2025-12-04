@@ -34,7 +34,8 @@ public sealed class DpsStatisticsDesignTimeViewModel : DpsStatisticsViewModel
             LocalizationManager.Instance),
         Dispatcher.CurrentDispatcher,
         new DesignChartDataService(),
-        NullLoggerFactory.Instance)
+        NullLoggerFactory.Instance,
+        new DesignServiceProvider())
     {
         // Populate with a few sample entries so designer shows something.
         try
@@ -52,9 +53,22 @@ public sealed class DpsStatisticsDesignTimeViewModel : DpsStatisticsViewModel
 
     #region Stub Implementations
 
+    private sealed class DesignServiceProvider : IServiceProvider
+    {
+        public object? GetService(Type serviceType)
+        {
+            return null; // Design-time stub returns null
+        }
+    }
+
     private sealed class DesignChartDataService : IChartDataService
     {
         public bool IsRunning => false;
+
+        // Event required by interface - design-time stub never fires this
+#pragma warning disable CS0067 // Event is never used (design-time only)
+        public event EventHandler<Services.ChartHistoryClearingEventArgs>? BeforeHistoryCleared;
+#pragma warning restore CS0067
 
         public void Start() { }
         public void Stop() { }

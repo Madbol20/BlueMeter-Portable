@@ -281,6 +281,30 @@ public partial class AppConfig : ObservableObject
         BlueMeter.Core.Data.DataStorageV2.EnableQueueDetectionLogging = value;
     }
 
+    // ===== Advanced Combat Logging Settings =====
+
+    /// <summary>
+    /// Enable advanced packet-level combat logging
+    /// When disabled (default), only aggregated stats are saved to SQLite
+    /// When enabled, detailed BSON files are created with full replay capability
+    /// </summary>
+    [ObservableProperty]
+    private bool _enableAdvancedCombatLogging = false;
+
+    /// <summary>
+    /// Maximum number of encounters to store in advanced mode
+    /// Oldest encounters are automatically deleted when limit is reached
+    /// Recommended: 10 (~450 MB)
+    /// </summary>
+    [ObservableProperty]
+    private int _maxStoredEncounters = 10;
+
+    /// <summary>
+    /// Custom directory for battle logs (null = default %LocalAppData%/BlueMeter/CombatLogs)
+    /// </summary>
+    [ObservableProperty]
+    private string? _battleLogDirectory = null;
+
     public AppConfig Clone()
     {
         // TODO: Add unittest
