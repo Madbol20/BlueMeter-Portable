@@ -4,6 +4,30 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.4.5
+
+**🎉 Major Features:**
+- **Advanced Combat Logging System (Beta)** - Packet-level combat logging with BSON format
+  - Full encounter replay capability
+  - Rolling window storage (5/10/20/50 encounters)
+  - Compatible with StarResonanceDps replay system
+  - Zero performance impact when disabled (default)
+- **Combat Logs Window** - Manage and view stored BSON encounter logs
+- **Replay Window** - Timeline visualization and replay controls (UI ready)
+
+**🐛 Bug Fixes:**
+- Fixed double-click registration in daily/weekly task +/- buttons
+- Fixed chart persistence race condition (charts disappearing after encounters)
+
+**✨ Enhancements:**
+- New Settings section for Advanced Combat Logging configuration
+- History window shows BSON log availability per encounter
+- Improved chart data synchronization between services
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.4.5.md)
+
+---
+
 ## Version 1.4.4
 
 **🐛 Critical Hotfix:**

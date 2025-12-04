@@ -1,8 +1,8 @@
-# BlueMeter v1.5.0 - Advanced Combat Logging Release
+# BlueMeter v1.4.5 - Advanced Combat Logging & Bug Fixes
 
-**Release Date:** TBD
-**Branch:** `core/breakdown`
-**Status:** 🚧 In Development
+**Release Date:** December 4, 2025
+**Branch:** `main`
+**Status:** ✅ Released
 
 ---
 
@@ -35,6 +35,23 @@ BlueMeter now supports **packet-level combat logging** with full replay capabili
 ---
 
 ## 🐛 Bug Fixes
+
+### Daily/Weekly Tasks Double-Click Fix
+
+Fixed issue where + and - buttons in the checklist tasks were registering multiple clicks (counting 1 click as 2 or more).
+
+**Root Cause:**
+- `HoldClickBehavior` handled `PreviewMouseLeftButtonDown` and executed the command immediately
+- Event wasn't marked as handled, allowing it to bubble up to Button's Click event
+- This caused the command to execute twice for each single click
+
+**Solution:**
+- Added `e.Handled = true` in `HoldClickBehavior.OnMouseDown()` and `OnMouseUp()`
+- Prevents event from bubbling up to Button's Click handler
+- Hold-to-repeat functionality still works correctly
+
+**Files Changed:**
+- `BlueMeter.WPF/Behaviors/Checklist/HoldClickBehavior.cs`
 
 ### Chart Persistence Fix
 
@@ -250,7 +267,7 @@ private string? _battleLogDirectory = null;
 
 ## 🚀 Migration Guide
 
-### From v1.4.x to v1.5.0
+### From v1.4.x to v1.4.5
 
 **No Breaking Changes!**
 - ✅ Fully backward compatible
@@ -312,7 +329,7 @@ If you encounter any issues or have suggestions:
 
 ---
 
-**Full Changelog:** See commit `4c39e3b` on `core/breakdown` branch
+**Full Changelog:** See commits on `main` branch
 
 **Previous Version:** v1.4.4
-**Next Version:** v1.5.1 (TBD)
+**Next Version:** v1.4.6 (TBD)
