@@ -429,6 +429,18 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
             _logger.LogInformation("[LAST BATTLE] Cleared snapshot - new combat started");
         }
 
+        // CRITICAL FIX: If we detect new damage while awaiting section start but hasSectionDamage is false,
+        // this indicates a race condition where NewSectionCreated fired after data was cleared but before
+        // it was repopulated. In this case, clear the [Last] state immediately to prevent getting stuck.
+        if (_awaitingSectionStart && hasNewDamage && !hasSectionDamage)
+        {
+            _logger.LogWarning("[LAST BATTLE] Detected new damage but hasSectionDamage=false (race condition). Clearing [Last] state to prevent stuck meter.");
+            _awaitingSectionStart = false;
+            IsShowingLastBattle = false;
+            BattleStatusLabel = string.Empty;
+            _lastBattleDataSnapshot = null;
+        }
+
         UpdateData(dpsList);
         UpdateBattleDuration();
     }
@@ -943,11 +955,18 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
             _lastSectionElapsed = _timer.IsRunning
                 ? (_timer.Elapsed - _sectionStartElapsed)
                 : (BattleDuration > TimeSpan.Zero ? BattleDuration : _lastSectionElapsed);
+
+            // Log if we're setting these flags while they're already set (indicates multiple section clears)
+            if (_awaitingSectionStart || IsShowingLastBattle)
+            {
+                _logger.LogWarning("[LAST BATTLE] NewSectionCreated fired while already in [Last] state. This may indicate a gap > SectionTimeout triggering a second section clear.");
+            }
+
             _awaitingSectionStart = true;
             IsShowingLastBattle = true;
             BattleStatusLabel = "Last Battle";
 
-            _logger.LogInformation("[LAST BATTLE] Combat ended. Snapshot has {Count} players",
+            _logger.LogInformation("[LAST BATTLE] Combat ended. Entering [Last] state. Snapshot has {Count} players",
                 _lastBattleDataSnapshot?.Count ?? 0);
 
             // STOP TIMER when section ends (zone change / timeout) - this archives the fight

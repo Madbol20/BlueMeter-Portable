@@ -4,6 +4,27 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.5.0
+
+**🎉 Major Feature - Enhanced Skill Breakdown:**
+- Complete skill analysis system with Lucky Hits tracking (inspired by StarResonanceDps)
+- Four summary stats cards: Damage Info, Critical Hits, Lucky Hits, Distribution
+- Visual charts: Skill Distribution pie chart, Damage Type bar chart
+- Detailed skill-by-skill breakdown table with all stats
+- Dark-themed UI with scrollable content
+
+**🐛 Critical Bug Fix:**
+- Fixed meter stuck in [Last] state when starting new encounter after timeout - race condition in section creation resolved
+
+**🔧 UI/UX Improvements:**
+- Fixed ComboBox dropdown visibility (white text on dark background)
+- Added ScrollViewer to Detailed Breakdown for better navigation
+- Removed redundant "Skill Breakdown" tab (consolidated into "Detailed Breakdown")
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.5.0.md)
+
+---
+
 ## Version 1.4.7
 
 **🐛 Critical Bug Fix:**

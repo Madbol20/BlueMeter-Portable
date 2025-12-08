@@ -153,6 +153,10 @@ public partial class App : Application
                 services.AddTransient<SkillBreakdownChartViewModel>();
                 services.AddTransient<SkillBreakdownChartView>();
 
+                // Enhanced Skill Breakdown with Lucky Damage tracking (from StarResonanceDps)
+                services.AddTransient<EnhancedSkillBreakdownViewModel>();
+                services.AddTransient<EnhancedSkillBreakdownView>();
+
                 // Combat Logs Window (Phase 3)
                 services.AddTransient<CombatLogsWindowViewModel>();
                 services.AddTransient<CombatLogsWindow>();

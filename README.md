@@ -18,9 +18,11 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.4.7**
-- Fixed meter stuck in "Last Battle" mode after manual reset
-- Development work on Module Solver feature (disabled in UI)
+**Latest Version: 1.5.0**
+- Enhanced Skill Breakdown with Lucky Hits tracking (inspired by StarResonanceDps)
+- Complete combat analytics: 4 stats cards, visual charts, detailed skill breakdown table
+- Fixed critical [Last] state bug - meter no longer gets stuck after timeout
+- Improved UI/UX: dark-themed dropdowns, scrollable content
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

@@ -11,23 +11,23 @@ public partial class ChartsWindow : Window
 {
     private readonly ChartsWindowViewModel _viewModel;
     private readonly DpsTrendChartView _dpsTrendChartView;
-    private readonly SkillBreakdownChartView _skillBreakdownChartView;
+    private readonly EnhancedSkillBreakdownView _enhancedSkillBreakdownView;
 
     public ChartsWindow(
         ChartsWindowViewModel viewModel,
         DpsTrendChartView dpsTrendChartView,
-        SkillBreakdownChartView skillBreakdownChartView)
+        EnhancedSkillBreakdownView enhancedSkillBreakdownView)
     {
         _viewModel = viewModel;
         _dpsTrendChartView = dpsTrendChartView;
-        _skillBreakdownChartView = skillBreakdownChartView;
+        _enhancedSkillBreakdownView = enhancedSkillBreakdownView;
         DataContext = _viewModel;
 
         InitializeComponent();
 
         // Inject the chart views into their respective tabs
         DpsTrendChartContainer.Content = _dpsTrendChartView;
-        SkillBreakdownChartContainer.Content = _skillBreakdownChartView;
+        EnhancedSkillBreakdownContainer.Content = _enhancedSkillBreakdownView;
 
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -56,12 +56,6 @@ public partial class ChartsWindow : Window
     /// </summary>
     private void OnHistoricalEncounterLoaded(Core.Data.Database.EncounterData encounterData)
     {
-        // Notify SkillBreakdownChart ViewModel
-        if (_skillBreakdownChartView.DataContext is SkillBreakdownChartViewModel skillViewModel)
-        {
-            skillViewModel.LoadHistoricalEncounter(encounterData);
-        }
-
         // Notify DpsTrendChart ViewModel
         if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
         {
@@ -74,12 +68,6 @@ public partial class ChartsWindow : Window
     /// </summary>
     private void OnLiveDataRestored()
     {
-        // Notify SkillBreakdownChart ViewModel
-        if (_skillBreakdownChartView.DataContext is SkillBreakdownChartViewModel skillViewModel)
-        {
-            skillViewModel.RestoreLiveData();
-        }
-
         // Notify DpsTrendChart ViewModel
         if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
         {
@@ -100,9 +88,9 @@ public partial class ChartsWindow : Window
             dpsTrendViewModel.SetFocusedPlayer(playerId);
         }
 
-        if (_skillBreakdownChartView.DataContext is SkillBreakdownChartViewModel skillBreakdownViewModel)
+        if (_enhancedSkillBreakdownView.DataContext is EnhancedSkillBreakdownViewModel enhancedBreakdownViewModel)
         {
-            skillBreakdownViewModel.SetFocusedPlayer(playerId);
+            enhancedBreakdownViewModel.SetFocusedPlayer(playerId);
         }
     }
 }
