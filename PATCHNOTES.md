@@ -4,6 +4,16 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.4.6
+
+**🐛 Critical Bug Fixes:**
+- Fixed meter freeze after timeout - meter now properly accepts new data after manual reset
+- Fixed plugin enable/disable logic - restored access to all plugins except Module Solver (temporarily disabled)
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.4.6.md)
+
+---
+
 ## Version 1.4.5
 
 **🎉 Major Features:**

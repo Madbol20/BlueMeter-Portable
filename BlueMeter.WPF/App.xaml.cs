@@ -140,6 +140,9 @@ public partial class App : Application
                 services.AddMessageDialogService();
                 services.AddChecklistServices();
 
+                // Module Solver Services (AutoMod functionality)
+                services.AddModuleSolverServices();
+
                 // Charts Window registration (not auto-registered due to "Window" suffix)
                 services.AddTransient<ChartsWindowViewModel>();
                 services.AddTransient<ChartsWindow>();

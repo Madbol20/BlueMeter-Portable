@@ -18,10 +18,9 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.4.5**
-- Advanced Combat Logging System (Beta) - Packet-level BSON logging with replay capability
-- Fixed double-click registration in daily/weekly task buttons
-- Fixed chart persistence race condition (charts disappearing after encounters)
+**Latest Version: 1.4.6**
+- Fixed meter freeze after timeout - meter now properly accepts new data after manual reset
+- Fixed plugin enable/disable logic - restored access to all plugins
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

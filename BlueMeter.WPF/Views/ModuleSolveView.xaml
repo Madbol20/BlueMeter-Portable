@@ -197,6 +197,8 @@
                                     <ComboBox
                                         x:Name="Property_1"
                                         Grid.Column="1"
+                                        ItemsSource="{Binding AvailableAttributes}"
+                                        SelectedItem="{Binding SelectedTargetAttribute1}"
                                         Style="{StaticResource TargetPropertyComboBox}" />
                                 </Grid>
 
@@ -238,6 +240,8 @@
                                     <ComboBox
                                         x:Name="Property_2"
                                         Grid.Column="1"
+                                        ItemsSource="{Binding AvailableAttributes}"
+                                        SelectedItem="{Binding SelectedTargetAttribute2}"
                                         Style="{StaticResource TargetPropertyComboBox}" />
                                 </Grid>
 
@@ -279,6 +283,8 @@
                                     <ComboBox
                                         x:Name="Property_3"
                                         Grid.Column="1"
+                                        ItemsSource="{Binding AvailableAttributes}"
+                                        SelectedItem="{Binding SelectedTargetAttribute3}"
                                         Style="{StaticResource TargetPropertyComboBox}" />
                                 </Grid>
 
@@ -320,6 +326,8 @@
                                     <ComboBox
                                         x:Name="Property_4"
                                         Grid.Column="1"
+                                        ItemsSource="{Binding AvailableAttributes}"
+                                        SelectedItem="{Binding SelectedTargetAttribute4}"
                                         Style="{StaticResource TargetPropertyComboBox}" />
                                 </Grid>
 
@@ -361,6 +369,8 @@
                                     <ComboBox
                                         x:Name="Property_5"
                                         Grid.Column="1"
+                                        ItemsSource="{Binding AvailableAttributes}"
+                                        SelectedItem="{Binding SelectedTargetAttribute5}"
                                         Style="{StaticResource TargetPropertyComboBox}" />
                                 </Grid>
 
@@ -415,6 +425,8 @@
                                 <ComboBox
                                     x:Name="ExcludeProperty_1"
                                     Grid.Column="1"
+                                    ItemsSource="{Binding AvailableAttributes}"
+                                    SelectedItem="{Binding SelectedExcludeAttribute1}"
                                     Style="{StaticResource ExcludePropertyComboBox}" />
 
                             </Grid>
@@ -433,6 +445,8 @@
                                 <ComboBox
                                     x:Name="ExcludeProperty_2"
                                     Grid.Column="1"
+                                    ItemsSource="{Binding AvailableAttributes}"
+                                    SelectedItem="{Binding SelectedExcludeAttribute2}"
                                     Style="{StaticResource ExcludePropertyComboBox}" />
 
                             </Grid>
@@ -451,6 +465,8 @@
                                 <ComboBox
                                     x:Name="ExcludeProperty_3"
                                     Grid.Column="1"
+                                    ItemsSource="{Binding AvailableAttributes}"
+                                    SelectedItem="{Binding SelectedExcludeAttribute3}"
                                     Style="{StaticResource ExcludePropertyComboBox}" />
 
                             </Grid>
@@ -469,6 +485,8 @@
                                 <ComboBox
                                     x:Name="ExcludeProperty_4"
                                     Grid.Column="1"
+                                    ItemsSource="{Binding AvailableAttributes}"
+                                    SelectedItem="{Binding SelectedExcludeAttribute4}"
                                     Style="{StaticResource ExcludePropertyComboBox}" />
 
                             </Grid>
@@ -487,6 +505,8 @@
                                 <ComboBox
                                     x:Name="ExcludeProperty_5"
                                     Grid.Column="1"
+                                    ItemsSource="{Binding AvailableAttributes}"
+                                    SelectedItem="{Binding SelectedExcludeAttribute5}"
                                     Style="{StaticResource ExcludePropertyComboBox}" />
 
                             </Grid>
@@ -495,7 +515,37 @@
                     </Border>
 
                     <Border Grid.Row="3" Style="{StaticResource FilterBorder}">
-                        <Grid>
+                        <StackPanel>
+                            <!-- Data Management Buttons -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0"
+                                        Command="{Binding SaveModulesCommand}"
+                                        Content="Save Data"
+                                        Margin="0,0,5,0"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding HasModules}" />
+
+                                <Button Grid.Column="1"
+                                        Command="{Binding LoadModulesCommand}"
+                                        Content="Load Data"
+                                        Margin="5,0,5,0"
+                                        Padding="8,4" />
+
+                                <Button Grid.Column="2"
+                                        Command="{Binding OpenDataFolderCommand}"
+                                        Content="Open Folder"
+                                        Margin="5,0,0,0"
+                                        Padding="8,4" />
+                            </Grid>
+
+                            <!-- Filter Options -->
+                            <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
@@ -515,6 +565,7 @@
                                 <ComboBox
                                     x:Name="ModuleType"
                                     Grid.Column="1"
+                                    SelectedIndex="{Binding ModuleTypeIndex}"
                                     Style="{StaticResource ExcludePropertyComboBox}">
                                     <ComboBoxItem Content="{lex:Loc Key={x:Static loc:ResourcesKeys.ModuleSolve_ModuleType_All}}" IsSelected="True" />
                                     <ComboBoxItem Content="{lex:Loc Key={x:Static loc:ResourcesKeys.ModuleSolve_ModuleType_Offense}}" />
@@ -537,15 +588,19 @@
                                 <ComboBox
                                     x:Name="SortType"
                                     Grid.Column="1"
+                                    SelectedIndex="{Binding SortTypeIndex}"
                                     Style="{StaticResource ExcludePropertyComboBox}">
                                     <ComboBoxItem Content="{lex:Loc Key={x:Static loc:ResourcesKeys.ModuleSolve_Sort_Attribute}}" IsSelected="True" />
                                     <ComboBoxItem Content="{lex:Loc Key={x:Static loc:ResourcesKeys.ModuleSolve_Sort_Level}}" />
                                 </ComboBox>
                             </Grid>
                         </Grid>
+                        </StackPanel>
                     </Border>
 
-                    <Button Grid.Row="4" Style="{StaticResource AnalyzeButton}">
+                    <Button Grid.Row="4"
+                            Command="{Binding AnalyzeModulesCommand}"
+                            Style="{StaticResource AnalyzeButton}">
 
                         <Button.Content>
                             <Border Style="{StaticResource AnalyzeButtonBorder}">
@@ -563,7 +618,7 @@
             <TextBlock
                 Grid.Row="2"
                 Style="{StaticResource UsingTip}"
-                Text="{lex:Loc Key={x:Static loc:ResourcesKeys.ModuleSolve_UsingTip}}" />
+                Text="{Binding StatusMessage}" />
 
             <ctrl:Footer
                 Grid.Row="3"
