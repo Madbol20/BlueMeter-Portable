@@ -4,6 +4,21 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.4.7
+
+**🐛 Critical Bug Fix:**
+- Fixed meter stuck in "Last Battle" mode after manual reset - meter now properly clears last battle state
+
+**🔧 Development (Module Solver - Disabled in UI):**
+- Added OCR capture service for module detection
+- Added network device selection for packet capture
+- Added InverseBooleanConverter for UI bindings
+- Module Solver remains disabled until fully tested
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.4.7.md)
+
+---
+
 ## Version 1.4.6
 
 **🐛 Critical Bug Fixes:**

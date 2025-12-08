@@ -19,11 +19,19 @@ public partial class ModuleSolveViewModel : BaseViewModel, IDisposable
     private readonly PacketCaptureService _packetCaptureService;
     private readonly ModuleOptimizerService _optimizerService;
     private readonly ModulePersistenceService _persistenceService;
+    private readonly ModuleOCRCaptureService _ocrCaptureService;
     private readonly ILogger<ModuleSolveViewModel> _logger;
     private CancellationTokenSource? _captureCts;
+    private Timer? _ocrCaptureTimer;
 
     [ObservableProperty]
     private ObservableCollection<string> _availableAttributes = new();
+
+    [ObservableProperty]
+    private ObservableCollection<NetworkDevice> _networkDevices = new();
+
+    [ObservableProperty]
+    private NetworkDevice? _selectedNetworkDevice;
 
     [ObservableProperty]
     private string? _selectedTargetAttribute1;
@@ -65,6 +73,9 @@ public partial class ModuleSolveViewModel : BaseViewModel, IDisposable
     private bool _isCapturing = false;
 
     [ObservableProperty]
+    private bool _isOcrCapturing = false;
+
+    [ObservableProperty]
     private bool _hasModules = false;
 
     [ObservableProperty]
@@ -82,20 +93,52 @@ public partial class ModuleSolveViewModel : BaseViewModel, IDisposable
         PacketCaptureService packetCaptureService,
         ModuleOptimizerService optimizerService,
         ModulePersistenceService persistenceService,
+        ModuleOCRCaptureService ocrCaptureService,
         ILogger<ModuleSolveViewModel> logger)
     {
         _packetCaptureService = packetCaptureService;
         _optimizerService = optimizerService;
         _persistenceService = persistenceService;
+        _ocrCaptureService = ocrCaptureService;
         _logger = logger;
 
         // Subscribe to packet capture events
         _packetCaptureService.ModulesCapture += OnModulesCaptured;
 
+        // Subscribe to OCR capture events
+        _ocrCaptureService.ModuleCaptured += OnOcrModulesCaptured;
+
         // Initialize available attributes
         var attributes = ModuleConstants.GetAllAttributeNames();
         attributes.Insert(0, ""); // Add empty option
         AvailableAttributes = new ObservableCollection<string>(attributes);
+
+        // Load network devices
+        RefreshNetworkDevices();
+    }
+
+    [RelayCommand]
+    private void RefreshNetworkDevices()
+    {
+        try
+        {
+            var devices = _packetCaptureService.GetNetworkDevices();
+            NetworkDevices = new ObservableCollection<NetworkDevice>(devices);
+
+            // Auto-select first non-Bluetooth device
+            SelectedNetworkDevice = devices.FirstOrDefault(d =>
+                !d.Description.Contains("Bluetooth", StringComparison.OrdinalIgnoreCase) &&
+                !d.Description.Contains("Virtual", StringComparison.OrdinalIgnoreCase) &&
+                !d.Description.Contains("Loopback", StringComparison.OrdinalIgnoreCase))
+                ?? devices.FirstOrDefault();
+
+            _logger.LogInformation("Loaded {Count} network devices, selected: {Device}",
+                devices.Count, SelectedNetworkDevice?.Description ?? "none");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading network devices");
+        }
     }
 
     [RelayCommand]
@@ -103,27 +146,22 @@ public partial class ModuleSolveViewModel : BaseViewModel, IDisposable
     {
         try
         {
+            if (SelectedNetworkDevice == null)
+            {
+                StatusMessage = "Please select a network device first.";
+                _logger.LogWarning("No network device selected");
+                return;
+            }
+
             IsCapturing = true;
             StatusMessage = "Starting packet capture... Open your game inventory to capture module data.";
 
             _captureCts = new CancellationTokenSource();
 
-            // Get available network devices
-            var devices = _packetCaptureService.GetNetworkDevices();
+            _logger.LogInformation("Using network device: {Device}", SelectedNetworkDevice.Description);
+            StatusMessage = $"Listening on: {SelectedNetworkDevice.Description}";
 
-            if (devices.Count == 0)
-            {
-                StatusMessage = "No network devices found. Please check your network adapter settings.";
-                _logger.LogError("No network devices available for capture");
-                IsCapturing = false;
-                return;
-            }
-
-            // Use the first device by default (can be enhanced with device selection UI)
-            _logger.LogInformation("Using network device: {Device}", devices[0].Description);
-            StatusMessage = $"Listening on: {devices[0].Description}";
-
-            await _packetCaptureService.StartCaptureAsync(0, _captureCts.Token);
+            await _packetCaptureService.StartCaptureAsync(SelectedNetworkDevice.Index, _captureCts.Token);
         }
         catch (Exception ex)
         {
@@ -142,6 +180,93 @@ public partial class ModuleSolveViewModel : BaseViewModel, IDisposable
         StatusMessage = HasModules
             ? $"Capture stopped. {_capturedModules.Count} modules captured."
             : "Capture stopped. No modules captured yet.";
+    }
+
+    [RelayCommand]
+    private void StartOcrCapture()
+    {
+        try
+        {
+            IsOcrCapturing = true;
+            StatusMessage = "OCR Capture started. Navigate through your modules in the game...";
+
+            // Clear previous captures
+            _ocrCaptureService.ClearCapturedModules();
+
+            // Start timer to capture every 1 second
+            _ocrCaptureTimer = new Timer(
+                _ => OnOcrCaptureTimerTick(),
+                null,
+                TimeSpan.Zero,
+                TimeSpan.FromSeconds(1));
+
+            _logger.LogInformation("[Module OCR] Started OCR capture");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Module OCR] Error starting OCR capture");
+            StatusMessage = $"Error: {ex.Message}";
+            IsOcrCapturing = false;
+        }
+    }
+
+    [RelayCommand]
+    private void StopOcrCapture()
+    {
+        _ocrCaptureTimer?.Dispose();
+        _ocrCaptureTimer = null;
+        IsOcrCapturing = false;
+
+        // Finalize capture session
+        _ocrCaptureService.FinalizeCaptureSession();
+
+        var capturedModules = _ocrCaptureService.GetCapturedModules();
+        StatusMessage = capturedModules.Count > 0
+            ? $"OCR Capture stopped. {capturedModules.Count} modules captured."
+            : "OCR Capture stopped. No modules captured.";
+
+        _logger.LogInformation("[Module OCR] Stopped OCR capture. Total: {Count}", capturedModules.Count);
+    }
+
+    private void OnOcrCaptureTimerTick()
+    {
+        try
+        {
+            var module = _ocrCaptureService.CaptureCurrentModule();
+            if (module != null)
+            {
+                var totalCount = _ocrCaptureService.GetCapturedModules().Count;
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    StatusMessage = $"OCR Capture active - {totalCount} modules captured. Keep navigating...";
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[Module OCR] Error in capture timer tick");
+        }
+    }
+
+    private void OnOcrModulesCaptured(object? sender, List<ModuleInfo> modules)
+    {
+        Console.WriteLine($"[ViewModel] OnOcrModulesCaptured called with {modules.Count} modules");
+
+        _capturedModules = modules;
+        HasModules = modules.Count > 0;
+
+        StatusMessage = $"OCR Capture complete! {modules.Count} modules captured. Click 'Analyze' to find optimal combinations.";
+        _logger.LogInformation("[Module OCR] Captured {Count} modules via OCR", modules.Count);
+
+        Console.WriteLine($"[ViewModel] HasModules = {HasModules}");
+        Console.WriteLine($"[ViewModel] StatusMessage = {StatusMessage}");
+
+        // Auto-save captured modules
+        _ = AutoSaveModulesAsync(modules);
+
+        // Automatically trigger analysis
+        Console.WriteLine($"[ViewModel] Calling AnalyzeModules...");
+        AnalyzeModules();
     }
 
     [RelayCommand]
@@ -316,8 +441,11 @@ public partial class ModuleSolveViewModel : BaseViewModel, IDisposable
     public void Dispose()
     {
         _packetCaptureService.ModulesCapture -= OnModulesCaptured;
+        _ocrCaptureService.ModuleCaptured -= OnOcrModulesCaptured;
         _captureCts?.Cancel();
         _captureCts?.Dispose();
+        _ocrCaptureTimer?.Dispose();
         _packetCaptureService.Dispose();
+        _ocrCaptureService.Dispose();
     }
 }

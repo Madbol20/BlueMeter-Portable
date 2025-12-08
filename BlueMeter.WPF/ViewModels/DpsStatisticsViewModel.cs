@@ -263,6 +263,13 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
         _lastDamageTime = DateTime.MinValue;
         _lastKnownMaxTick = 0;
 
+        // CRITICAL FIX: Clear "Last Battle" state to prevent meter from being stuck in [Last] mode
+        // Previously, if meter was in Last Battle mode and user hit ResetSection, it would stay frozen
+        _awaitingSectionStart = false;
+        IsShowingLastBattle = false;
+        BattleStatusLabel = string.Empty;
+        _lastBattleDataSnapshot = null;
+
         // Note: ManualPlayerUid is NOT reset here - it should persist in settings
         _logger.LogInformation("[RESET] Section reset complete. TrainingMode={Mode}, ManualUID={UID}",
             AppConfig.TrainingMode, AppConfig.ManualPlayerUid);

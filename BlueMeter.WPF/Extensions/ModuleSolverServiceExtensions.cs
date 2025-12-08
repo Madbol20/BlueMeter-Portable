@@ -11,6 +11,7 @@ public static class ModuleSolverServiceExtensions
         services.AddSingleton<PacketCaptureService>();
         services.AddSingleton<ModuleOptimizerService>();
         services.AddSingleton<ModulePersistenceService>();
+        services.AddSingleton<ModuleOCRCaptureService>();
 
         return services;
     }

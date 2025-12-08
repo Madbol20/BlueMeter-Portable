@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="clr-namespace:BlueMeter.WPF.Controls"
+    xmlns:converters="clr-namespace:BlueMeter.WPF.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:lex="http://wpflocalizeextension.codeplex.com"
     xmlns:loc="clr-namespace:BlueMeter.WPF.Properties"
@@ -28,6 +29,8 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+
         <Style x:Key="GroupBox" TargetType="Border">
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="VerticalAlignment" Value="Top" />
@@ -516,6 +519,89 @@
 
                     <Border Grid.Row="3" Style="{StaticResource FilterBorder}">
                         <StackPanel>
+                            <!-- Network Device Selection -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Style="{StaticResource FieldTitle}"
+                                    Text="Network Device:"
+                                    Margin="0,0,5,0" />
+
+                                <ComboBox
+                                    Grid.Column="1"
+                                    ItemsSource="{Binding NetworkDevices}"
+                                    SelectedItem="{Binding SelectedNetworkDevice}"
+                                    DisplayMemberPath="Description"
+                                    Style="{StaticResource ExcludePropertyComboBox}" />
+
+                                <Button Grid.Column="2"
+                                        Command="{Binding RefreshNetworkDevicesCommand}"
+                                        Content="🔄"
+                                        Margin="5,0,0,0"
+                                        Padding="8,4"
+                                        ToolTip="Refresh network devices" />
+                            </Grid>
+
+                            <!-- Packet Capture Controls -->
+                            <TextBlock Text="Packet Capture (Auto)"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5" />
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0"
+                                        Command="{Binding StartCaptureCommand}"
+                                        Content="Start Capture"
+                                        Margin="0,0,5,0"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding IsCapturing, Converter={StaticResource InverseBooleanConverter}}" />
+
+                                <Button Grid.Column="1"
+                                        Command="{Binding StopCaptureCommand}"
+                                        Content="Stop Capture"
+                                        Margin="5,0,0,0"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding IsCapturing}" />
+                            </Grid>
+
+                            <!-- OCR Capture Controls -->
+                            <TextBlock Text="OCR Capture (Manual)"
+                                       FontWeight="Bold"
+                                       Margin="0,5,0,5" />
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0"
+                                        Command="{Binding StartOcrCaptureCommand}"
+                                        Content="Start OCR"
+                                        Margin="0,0,5,0"
+                                        Padding="8,4"
+                                        Background="#4CAF50"
+                                        Foreground="White"
+                                        IsEnabled="{Binding IsOcrCapturing, Converter={StaticResource InverseBooleanConverter}}" />
+
+                                <Button Grid.Column="1"
+                                        Command="{Binding StopOcrCaptureCommand}"
+                                        Content="Stop OCR"
+                                        Margin="5,0,0,0"
+                                        Padding="8,4"
+                                        Background="#F44336"
+                                        Foreground="White"
+                                        IsEnabled="{Binding IsOcrCapturing}" />
+                            </Grid>
+
                             <!-- Data Management Buttons -->
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>

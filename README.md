@@ -18,9 +18,9 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.4.6**
-- Fixed meter freeze after timeout - meter now properly accepts new data after manual reset
-- Fixed plugin enable/disable logic - restored access to all plugins
+**Latest Version: 1.4.7**
+- Fixed meter stuck in "Last Battle" mode after manual reset
+- Development work on Module Solver feature (disabled in UI)
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 
