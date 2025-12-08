@@ -61,6 +61,12 @@ public partial class ChartsWindow : Window
         {
             dpsViewModel.LoadHistoricalEncounter(encounterData);
         }
+
+        // Notify EnhancedSkillBreakdown ViewModel
+        if (_enhancedSkillBreakdownView.DataContext is EnhancedSkillBreakdownViewModel enhancedViewModel)
+        {
+            enhancedViewModel.LoadHistoricalEncounter(encounterData);
+        }
     }
 
     /// <summary>
@@ -72,6 +78,12 @@ public partial class ChartsWindow : Window
         if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
         {
             dpsViewModel.RestoreLiveData();
+        }
+
+        // Notify EnhancedSkillBreakdown ViewModel
+        if (_enhancedSkillBreakdownView.DataContext is EnhancedSkillBreakdownViewModel enhancedViewModel)
+        {
+            enhancedViewModel.RestoreLiveData();
         }
     }
 

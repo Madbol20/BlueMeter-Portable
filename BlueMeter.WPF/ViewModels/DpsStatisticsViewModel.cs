@@ -850,6 +850,19 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
                     subViewModel.UpdateHistoricalData(_historicalDpsData, _historicalPlayerInfos);
                 }
 
+                // Open ChartsWindow and load the encounter there too
+                _logger.LogInformation("Opening ChartsWindow with historical encounter");
+                var chartsWindow = _windowManagement.ChartsWindow;
+
+                // Load the historical encounter in ChartsWindow
+                if (chartsWindow.DataContext is ChartsWindowViewModel chartsViewModel)
+                {
+                    _ = chartsViewModel.LoadHistoricalEncounterAsync(encounterData.EncounterId);
+                }
+
+                chartsWindow.Show();
+                chartsWindow.Activate();
+
                 _logger.LogInformation("Historical encounter loaded successfully");
             });
         }

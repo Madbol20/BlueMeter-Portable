@@ -7,8 +7,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using BlueMeter.Assets;
 using BlueMeter.Core;
 using BlueMeter.Core.Data.Models;
+using BlueMeter.Core.Data.Database;
 using BlueMeter.WPF.Data;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
@@ -69,6 +71,12 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
 
     [ObservableProperty]
     private string _duration = "0s";
+
+    // Historical data mode
+    [ObservableProperty]
+    private bool _isHistoricalDataMode = false;
+
+    private EncounterData? _loadedEncounter;
 
     // Charts
     [ObservableProperty]
@@ -165,16 +173,93 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
     {
         try
         {
-            UpdateAvailablePlayers();
-            if (SelectedPlayer != null)
+            // Only update in live mode
+            if (!IsHistoricalDataMode)
             {
-                UpdateAllStats();
+                UpdateAvailablePlayers();
+                if (SelectedPlayer != null)
+                {
+                    UpdateAllStats();
+                }
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating enhanced skill breakdown");
         }
+    }
+
+    private void LoadHistoricalPlayerStats(long playerId)
+    {
+        _logger.LogInformation("=== LoadHistoricalPlayerStats CALLED for Player {PlayerId} ===", playerId);
+
+        if (_loadedEncounter == null)
+        {
+            _logger.LogError("_loadedEncounter is NULL!");
+            return;
+        }
+
+        _logger.LogInformation("_loadedEncounter is valid, checking PlayerStats...");
+
+        if (!_loadedEncounter.PlayerStats.TryGetValue(playerId, out var playerStat))
+        {
+            _logger.LogWarning("LoadHistoricalPlayerStats: Player {PlayerId} not found in encounter", playerId);
+            _logger.LogWarning("Available player IDs: {PlayerIds}",
+                string.Join(", ", _loadedEncounter.PlayerStats.Keys));
+            return;
+        }
+
+        _logger.LogInformation("Found player stats for {PlayerId}, parsing skills...", playerId);
+
+        // Parse skill data from JSON
+        Dictionary<long, SkillData> skillDictionary = new();
+        if (!string.IsNullOrEmpty(playerStat.SkillDataJson))
+        {
+            try
+            {
+                skillDictionary = JsonConvert.DeserializeObject<Dictionary<long, SkillData>>(playerStat.SkillDataJson)
+                    ?? new Dictionary<long, SkillData>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing skill data JSON for player {PlayerId}", playerId);
+            }
+        }
+
+        var skills = skillDictionary.Values.ToList();
+
+        // Calculate duration from encounter data
+        var durationSeconds = _loadedEncounter.DurationMs / 1000.0;
+        Duration = durationSeconds > 0 ? $"{durationSeconds:F1}s" : "0s";
+
+        // Total damage and DPS
+        TotalDamage = playerStat.TotalAttackDamage;
+        Dps = durationSeconds > 0 ? (long)(playerStat.TotalAttackDamage / durationSeconds) : 0;
+
+        // Aggregate skill stats
+        TotalHits = skills.Sum(s => s.UseTimes);
+        CritCount = skills.Sum(s => s.CritTimes);
+        LuckyCount = skills.Sum(s => s.LuckyTimes);
+
+        // Calculate rates
+        CritRate = TotalHits > 0 ? (double)CritCount / TotalHits : 0;
+        LuckyRate = TotalHits > 0 ? (double)LuckyCount / TotalHits : 0;
+
+        // Calculate damage breakdown
+        TotalCritDamage = (long)(TotalDamage * CritRate);
+        TotalLuckyDamage = (long)(TotalDamage * LuckyRate * 0.5);
+        NormalDamage = TotalDamage - TotalCritDamage - TotalLuckyDamage;
+        AvgDamage = TotalHits > 0 ? TotalDamage / TotalHits : 0;
+
+        // Update charts
+        UpdateSkillPieChart(skills, durationSeconds);
+        UpdateDamageDistributionChart();
+
+        // Update skill details table
+        UpdateSkillDetailsTable(skills, durationSeconds);
+
+        _logger.LogDebug("LoadHistoricalPlayerStats: Loaded stats for player {PlayerId}, TotalDamage={Damage}, DPS={Dps}",
+            playerId, TotalDamage, Dps);
     }
 
     private void UpdateAvailablePlayers()
@@ -213,7 +298,14 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
             return;
         }
 
-        // Try Full first, then Sectioned
+        // Check if we're in historical mode
+        if (IsHistoricalDataMode && _loadedEncounter != null)
+        {
+            LoadHistoricalPlayerStats(SelectedPlayer.PlayerId);
+            return;
+        }
+
+        // Live mode: Try Full first, then Sectioned
         if (!_dataStorage.ReadOnlyFullDpsDatas.TryGetValue(SelectedPlayer.PlayerId, out var dpsData))
         {
             if (!_dataStorage.ReadOnlySectionedDpsDataList.Any(d => d.UID == SelectedPlayer.PlayerId))
@@ -412,6 +504,87 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
         {
             SelectedPlayer = player;
         }
+    }
+
+    /// <summary>
+    /// Load historical encounter data
+    /// </summary>
+    public void LoadHistoricalEncounter(EncounterData encounterData)
+    {
+        _logger.LogInformation("=== LoadHistoricalEncounter CALLED ===");
+        _logger.LogInformation("Encounter ID: {EncounterId}, Start: {StartTime}, Duration: {Duration}ms",
+            encounterData.EncounterId, encounterData.StartTime, encounterData.DurationMs);
+        _logger.LogInformation("PlayerStats count: {Count}", encounterData.PlayerStats.Count);
+
+        _loadedEncounter = encounterData;
+        IsHistoricalDataMode = true;
+
+        // Stop auto-updates
+        _updateTimer.Stop();
+        _logger.LogInformation("Auto-update timer stopped");
+
+        // Update player list from historical data
+        var newPlayers = new List<PlayerSelectionItem>();
+        foreach (var kvp in encounterData.PlayerStats)
+        {
+            _logger.LogInformation("Player UID={UID}, Name={Name}, SkillDataJson length={Length}",
+                kvp.Key, kvp.Value.Name, kvp.Value.SkillDataJson?.Length ?? 0);
+
+            newPlayers.Add(new PlayerSelectionItem
+            {
+                PlayerId = kvp.Key,
+                PlayerName = kvp.Value.Name ?? $"Player {kvp.Key}"
+            });
+        }
+
+        AvailablePlayers = newPlayers.OrderBy(p => p.PlayerName).ToList();
+        _logger.LogInformation("Available players updated: {Count} players", AvailablePlayers.Count);
+
+        // Auto-select first player
+        if (AvailablePlayers.Count > 0)
+        {
+            SelectedPlayer = AvailablePlayers.First();
+            _logger.LogInformation("Auto-selected player: {PlayerName} (ID={PlayerId})",
+                SelectedPlayer.PlayerName, SelectedPlayer.PlayerId);
+            UpdateAllStats();
+        }
+        else
+        {
+            _logger.LogWarning("No players available to select!");
+        }
+
+        _logger.LogInformation("=== LoadHistoricalEncounter COMPLETE ===");
+    }
+
+    /// <summary>
+    /// Restore live data mode
+    /// </summary>
+    public void RestoreLiveData()
+    {
+        _logger.LogInformation("Restoring live data mode for Enhanced Skill Breakdown");
+
+        _loadedEncounter = null;
+        IsHistoricalDataMode = false;
+
+        // Restart auto-updates
+        _updateTimer.Start();
+
+        // Update player list from live data
+        UpdateAvailablePlayers();
+
+        // Auto-select first player if available
+        if (AvailablePlayers.Count > 0 && SelectedPlayer == null)
+        {
+            SelectedPlayer = AvailablePlayers.First();
+        }
+
+        // Update stats
+        if (SelectedPlayer != null)
+        {
+            UpdateAllStats();
+        }
+
+        _logger.LogInformation("Live data mode restored");
     }
 }
 
