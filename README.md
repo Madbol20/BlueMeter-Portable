@@ -18,11 +18,11 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.5.0**
-- Enhanced Skill Breakdown with Lucky Hits tracking (inspired by StarResonanceDps)
-- Complete combat analytics: 4 stats cards, visual charts, detailed skill breakdown table
-- Fixed critical [Last] state bug - meter no longer gets stuck after timeout
-- Improved UI/UX: dark-themed dropdowns, scrollable content
+**Latest Version: 1.5.1**
+- Fixed player list showing enemies/NPCs ("Player 75", etc.)
+- Fixed historical encounter data loading in Enhanced Skill Breakdown
+- BSON-first data loading with automatic SQL fallback
+- Fixed crashes when selecting non-player entities
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

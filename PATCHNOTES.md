@@ -4,6 +4,23 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.5.1
+
+**🐛 Critical Bug Fixes:**
+- Fixed player list showing enemies/NPCs ("Player 75", etc.) - now filters by ProfessionID
+- Fixed Enhanced Skill Breakdown not loading historical encounter data
+- Fixed BattleLogRecorder state management preventing BSON file creation
+- Fixed crash when clicking on non-player entities
+
+**✨ New Features:**
+- BSON-first historical data loading (automatic fallback to SQL)
+- Data source indicator shows "BSON data" or "SQL (no BSON)" status
+- Automatic BattleLog event aggregation for full skill statistics
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.5.1.md)
+
+---
+
 ## Version 1.5.0
 
 **🎉 Major Feature - Enhanced Skill Breakdown:**

@@ -50,6 +50,7 @@ namespace BlueMeter.Core.Data
                     throw new InvalidOperationException("Recorder is already started or stopped.");
 
                 DataStorage.BattleLogCreated += OnBattleLogCreated;
+                State = RunningState.Running;
             }
         }
 

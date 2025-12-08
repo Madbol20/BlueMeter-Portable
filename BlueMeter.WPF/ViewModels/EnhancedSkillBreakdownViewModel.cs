@@ -8,6 +8,7 @@ using BlueMeter.Assets;
 using BlueMeter.Core;
 using BlueMeter.Core.Data.Models;
 using BlueMeter.Core.Data.Database;
+using BlueMeter.Core.Analyze.Models;
 using BlueMeter.WPF.Data;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -77,6 +78,14 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
     private bool _isHistoricalDataMode = false;
 
     private EncounterData? _loadedEncounter;
+    private BattleLogFileData[]? _loadedBsonLogs;
+
+    // Enhanced Data (BSON) mode
+    [ObservableProperty]
+    private bool _useEnhancedData = false;
+
+    [ObservableProperty]
+    private string _bsonStatusText = "";
 
     // Charts
     [ObservableProperty]
@@ -199,7 +208,18 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
             return;
         }
 
-        _logger.LogInformation("_loadedEncounter is valid, checking PlayerStats...");
+        _logger.LogInformation("_loadedEncounter is valid, checking data source...");
+
+        // Check if BSON data is available
+        if (_loadedBsonLogs != null && _loadedBsonLogs.Length > 0)
+        {
+            _logger.LogInformation("Using BSON data for player {PlayerId}", playerId);
+            LoadHistoricalPlayerStatsFromBson(playerId);
+            return;
+        }
+
+        // Fallback to SQL
+        _logger.LogInformation("Using SQL data for player {PlayerId}", playerId);
 
         if (!_loadedEncounter.PlayerStats.TryGetValue(playerId, out var playerStat))
         {
@@ -262,6 +282,105 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
             playerId, TotalDamage, Dps);
     }
 
+    /// <summary>
+    /// Load player stats by aggregating BSON BattleLog events
+    /// </summary>
+    private void LoadHistoricalPlayerStatsFromBson(long playerId)
+    {
+        _logger.LogInformation("=== LoadHistoricalPlayerStatsFromBson for Player {PlayerId} ===", playerId);
+
+        if (_loadedBsonLogs == null || _loadedEncounter == null)
+        {
+            _logger.LogError("No BSON data or encounter data available");
+            return;
+        }
+
+        // Filter logs for this player (damage only, no heals, no misses)
+        var playerLogs = _loadedBsonLogs
+            .Where(log => log.AttackerUuid == playerId
+                && log.IsAttackerPlayer
+                && !log.IsHeal
+                && !log.IsMiss
+                && log.Value > 0)
+            .ToList();
+
+        _logger.LogInformation("Found {Count} damage events for player {PlayerId}", playerLogs.Count, playerId);
+
+        // Aggregate into SkillData dictionary
+        var skillDictionary = new Dictionary<long, SkillData>();
+
+        foreach (var log in playerLogs)
+        {
+            if (!skillDictionary.TryGetValue(log.SkillID, out var skillData))
+            {
+                // Create new skill entry
+                skillDictionary[log.SkillID] = new SkillData
+                {
+                    SkillId = log.SkillID,
+                    TotalValue = log.Value,
+                    UseTimes = 1,
+                    CritTimes = log.IsCritical ? 1 : 0,
+                    LuckyTimes = log.IsLucky ? 1 : 0,
+                    MinDamage = log.Value,
+                    MaxDamage = log.Value,
+                    HighestCrit = log.IsCritical ? log.Value : 0
+                };
+            }
+            else
+            {
+                // Update existing skill entry (recreate object)
+                skillDictionary[log.SkillID] = new SkillData
+                {
+                    SkillId = log.SkillID,
+                    TotalValue = skillData.TotalValue + log.Value,
+                    UseTimes = skillData.UseTimes + 1,
+                    CritTimes = skillData.CritTimes + (log.IsCritical ? 1 : 0),
+                    LuckyTimes = skillData.LuckyTimes + (log.IsLucky ? 1 : 0),
+                    MinDamage = Math.Min(skillData.MinDamage, log.Value),
+                    MaxDamage = Math.Max(skillData.MaxDamage, log.Value),
+                    HighestCrit = log.IsCritical ? Math.Max(skillData.HighestCrit, log.Value) : skillData.HighestCrit
+                };
+            }
+        }
+
+        var skills = skillDictionary.Values.ToList();
+
+        _logger.LogInformation("Aggregated into {Count} skills", skills.Count);
+
+        // Calculate duration from encounter data
+        var durationSeconds = _loadedEncounter.DurationMs / 1000.0;
+        Duration = durationSeconds > 0 ? $"{durationSeconds:F1}s" : "0s";
+
+        // Total damage and DPS
+        TotalDamage = skills.Sum(s => s.TotalValue);
+        Dps = durationSeconds > 0 ? (long)(TotalDamage / durationSeconds) : 0;
+
+        // Aggregate skill stats
+        TotalHits = skills.Sum(s => s.UseTimes);
+        CritCount = skills.Sum(s => s.CritTimes);
+        LuckyCount = skills.Sum(s => s.LuckyTimes);
+
+        // Calculate rates
+        CritRate = TotalHits > 0 ? (double)CritCount / TotalHits : 0;
+        LuckyRate = TotalHits > 0 ? (double)LuckyCount / TotalHits : 0;
+
+        // Calculate damage breakdown
+        TotalCritDamage = (long)(TotalDamage * CritRate);
+        TotalLuckyDamage = (long)(TotalDamage * LuckyRate * 0.5);
+        NormalDamage = TotalDamage - TotalCritDamage - TotalLuckyDamage;
+        AvgDamage = TotalHits > 0 ? TotalDamage / TotalHits : 0;
+
+        // Update charts
+        UpdateSkillPieChart(skills, durationSeconds);
+        UpdateDamageDistributionChart();
+
+        // Update skill details table
+        UpdateSkillDetailsTable(skills, durationSeconds);
+
+        _logger.LogInformation("LoadHistoricalPlayerStatsFromBson COMPLETE: TotalDamage={Damage}, DPS={Dps}, Skills={SkillCount}",
+            TotalDamage, Dps, skills.Count);
+    }
+
     private void UpdateAvailablePlayers()
     {
         var currentPlayerIds = _dataStorage.ReadOnlyPlayerInfoDatas.Keys.ToList();
@@ -279,11 +398,16 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
         {
             if (_dataStorage.ReadOnlyPlayerInfoDatas.TryGetValue(playerId, out var playerInfo))
             {
-                newPlayers.Add(new PlayerSelectionItem
+                // FILTER: Only include actual players (with ProfessionID and valid names)
+                // Enemies/NPCs don't have ProfessionID
+                if (playerInfo.ProfessionID.HasValue && playerInfo.ProfessionID.Value > 0)
                 {
-                    PlayerId = playerId,
-                    PlayerName = playerInfo.Name ?? $"Player {playerId}"
-                });
+                    newPlayers.Add(new PlayerSelectionItem
+                    {
+                        PlayerId = playerId,
+                        PlayerName = playerInfo.Name ?? $"Player {playerId}"
+                    });
+                }
             }
         }
 
@@ -511,10 +635,9 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
     /// </summary>
     public void LoadHistoricalEncounter(EncounterData encounterData)
     {
-        _logger.LogInformation("=== LoadHistoricalEncounter CALLED ===");
+        _logger.LogInformation("=== LoadHistoricalEncounter CALLED (BSON-first mode) ===");
         _logger.LogInformation("Encounter ID: {EncounterId}, Start: {StartTime}, Duration: {Duration}ms",
             encounterData.EncounterId, encounterData.StartTime, encounterData.DurationMs);
-        _logger.LogInformation("PlayerStats count: {Count}", encounterData.PlayerStats.Count);
 
         _loadedEncounter = encounterData;
         IsHistoricalDataMode = true;
@@ -523,13 +646,159 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
         _updateTimer.Stop();
         _logger.LogInformation("Auto-update timer stopped");
 
-        // Update player list from historical data
+        // Historical data: Try BSON first, fallback to SQL
+        bool loadedFromBson = TryLoadFromBson(encounterData);
+
+        if (!loadedFromBson)
+        {
+            // Fallback to SQL
+            _logger.LogInformation("BSON not available, using SQL fallback");
+            LoadFromSql(encounterData);
+            BsonStatusText = "📊 SQL (no BSON)";
+        }
+        else
+        {
+            BsonStatusText = "✓ BSON data";
+        }
+
+        _logger.LogInformation("=== LoadHistoricalEncounter COMPLETE ===");
+    }
+
+    /// <summary>
+    /// Try to load from BSON file (returns true if successful)
+    /// </summary>
+    private bool TryLoadFromBson(EncounterData encounterData)
+    {
+        try
+        {
+            var battleLogManager = Core.Data.DataStorageExtensions.GetBattleLogManager();
+            if (battleLogManager == null)
+            {
+                _logger.LogInformation("BattleLogManager not available");
+                return false;
+            }
+
+            // Find BSON file (match by first 8 chars of EncounterId)
+            var storedEncounters = battleLogManager.GetStoredEncounters();
+            var encounterIdPrefix = encounterData.EncounterId.Length > 8
+                ? encounterData.EncounterId.Substring(0, 8)
+                : encounterData.EncounterId;
+
+            var bsonEncounter = storedEncounters.FirstOrDefault(e =>
+                e.EncounterId == encounterIdPrefix ||
+                encounterData.EncounterId.StartsWith(e.EncounterId));
+
+            if (bsonEncounter == null)
+            {
+                _logger.LogInformation("No BSON file found for encounter {EncounterId}", encounterData.EncounterId);
+                return false;
+            }
+
+            _logger.LogInformation("Found BSON file: {FileName}", bsonEncounter.FileName);
+
+            // Load BSON file
+            var filePath = System.IO.Path.Combine(battleLogManager.LogDirectory, bsonEncounter.FileName);
+            var logsFile = Core.Analyze.BattleLogReader.ReadFile(filePath);
+
+            if (logsFile == null || logsFile.BattleLogs == null || logsFile.BattleLogs.Length == 0)
+            {
+                _logger.LogWarning("BSON file is empty");
+                return false;
+            }
+
+            _logger.LogInformation("Loaded {Count} battle log events from BSON", logsFile.BattleLogs.Length);
+
+            // Store BSON logs for later aggregation
+            _loadedBsonLogs = logsFile.BattleLogs;
+
+            // Extract REAL players from BSON PlayerInfos (with ProfessionID)
+            var realPlayerIds = new HashSet<long>();
+            if (logsFile.PlayerInfos != null && logsFile.PlayerInfos.Length > 0)
+            {
+                foreach (var playerInfo in logsFile.PlayerInfos)
+                {
+                    // FILTER: Only actual players with ProfessionID (not enemies/NPCs)
+                    if (playerInfo.ProfessionID.HasValue && playerInfo.ProfessionID.Value > 0)
+                    {
+                        realPlayerIds.Add(playerInfo.UID);
+                    }
+                }
+                _logger.LogInformation("Found {Count} real players in BSON PlayerInfos", realPlayerIds.Count);
+            }
+            else
+            {
+                _logger.LogWarning("No PlayerInfos in BSON file, using fallback filter");
+                // Fallback: use attackers who dealt damage AND are in encounterData.PlayerStats with profession
+                var attackerIds = logsFile.BattleLogs
+                    .Where(log => log.IsAttackerPlayer && !log.IsHeal && !log.IsMiss && log.Value > 0)
+                    .Select(log => log.AttackerUuid)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var attackerId in attackerIds)
+                {
+                    if (encounterData.PlayerStats.TryGetValue(attackerId, out var stats))
+                    {
+                        // TODO: EncounterData doesn't have ProfessionID, so accept all for now
+                        realPlayerIds.Add(attackerId);
+                    }
+                }
+            }
+
+            // Build player list
+            var newPlayers = new List<PlayerSelectionItem>();
+            foreach (var playerId in realPlayerIds)
+            {
+                // Get player name from BSON PlayerInfos or EncounterData
+                string? playerName = null;
+
+                if (logsFile.PlayerInfos != null)
+                {
+                    var playerInfo = logsFile.PlayerInfos.FirstOrDefault(p => p.UID == playerId);
+                    playerName = playerInfo?.Name;
+                }
+
+                if (string.IsNullOrEmpty(playerName) && encounterData.PlayerStats.TryGetValue(playerId, out var stats))
+                {
+                    playerName = stats.Name;
+                }
+
+                playerName ??= $"Player {playerId}";
+
+                newPlayers.Add(new PlayerSelectionItem
+                {
+                    PlayerId = playerId,
+                    PlayerName = playerName
+                });
+            }
+
+            AvailablePlayers = newPlayers.OrderBy(p => p.PlayerName).ToList();
+            _logger.LogInformation("Loaded {Count} players from BSON", AvailablePlayers.Count);
+
+            // Auto-select first player
+            if (AvailablePlayers.Count > 0)
+            {
+                SelectedPlayer = AvailablePlayers.First();
+                _logger.LogInformation("Auto-selected player: {PlayerName}", SelectedPlayer.PlayerName);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading from BSON");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Fallback: Load from SQL
+    /// </summary>
+    private void LoadFromSql(EncounterData encounterData)
+    {
         var newPlayers = new List<PlayerSelectionItem>();
         foreach (var kvp in encounterData.PlayerStats)
         {
-            _logger.LogInformation("Player UID={UID}, Name={Name}, SkillDataJson length={Length}",
-                kvp.Key, kvp.Value.Name, kvp.Value.SkillDataJson?.Length ?? 0);
-
             newPlayers.Add(new PlayerSelectionItem
             {
                 PlayerId = kvp.Key,
@@ -538,22 +807,19 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
         }
 
         AvailablePlayers = newPlayers.OrderBy(p => p.PlayerName).ToList();
-        _logger.LogInformation("Available players updated: {Count} players", AvailablePlayers.Count);
+        _logger.LogInformation("Loaded {Count} players from SQL", AvailablePlayers.Count);
 
         // Auto-select first player
         if (AvailablePlayers.Count > 0)
         {
             SelectedPlayer = AvailablePlayers.First();
-            _logger.LogInformation("Auto-selected player: {PlayerName} (ID={PlayerId})",
-                SelectedPlayer.PlayerName, SelectedPlayer.PlayerId);
+            _logger.LogInformation("Auto-selected player: {PlayerName}", SelectedPlayer.PlayerName);
             UpdateAllStats();
         }
         else
         {
-            _logger.LogWarning("No players available to select!");
+            _logger.LogWarning("No players available!");
         }
-
-        _logger.LogInformation("=== LoadHistoricalEncounter COMPLETE ===");
     }
 
     /// <summary>
@@ -564,7 +830,9 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
         _logger.LogInformation("Restoring live data mode for Enhanced Skill Breakdown");
 
         _loadedEncounter = null;
+        _loadedBsonLogs = null;
         IsHistoricalDataMode = false;
+        UseEnhancedData = false;
 
         // Restart auto-updates
         _updateTimer.Start();
@@ -585,6 +853,183 @@ public partial class EnhancedSkillBreakdownViewModel : ObservableObject
         }
 
         _logger.LogInformation("Live data mode restored");
+    }
+
+    /// <summary>
+    /// Handle UseEnhancedData toggle changed
+    /// </summary>
+    partial void OnUseEnhancedDataChanged(bool value)
+    {
+        _logger.LogInformation("UseEnhancedData changed to: {Value}", value);
+
+        if (value)
+        {
+            // Try to load from BSON
+            LoadFromBsonFile();
+        }
+        else
+        {
+            // Reload from SQL database
+            if (IsHistoricalDataMode && _loadedEncounter != null && SelectedPlayer != null)
+            {
+                LoadHistoricalPlayerStats(SelectedPlayer.PlayerId);
+            }
+            else if (SelectedPlayer != null)
+            {
+                UpdateAllStats();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Load skill data from BSON file
+    /// </summary>
+    private void LoadFromBsonFile()
+    {
+        try
+        {
+            if (_loadedEncounter == null || SelectedPlayer == null)
+            {
+                BsonStatusText = "❌ No encounter selected";
+                _logger.LogWarning("Cannot load BSON: No encounter or player selected");
+                return;
+            }
+
+            _logger.LogInformation("Loading BSON data for encounter {EncounterId}", _loadedEncounter.EncounterId);
+
+            // Get BattleLogManager
+            var battleLogManager = Core.Data.DataStorageExtensions.GetBattleLogManager();
+            if (battleLogManager == null)
+            {
+                BsonStatusText = "❌ Advanced Logging not enabled";
+                _logger.LogWarning("BattleLogManager is null - Advanced Logging not enabled");
+                UseEnhancedData = false;
+                return;
+            }
+
+            // Find BSON file for this encounter
+            // Note: BSON filenames use truncated EncounterId (first 8 chars), so we need to match by prefix
+            var storedEncounters = battleLogManager.GetStoredEncounters();
+            var encounterIdPrefix = _loadedEncounter.EncounterId.Length > 8
+                ? _loadedEncounter.EncounterId.Substring(0, 8)
+                : _loadedEncounter.EncounterId;
+
+            var bsonEncounter = storedEncounters.FirstOrDefault(e =>
+                e.EncounterId == encounterIdPrefix ||
+                _loadedEncounter.EncounterId.StartsWith(e.EncounterId));
+
+            if (bsonEncounter == null)
+            {
+                BsonStatusText = $"❌ No BSON file for this encounter";
+                _logger.LogWarning("No BSON file found for encounter {EncounterId} (prefix: {Prefix})",
+                    _loadedEncounter.EncounterId, encounterIdPrefix);
+                _logger.LogInformation("Available BSON encounters: {Encounters}",
+                    string.Join(", ", storedEncounters.Select(e => e.EncounterId)));
+                UseEnhancedData = false;
+                return;
+            }
+
+            _logger.LogInformation("Found BSON file: {FileName}", bsonEncounter.FileName);
+
+            // Load BSON data using BattleLogReader
+            var filePath = System.IO.Path.Combine(battleLogManager.LogDirectory, bsonEncounter.FileName);
+            var encounterLog = Core.Analyze.BattleLogReader.ReadFile(filePath);
+
+            if (encounterLog == null || encounterLog.BattleLogs == null || encounterLog.BattleLogs.Length == 0)
+            {
+                BsonStatusText = "❌ Failed to load BSON data";
+                _logger.LogError("Failed to load BSON data from {FilePath}", filePath);
+                UseEnhancedData = false;
+                return;
+            }
+
+            _logger.LogInformation("Loaded {Count} battle log events from BSON", encounterLog.BattleLogs.Length);
+
+            // Convert BattleLogs to skill stats - filter for damage events from this player
+            var playerLogs = encounterLog.BattleLogs
+                .Where(log => log.AttackerUuid == SelectedPlayer.PlayerId && !log.IsHeal && !log.IsMiss)
+                .ToList();
+
+            _logger.LogInformation("Found {Count} damage events for player {PlayerId}", playerLogs.Count, SelectedPlayer.PlayerId);
+
+            if (playerLogs.Count == 0)
+            {
+                BsonStatusText = "❌ No data for selected player";
+                UseEnhancedData = false;
+                return;
+            }
+
+            // Aggregate skills from battle logs using same logic as DataStorage.cs
+            var skillDictionary = new Dictionary<long, SkillData>();
+            foreach (var log in playerLogs)
+            {
+                if (log.SkillID == 0) continue;
+
+                if (!skillDictionary.TryGetValue(log.SkillID, out var skillData))
+                {
+                    skillData = new SkillData
+                    {
+                        SkillId = log.SkillID,
+                        MinDamage = long.MaxValue
+                    };
+                    skillDictionary[log.SkillID] = skillData;
+                }
+
+                // Aggregate using same logic as DataStorage.UpdateSkillData
+                skillData.TotalValue += log.Value;
+                skillData.UseTimes += 1;
+                skillData.CritTimes += log.IsCritical ? 1 : 0;
+                skillData.LuckyTimes += log.IsLucky ? 1 : 0;
+
+                // Track min/max damage
+                if (log.Value > 0)
+                {
+                    skillData.MinDamage = Math.Min(skillData.MinDamage, log.Value);
+                    skillData.MaxDamage = Math.Max(skillData.MaxDamage, log.Value);
+
+                    if (log.IsCritical)
+                    {
+                        skillData.HighestCrit = Math.Max(skillData.HighestCrit, log.Value);
+                    }
+                }
+            }
+
+            var skills = skillDictionary.Values.ToList();
+
+            // Calculate duration
+            var durationSeconds = _loadedEncounter.DurationMs / 1000.0;
+            Duration = durationSeconds > 0 ? $"{durationSeconds:F1}s" : "0s";
+
+            // Update stats
+            TotalDamage = skills.Sum(s => s.TotalValue);
+            Dps = durationSeconds > 0 ? (long)(TotalDamage / durationSeconds) : 0;
+            TotalHits = skills.Sum(s => s.UseTimes);
+            CritCount = skills.Sum(s => s.CritTimes);
+            LuckyCount = skills.Sum(s => s.LuckyTimes);
+
+            CritRate = TotalHits > 0 ? (double)CritCount / TotalHits : 0;
+            LuckyRate = TotalHits > 0 ? (double)LuckyCount / TotalHits : 0;
+
+            TotalCritDamage = (long)(TotalDamage * CritRate);
+            TotalLuckyDamage = (long)(TotalDamage * LuckyRate * 0.5);
+            NormalDamage = TotalDamage - TotalCritDamage - TotalLuckyDamage;
+            AvgDamage = TotalHits > 0 ? TotalDamage / TotalHits : 0;
+
+            // Update charts
+            UpdateSkillPieChart(skills, durationSeconds);
+            UpdateDamageDistributionChart();
+            UpdateSkillDetailsTable(skills, durationSeconds);
+
+            BsonStatusText = $"✓ Loaded {encounterLog.BattleLogs.Length} events ({skills.Count} skills)";
+            _logger.LogInformation("Successfully loaded BSON data: {TotalDamage} damage, {HitCount} hits, {SkillCount} skills",
+                TotalDamage, TotalHits, skills.Count);
+        }
+        catch (Exception ex)
+        {
+            BsonStatusText = $"❌ Error: {ex.Message}";
+            _logger.LogError(ex, "Error loading BSON data");
+            UseEnhancedData = false;
+        }
     }
 }
 

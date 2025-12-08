@@ -112,6 +112,23 @@
                     FontWeight="Bold"
                     Foreground="White"
                     Text="{Binding SelectedPlayer.PlayerName, StringFormat='Skill Breakdown - {0}'}" />
+
+                <!--  Data Source Indicator  -->
+                <StackPanel Orientation="Horizontal" Margin="32,0,0,0" VerticalAlignment="Center">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="13"
+                        Foreground="#CCCCCC"
+                        Text="Data Source:"
+                        Margin="0,0,8,0"/>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="13"
+                        FontWeight="Bold"
+                        Foreground="#4CAF50"
+                        Text="{Binding BsonStatusText}"
+                        ToolTip="Historical encounters automatically load from BSON files (if available) or fallback to SQL database" />
+                </StackPanel>
             </StackPanel>
         </Border>
 
