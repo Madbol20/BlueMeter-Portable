@@ -15,6 +15,11 @@ public static class DataStorage
     private static bool _isServerConnected;
 
     /// <summary>
+    /// Lock object for thread-safe access to DPS data dictionaries and caches
+    /// </summary>
+    private static readonly object _dpsDataLock = new();
+
+    /// <summary>
     /// 当前玩家UUID
     /// </summary>
     internal static long CurrentPlayerUUID { get; set; }
@@ -61,11 +66,14 @@ public static class DataStorage
     {
         get
         {
-            if (_cachedFullDpsDataList == null)
+            lock (_dpsDataLock)
             {
-                _cachedFullDpsDataList = FullDpsDatas.Values.ToList();
+                if (_cachedFullDpsDataList == null)
+                {
+                    _cachedFullDpsDataList = FullDpsDatas.Values.ToList();
+                }
+                return _cachedFullDpsDataList.AsReadOnly();
             }
-            return _cachedFullDpsDataList.AsReadOnly();
         }
     }
 
@@ -91,11 +99,14 @@ public static class DataStorage
     {
         get
         {
-            if (_cachedSectionedDpsDataList == null)
+            lock (_dpsDataLock)
             {
-                _cachedSectionedDpsDataList = SectionedDpsDatas.Values.ToList();
+                if (_cachedSectionedDpsDataList == null)
+                {
+                    _cachedSectionedDpsDataList = SectionedDpsDatas.Values.ToList();
+                }
+                return _cachedSectionedDpsDataList.AsReadOnly();
             }
-            return _cachedSectionedDpsDataList.AsReadOnly();
         }
     }
 
@@ -317,26 +328,29 @@ public static class DataStorage
     /// </remarks>
     internal static (DpsData fullData, DpsData sectionedData) GetOrCreateDpsDataByUID(long uid)
     {
-        var fullDpsDataFlag = FullDpsDatas.TryGetValue(uid, out var fullDpsData);
-        if (!fullDpsDataFlag)
+        lock (_dpsDataLock)
         {
-            fullDpsData = new DpsData { UID = uid };
-            // Invalidate cache when adding new entry
-            _cachedFullDpsDataList = null;
+            var fullDpsDataFlag = FullDpsDatas.TryGetValue(uid, out var fullDpsData);
+            if (!fullDpsDataFlag)
+            {
+                fullDpsData = new DpsData { UID = uid };
+                // Invalidate cache when adding new entry
+                _cachedFullDpsDataList = null;
+            }
+
+            var sectionedDpsDataFlag = SectionedDpsDatas.TryGetValue(uid, out var sectionedDpsData);
+            if (!sectionedDpsDataFlag)
+            {
+                sectionedDpsData = new DpsData { UID = uid };
+                // Invalidate cache when adding new entry
+                _cachedSectionedDpsDataList = null;
+            }
+
+            SectionedDpsDatas[uid] = sectionedDpsData!;
+            FullDpsDatas[uid] = fullDpsData!;
+
+            return (fullDpsData!, sectionedDpsData!);
         }
-
-        var sectionedDpsDataFlag = SectionedDpsDatas.TryGetValue(uid, out var sectionedDpsData);
-        if (!sectionedDpsDataFlag)
-        {
-            sectionedDpsData = new DpsData { UID = uid };
-            // Invalidate cache when adding new entry
-            _cachedSectionedDpsDataList = null;
-        }
-
-        SectionedDpsDatas[uid] = sectionedDpsData!;
-        FullDpsDatas[uid] = fullDpsData!;
-
-        return (fullDpsData!, sectionedDpsData!);
     }
 
     /// <summary>
@@ -584,12 +598,16 @@ public static class DataStorage
     public static void ClearAllDpsData()
     {
         ForceNewBattleSection = true;
-        SectionedDpsDatas.Clear();
-        FullDpsDatas.Clear();
 
-        // Invalidate caches
-        _cachedFullDpsDataList = null;
-        _cachedSectionedDpsDataList = null;
+        lock (_dpsDataLock)
+        {
+            SectionedDpsDatas.Clear();
+            FullDpsDatas.Clear();
+
+            // Invalidate caches
+            _cachedFullDpsDataList = null;
+            _cachedSectionedDpsDataList = null;
+        }
 
         try
         {
@@ -614,10 +632,13 @@ public static class DataStorage
 
     private static void PrivateClearDpsData()
     {
-        SectionedDpsDatas.Clear();
+        lock (_dpsDataLock)
+        {
+            SectionedDpsDatas.Clear();
 
-        // Invalidate sectioned cache
-        _cachedSectionedDpsDataList = null;
+            // Invalidate sectioned cache
+            _cachedSectionedDpsDataList = null;
+        }
 
         try
         {

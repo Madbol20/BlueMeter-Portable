@@ -108,6 +108,9 @@ public class HoldClickBehavior : Behavior<Button>
         };
         _holdTimer.Tick += OnInitialDelayTick;
         _holdTimer.Start();
+
+        // Mark event as handled to prevent Button's Click event from firing
+        e.Handled = true;
     }
 
     private void OnInitialDelayTick(object? sender, EventArgs e)
@@ -135,6 +138,7 @@ public class HoldClickBehavior : Behavior<Button>
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {
         StopHoldTimer();
+        e.Handled = true;
     }
 
     private void OnMouseLeave(object sender, MouseEventArgs e)

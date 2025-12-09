@@ -11,23 +11,23 @@ public partial class ChartsWindow : Window
 {
     private readonly ChartsWindowViewModel _viewModel;
     private readonly DpsTrendChartView _dpsTrendChartView;
-    private readonly SkillBreakdownChartView _skillBreakdownChartView;
+    private readonly EnhancedSkillBreakdownView _enhancedSkillBreakdownView;
 
     public ChartsWindow(
         ChartsWindowViewModel viewModel,
         DpsTrendChartView dpsTrendChartView,
-        SkillBreakdownChartView skillBreakdownChartView)
+        EnhancedSkillBreakdownView enhancedSkillBreakdownView)
     {
         _viewModel = viewModel;
         _dpsTrendChartView = dpsTrendChartView;
-        _skillBreakdownChartView = skillBreakdownChartView;
+        _enhancedSkillBreakdownView = enhancedSkillBreakdownView;
         DataContext = _viewModel;
 
         InitializeComponent();
 
         // Inject the chart views into their respective tabs
         DpsTrendChartContainer.Content = _dpsTrendChartView;
-        SkillBreakdownChartContainer.Content = _skillBreakdownChartView;
+        EnhancedSkillBreakdownContainer.Content = _enhancedSkillBreakdownView;
 
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -56,17 +56,17 @@ public partial class ChartsWindow : Window
     /// </summary>
     private void OnHistoricalEncounterLoaded(Core.Data.Database.EncounterData encounterData)
     {
-        // Notify SkillBreakdownChart ViewModel
-        if (_skillBreakdownChartView.DataContext is SkillBreakdownChartViewModel skillViewModel)
+        // Notify DpsTrendChart ViewModel
+        if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
         {
-            skillViewModel.LoadHistoricalEncounter(encounterData);
+            dpsViewModel.LoadHistoricalEncounter(encounterData);
         }
 
-        // Note: DpsTrendChart doesn't support historical data yet
-        // if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
-        // {
-        //     dpsViewModel.LoadHistoricalEncounter(encounterData);
-        // }
+        // Notify EnhancedSkillBreakdown ViewModel
+        if (_enhancedSkillBreakdownView.DataContext is EnhancedSkillBreakdownViewModel enhancedViewModel)
+        {
+            enhancedViewModel.LoadHistoricalEncounter(encounterData);
+        }
     }
 
     /// <summary>
@@ -74,16 +74,17 @@ public partial class ChartsWindow : Window
     /// </summary>
     private void OnLiveDataRestored()
     {
-        // Notify SkillBreakdownChart ViewModel
-        if (_skillBreakdownChartView.DataContext is SkillBreakdownChartViewModel skillViewModel)
+        // Notify DpsTrendChart ViewModel
+        if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
         {
-            skillViewModel.RestoreLiveData();
+            dpsViewModel.RestoreLiveData();
         }
 
-        // if (_dpsTrendChartView.DataContext is DpsTrendChartViewModel dpsViewModel)
-        // {
-        //     dpsViewModel.RestoreLiveData();
-        // }
+        // Notify EnhancedSkillBreakdown ViewModel
+        if (_enhancedSkillBreakdownView.DataContext is EnhancedSkillBreakdownViewModel enhancedViewModel)
+        {
+            enhancedViewModel.RestoreLiveData();
+        }
     }
 
     /// <summary>
@@ -99,9 +100,9 @@ public partial class ChartsWindow : Window
             dpsTrendViewModel.SetFocusedPlayer(playerId);
         }
 
-        if (_skillBreakdownChartView.DataContext is SkillBreakdownChartViewModel skillBreakdownViewModel)
+        if (_enhancedSkillBreakdownView.DataContext is EnhancedSkillBreakdownViewModel enhancedBreakdownViewModel)
         {
-            skillBreakdownViewModel.SetFocusedPlayer(playerId);
+            enhancedBreakdownViewModel.SetFocusedPlayer(playerId);
         }
     }
 }

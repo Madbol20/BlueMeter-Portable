@@ -427,7 +427,7 @@ if (payload.Length == EXPECTED_LENGTH && payload[0] == MAGIC_BYTE)
 ### Phase D: Validation
 1. Test in different queue types (dungeon, raid, PvP)
 2. Verify no false positives during normal gameplay
-3. Confirm 100% detection rate for queue pops
+3. Confirm 100% detection rate for queue pops2
 4. Performance testing (no lag during combat)
 
 ---

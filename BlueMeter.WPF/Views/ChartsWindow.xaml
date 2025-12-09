@@ -200,9 +200,9 @@
                 <ContentControl x:Name="DpsTrendChartContainer" />
             </TabItem>
 
-            <!--  Skill Breakdown Tab  -->
-            <TabItem Header="🎯 Skill Breakdown" Style="{StaticResource DarkTabItem}">
-                <ContentControl x:Name="SkillBreakdownChartContainer" />
+            <!--  Detailed Breakdown Tab (FULL STATS with Lucky Hits!)  -->
+            <TabItem Header="⚔️ Detailed Breakdown" Style="{StaticResource DarkTabItem}">
+                <ContentControl x:Name="EnhancedSkillBreakdownContainer" />
             </TabItem>
 
             <!--  Player Comparison Tab  -->

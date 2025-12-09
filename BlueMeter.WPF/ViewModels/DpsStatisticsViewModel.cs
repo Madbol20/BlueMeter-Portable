@@ -59,6 +59,7 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
     private readonly ITrayService _trayService;
     private readonly IChartDataService _chartDataService;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IServiceProvider _serviceProvider;
     private DispatcherTimer? _durationTimer;
     private bool _isInitialized;
     // UI update throttling to prevent freezing during intense combat
@@ -97,7 +98,8 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
         DebugFunctions debugFunctions,
         Dispatcher dispatcher,
         IChartDataService chartDataService,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        IServiceProvider serviceProvider)
     {
         StatisticData = new Dictionary<StatisticType, DpsStatisticsSubViewModel>
         {
@@ -144,6 +146,7 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
         _dispatcher = dispatcher;
         _chartDataService = chartDataService;
         _loggerFactory = loggerFactory;
+        _serviceProvider = serviceProvider;
 
         // Subscribe to DebugFunctions events to handle sample data requests
         DebugFunctions.SampleDataRequested += OnSampleDataRequested;
@@ -259,6 +262,13 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
         // Reset combat tracking for new section
         _lastDamageTime = DateTime.MinValue;
         _lastKnownMaxTick = 0;
+
+        // CRITICAL FIX: Clear "Last Battle" state to prevent meter from being stuck in [Last] mode
+        // Previously, if meter was in Last Battle mode and user hit ResetSection, it would stay frozen
+        _awaitingSectionStart = false;
+        IsShowingLastBattle = false;
+        BattleStatusLabel = string.Empty;
+        _lastBattleDataSnapshot = null;
 
         // Note: ManualPlayerUid is NOT reset here - it should persist in settings
         _logger.LogInformation("[RESET] Section reset complete. TrainingMode={Mode}, ManualUID={UID}",
@@ -417,6 +427,18 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
             // Clear Last Battle snapshot when new combat starts
             _lastBattleDataSnapshot = null;
             _logger.LogInformation("[LAST BATTLE] Cleared snapshot - new combat started");
+        }
+
+        // CRITICAL FIX: If we detect new damage while awaiting section start but hasSectionDamage is false,
+        // this indicates a race condition where NewSectionCreated fired after data was cleared but before
+        // it was repopulated. In this case, clear the [Last] state immediately to prevent getting stuck.
+        if (_awaitingSectionStart && hasNewDamage && !hasSectionDamage)
+        {
+            _logger.LogWarning("[LAST BATTLE] Detected new damage but hasSectionDamage=false (race condition). Clearing [Last] state to prevent stuck meter.");
+            _awaitingSectionStart = false;
+            IsShowingLastBattle = false;
+            BattleStatusLabel = string.Empty;
+            _lastBattleDataSnapshot = null;
         }
 
         UpdateData(dpsList);
@@ -723,7 +745,7 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
 
-        var viewModel = new EncounterHistoryViewModel(_chartDataService, _loggerFactory.CreateLogger<EncounterHistoryViewModel>());
+        var viewModel = new EncounterHistoryViewModel(_chartDataService, _loggerFactory.CreateLogger<EncounterHistoryViewModel>(), _serviceProvider);
         historyWindow.DataContext = viewModel;
 
         // Handle RequestClose event
@@ -827,6 +849,19 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
                 {
                     subViewModel.UpdateHistoricalData(_historicalDpsData, _historicalPlayerInfos);
                 }
+
+                // Open ChartsWindow and load the encounter there too
+                _logger.LogInformation("Opening ChartsWindow with historical encounter");
+                var chartsWindow = _windowManagement.ChartsWindow;
+
+                // Load the historical encounter in ChartsWindow
+                if (chartsWindow.DataContext is ChartsWindowViewModel chartsViewModel)
+                {
+                    _ = chartsViewModel.LoadHistoricalEncounterAsync(encounterData.EncounterId);
+                }
+
+                chartsWindow.Show();
+                chartsWindow.Activate();
 
                 _logger.LogInformation("Historical encounter loaded successfully");
             });
@@ -933,11 +968,18 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
             _lastSectionElapsed = _timer.IsRunning
                 ? (_timer.Elapsed - _sectionStartElapsed)
                 : (BattleDuration > TimeSpan.Zero ? BattleDuration : _lastSectionElapsed);
+
+            // Log if we're setting these flags while they're already set (indicates multiple section clears)
+            if (_awaitingSectionStart || IsShowingLastBattle)
+            {
+                _logger.LogWarning("[LAST BATTLE] NewSectionCreated fired while already in [Last] state. This may indicate a gap > SectionTimeout triggering a second section clear.");
+            }
+
             _awaitingSectionStart = true;
             IsShowingLastBattle = true;
             BattleStatusLabel = "Last Battle";
 
-            _logger.LogInformation("[LAST BATTLE] Combat ended. Snapshot has {Count} players",
+            _logger.LogInformation("[LAST BATTLE] Combat ended. Entering [Last] state. Snapshot has {Count} players",
                 _lastBattleDataSnapshot?.Count ?? 0);
 
             // STOP TIMER when section ends (zone change / timeout) - this archives the fight

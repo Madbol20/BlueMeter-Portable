@@ -30,6 +30,11 @@ public partial class DpsTrendChartViewModel : ObservableObject
     [ObservableProperty]
     private long? _focusedPlayerId = null;
 
+    [ObservableProperty]
+    private bool _isHistoricalDataMode = false;
+
+    private Core.Data.Database.EncounterData? _loadedEncounter;
+
     // Player colors for line series
     private readonly Dictionary<long, OxyColor> _playerColors = new();
     private readonly List<OxyColor> _availableColors = new()
@@ -64,9 +69,10 @@ public partial class DpsTrendChartViewModel : ObservableObject
             Interval = TimeSpan.FromMilliseconds(500)
         };
         _updateTimer.Tick += OnUpdateTick;
-        _updateTimer.Start();
+        // Don't start timer immediately - wait for view to load
+        // _updateTimer.Start();
 
-        _logger.LogDebug("DpsTrendChartViewModel created, update interval: 500ms");
+        _logger.LogDebug("DpsTrendChartViewModel created, update interval: 500ms (timer not started yet)");
     }
 
     private PlotModel CreatePlotModel()
@@ -145,7 +151,23 @@ public partial class DpsTrendChartViewModel : ObservableObject
 
     private void UpdateChart()
     {
+        // In historical mode, don't update from live data
+        if (IsHistoricalDataMode)
+        {
+            return;
+        }
+
         var trackedPlayerIds = _chartDataService.GetTrackedPlayerIds();
+
+        // Show helpful message if no players are tracked
+        if (trackedPlayerIds.Count == 0)
+        {
+            PlotModel.Title = "DPS Trend - Waiting for combat data...";
+            PlotModel.InvalidatePlot(true);
+            return;
+        }
+
+        PlotModel.Title = "DPS Trend (Real-time)";
 
         // Remove series for players that are no longer tracked
         var seriesToRemove = PlotModel.Series
@@ -299,10 +321,185 @@ public partial class DpsTrendChartViewModel : ObservableObject
     /// </summary>
     public void OnViewLoaded()
     {
-        if (!_updateTimer.IsEnabled)
+        _logger.LogDebug("DpsTrendChartViewModel view loaded");
+
+        // Do initial chart update to load any existing data
+        UpdateChart();
+
+        // Start timer if not already running and not in historical mode
+        if (!_updateTimer.IsEnabled && !IsHistoricalDataMode)
         {
             _updateTimer.Start();
             _logger.LogDebug("DpsTrendChartViewModel update timer started");
         }
+    }
+
+    /// <summary>
+    /// Load historical encounter data
+    /// </summary>
+    public void LoadHistoricalEncounter(Core.Data.Database.EncounterData encounterData)
+    {
+        _logger.LogInformation("Loading historical encounter data for DPS Trend Chart");
+
+        _loadedEncounter = encounterData;
+        IsHistoricalDataMode = true;
+
+        // Stop auto-updates
+        _updateTimer.Stop();
+
+        // Update chart with historical data
+        UpdateChartFromHistoricalData();
+
+        _logger.LogInformation("Historical encounter loaded with {PlayerCount} players", encounterData.PlayerStats.Count);
+    }
+
+    /// <summary>
+    /// Restore live data mode
+    /// </summary>
+    public void RestoreLiveData()
+    {
+        _logger.LogInformation("Restoring live data mode for DPS Trend Chart");
+
+        _loadedEncounter = null;
+        IsHistoricalDataMode = false;
+
+        // Clear existing series
+        PlotModel.Series.Clear();
+        _playerColors.Clear();
+        _colorIndex = 0;
+
+        // Restart auto-updates
+        _updateTimer.Start();
+
+        // Update chart with live data
+        UpdateChart();
+
+        _logger.LogInformation("Live data mode restored");
+    }
+
+    /// <summary>
+    /// Update chart from historical encounter data
+    /// </summary>
+    private void UpdateChartFromHistoricalData()
+    {
+        if (_loadedEncounter == null)
+        {
+            _logger.LogWarning("No historical encounter data available");
+            return;
+        }
+
+        PlotModel.Series.Clear();
+        _playerColors.Clear();
+        _colorIndex = 0;
+
+        PlotModel.Title = "DPS Trend (Historical)";
+
+        // Build chart history from player stats
+        var playersWithHistory = _loadedEncounter.PlayerStats
+            .Where(kvp => kvp.Value.DpsHistory != null && kvp.Value.DpsHistory.Count > 0)
+            .ToList();
+
+        if (playersWithHistory.Count == 0)
+        {
+            PlotModel.Title = "DPS Trend - No chart data in this encounter";
+            PlotModel.InvalidatePlot(true);
+            _logger.LogWarning("No DPS history found in historical encounter");
+            return;
+        }
+
+        // Find earliest timestamp for X-axis
+        DateTime? earliestTimestamp = null;
+        foreach (var kvp in playersWithHistory)
+        {
+            var history = kvp.Value.DpsHistory;
+            if (history != null && history.Count > 0)
+            {
+                var baseTime = history[0].Timestamp;
+                if (earliestTimestamp == null || baseTime < earliestTimestamp)
+                {
+                    earliestTimestamp = baseTime;
+                }
+            }
+        }
+
+        if (!earliestTimestamp.HasValue)
+        {
+            PlotModel.Title = "DPS Trend - No valid data points";
+            PlotModel.InvalidatePlot(true);
+            return;
+        }
+
+        // Create series for each player with history
+        foreach (var kvp in playersWithHistory)
+        {
+            var playerId = kvp.Key;
+            var playerData = kvp.Value;
+            var history = playerData.DpsHistory;
+
+            if (history == null || history.Count == 0)
+                continue;
+
+            // Skip NPCs
+            if (playerData.IsNpcData)
+                continue;
+
+            // Create series
+            var color = AssignColorToPlayer(playerId);
+            var playerName = playerData.Name ?? $"Player {playerId}";
+            var isFocused = FocusedPlayerId.HasValue && FocusedPlayerId.Value == playerId;
+
+            var series = new LineSeries
+            {
+                Tag = playerId,
+                Title = playerName,
+                Color = color,
+                StrokeThickness = isFocused ? 4 : 2,
+                LineStyle = LineStyle.Solid,
+                MarkerType = MarkerType.None
+            };
+
+            // Convert to OxyPlot data points
+            var dataPoints = history
+                .Select(dp => new DataPoint((dp.Timestamp - earliestTimestamp.Value).TotalSeconds, dp.Value))
+                .ToList();
+
+            series.Points.AddRange(dataPoints);
+            PlotModel.Series.Add(series);
+
+            _logger.LogDebug("Created historical DPS series for player {PlayerId} ({PlayerName}) with {PointCount} points",
+                playerId, playerName, dataPoints.Count);
+        }
+
+        // Auto-adjust X-axis
+        var allPoints = PlotModel.Series
+            .OfType<LineSeries>()
+            .SelectMany(s => s.Points)
+            .ToList();
+
+        if (allPoints.Any())
+        {
+            var xAxis = PlotModel.Axes.FirstOrDefault(a => a.Position == AxisPosition.Bottom);
+            if (xAxis != null)
+            {
+                var maxTime = allPoints.Max(p => p.X);
+                xAxis.Minimum = 0;
+                xAxis.Maximum = Math.Max(60, maxTime + 5);
+            }
+        }
+
+        PlotModel.InvalidatePlot(true);
+        _logger.LogInformation("DPS Trend chart updated with historical data: {SeriesCount} players", PlotModel.Series.Count);
+    }
+
+    /// <summary>
+    /// Get player name from loaded encounter data
+    /// </summary>
+    private string GetPlayerNameFromEncounter(long playerId)
+    {
+        if (_loadedEncounter != null && _loadedEncounter.PlayerStats.TryGetValue(playerId, out var playerStats))
+        {
+            return playerStats.Name ?? $"Player {playerId}";
+        }
+        return $"Player {playerId}";
     }
 }

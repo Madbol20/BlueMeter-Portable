@@ -58,6 +58,8 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="10" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <TextBlock
@@ -70,6 +72,44 @@
 
                             <Button
                                 Grid.Column="2"
+                                Content="Manage Advanced Logs"
+                                Command="{Binding ManageAdvancedLogsCommand}"
+                                Padding="15,5"
+                                Background="#17A2B8"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                BorderThickness="0"
+                                Cursor="Hand">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border
+                                                        Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        CornerRadius="4"
+                                                        Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#138496" />
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter Property="Background" Value="#0F7284" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button
+                                Grid.Column="4"
                                 Content="Delete All"
                                 Command="{Binding DeleteAllHistoryCommand}"
                                 Padding="15,5"
@@ -107,7 +147,7 @@
                             </Button>
 
                             <Button
-                                Grid.Column="4"
+                                Grid.Column="6"
                                 Content="Refresh"
                                 Command="{Binding RefreshCommand}"
                                 Style="{StaticResource AntButtonStyle}"
@@ -133,13 +173,14 @@
                         MouseDoubleClick="DataGrid_MouseDoubleClick">
 
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Start Time" Binding="{Binding FormattedStartTime}" Width="150" />
-                            <DataGridTextColumn Header="Target/Boss" Binding="{Binding BossName}" Width="150" />
-                            <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="80" />
-                            <DataGridTextColumn Header="Players" Binding="{Binding PlayerCount}" Width="70" />
-                            <DataGridTextColumn Header="Total Damage" Binding="{Binding FormattedTotalDamage}" Width="120" />
-                            <DataGridTextColumn Header="Total Healing" Binding="{Binding FormattedTotalHealing}" Width="120" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding IsActive, Converter={StaticResource BoolToActiveStatusConverter}}" Width="80" />
+                            <DataGridTextColumn Header="Start Time" Binding="{Binding FormattedStartTime}" Width="140" />
+                            <DataGridTextColumn Header="Target/Boss" Binding="{Binding BossName}" Width="130" />
+                            <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="70" />
+                            <DataGridTextColumn Header="Players" Binding="{Binding PlayerCount}" Width="65" />
+                            <DataGridTextColumn Header="Total Damage" Binding="{Binding FormattedTotalDamage}" Width="110" />
+                            <DataGridTextColumn Header="Total Healing" Binding="{Binding FormattedTotalHealing}" Width="110" />
+                            <DataGridTextColumn Header="Advanced Log" Binding="{Binding BsonLogStatus}" Width="110" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding IsActive, Converter={StaticResource BoolToActiveStatusConverter}}" Width="75" />
                         </DataGrid.Columns>
 
                         <DataGrid.Resources>

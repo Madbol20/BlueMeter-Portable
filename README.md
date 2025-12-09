@@ -18,10 +18,9 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.4.4**
-- Fixed crash when interacting with damage meter after disabling mouse-through mode
-- Fixed XAML binding errors on read-only tank stat properties
-- Popup tooltips now display reliably without crashes
+**Latest Version: 1.5.2**
+- Fixed race condition crash during back-to-back raids
+- Added thread-safe locking to prevent dictionary modification crashes
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

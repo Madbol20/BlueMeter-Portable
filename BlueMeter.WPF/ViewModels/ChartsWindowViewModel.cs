@@ -202,9 +202,9 @@ public partial class ChartsWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Load historical encounter data
+    /// Load historical encounter data (public for external calls)
     /// </summary>
-    private async Task LoadHistoricalEncounterAsync(string encounterId)
+    public async Task LoadHistoricalEncounterAsync(string encounterId)
     {
         _logger.LogInformation("Loading historical encounter: {EncounterId}", encounterId);
 
@@ -253,7 +253,8 @@ public partial class ChartsWindowViewModel : ObservableObject
     /// </summary>
     private static string GetTimeAgo(DateTime startTime)
     {
-        var timeSpan = DateTime.Now - startTime;
+        // startTime is stored in UTC, so compare with UTC now
+        var timeSpan = DateTime.UtcNow - startTime;
 
         if (timeSpan.TotalMinutes < 1)
             return "just now";

@@ -951,6 +951,13 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
         _activeBossUuid = 0;
         _bossDeathTime = null;
 
+        // CRITICAL FIX: Reset timeout flag to allow meter to accept new data after manual reset
+        // Without this, if timeout occurred before reset, meter stays frozen until new battle logs arrive
+        lock (_sectionTimeoutLock)
+        {
+            _timeoutSectionClearedOnce = false;
+        }
+
         RaiseDpsDataUpdated();
         RaiseDataUpdated();
     }
@@ -1097,6 +1104,13 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
         ForceNewBattleSection = true;
         SectionedDpsData.Clear();
         FullDpsData.Clear();
+
+        // CRITICAL FIX: Reset timeout flag to allow meter to accept new data after manual reset
+        // Without this, if timeout occurred before reset, meter stays frozen until new battle logs arrive
+        lock (_sectionTimeoutLock)
+        {
+            _timeoutSectionClearedOnce = false;
+        }
 
         RaiseDpsDataUpdated();
         RaiseDataUpdated();

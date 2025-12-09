@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <Platforms>x64</Platforms>
-    <Version>1.4.4</Version>
+    <Version>1.5.2</Version>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
     <AssemblyName>BlueMeter.WPF</AssemblyName>
     <RootNamespace>BlueMeter.WPF</RootNamespace>
@@ -71,13 +71,17 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Google.Protobuf.Tools" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" />
     <PackageReference Include="Ihon.ResXKeyCodeGenerator">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="OxyPlot.Wpf" />
+    <PackageReference Include="PacketDotNet" />
     <PackageReference Include="Serilog.Extensions.Logging.File" />
+    <PackageReference Include="SharpPcap" />
     <PackageReference Include="Tesseract" />
     <PackageReference Include="WPFLocalizeExtension" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
@@ -95,6 +99,7 @@
     <PackageReference Include="Serilog.Settings.Configuration" />
     <!-- Add the Serilog file sink to support rolling file names like logs-YYYYMMDD.log -->
     <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="ZstdSharp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BlueMeter.Assets\BlueMeter.Assets.csproj" />

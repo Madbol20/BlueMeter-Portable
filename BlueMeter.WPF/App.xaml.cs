@@ -140,6 +140,9 @@ public partial class App : Application
                 services.AddMessageDialogService();
                 services.AddChecklistServices();
 
+                // Module Solver Services (AutoMod functionality)
+                services.AddModuleSolverServices();
+
                 // Charts Window registration (not auto-registered due to "Window" suffix)
                 services.AddTransient<ChartsWindowViewModel>();
                 services.AddTransient<ChartsWindow>();
@@ -149,6 +152,18 @@ public partial class App : Application
                 services.AddTransient<DpsTrendChartView>();
                 services.AddTransient<SkillBreakdownChartViewModel>();
                 services.AddTransient<SkillBreakdownChartView>();
+
+                // Enhanced Skill Breakdown with Lucky Damage tracking (from StarResonanceDps)
+                services.AddTransient<EnhancedSkillBreakdownViewModel>();
+                services.AddTransient<EnhancedSkillBreakdownView>();
+
+                // Combat Logs Window (Phase 3)
+                services.AddTransient<CombatLogsWindowViewModel>();
+                services.AddTransient<CombatLogsWindow>();
+
+                // Replay Window (Phase 4)
+                services.AddTransient<ReplayWindowViewModel>();
+                services.AddTransient<ReplayWindow>();
 
                 services.AddSingleton<DebugFunctions>();
                 services.AddSingleton(CaptureDeviceList.Instance);
