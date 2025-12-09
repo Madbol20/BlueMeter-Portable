@@ -18,11 +18,9 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.5.1**
-- Fixed player list showing enemies/NPCs ("Player 75", etc.)
-- Fixed historical encounter data loading in Enhanced Skill Breakdown
-- BSON-first data loading with automatic SQL fallback
-- Fixed crashes when selecting non-player entities
+**Latest Version: 1.5.2**
+- Fixed race condition crash during back-to-back raids
+- Added thread-safe locking to prevent dictionary modification crashes
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

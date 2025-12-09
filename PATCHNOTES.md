@@ -4,6 +4,17 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.5.2
+
+**🐛 Critical Bug Fix:**
+- Fixed race condition crash during back-to-back raids (ArgumentException in DataStorage)
+- Added thread-safe locking to prevent dictionary modification during enumeration
+- Eliminates crashes in high-activity scenarios (raids, World Boss Carnage)
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.5.2.md)
+
+---
+
 ## Version 1.5.1
 
 **🐛 Critical Bug Fixes:**
