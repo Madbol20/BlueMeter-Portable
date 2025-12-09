@@ -177,7 +177,7 @@ public partial class App : Application
                 services.AddSingleton<IPluginManager, PluginManager>();
                 services.AddSingleton<IPlugin, DpsPlugin>();
                 services.AddSingleton<IPlugin, ModuleSolverPlugin>();
-                services.AddSingleton<IPlugin, WorldBossPlugin>();
+                // services.AddSingleton<IPlugin, WorldBossPlugin>(); // DISABLED: World boss tracker disabled
                 services.AddSingleton<ITrayService, TrayService>();
                 services.AddSingleton<ThemeService>();
                 services.AddHttpClient(); // Required for UpdateChecker

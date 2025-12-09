@@ -45,9 +45,9 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     // ===== Return Message Burst Detection (More Reliable) =====
     private readonly List<DateTime> _recentReturnMessageTimes = new();
     private readonly TimeSpan _returnBurstWindow = TimeSpan.FromSeconds(2);
-    private const int MinReturnMessagesForQueuePop = 5;
+    private const int MinReturnMessagesForQueuePop = 10; // Increased from 5 to reduce false positives (map changes, etc.)
     private DateTime _lastQueuePopAlertTime = DateTime.MinValue;
-    private readonly TimeSpan _queuePopCooldown = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _queuePopCooldown = TimeSpan.FromSeconds(60); // Increased from 30s to reduce spam
 
     // ===== Queue Pop Alert Event =====
     public event Action? QueuePopDetected;

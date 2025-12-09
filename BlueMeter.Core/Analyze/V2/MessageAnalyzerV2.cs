@@ -368,10 +368,11 @@ public sealed class MessageAnalyzerV2
         _logger?.LogInformation("[RETURN MSG] StubId: 0x{StubId:X8}, PayloadSize: {Size}", stubId, payload.Length);
 
         // Track Return messages for queue pop detection (burst pattern)
-        if (_storage is Data.DataStorageV2 dataStorageV2)
-        {
-            dataStorageV2.TrackReturnMessage();
-        }
+        // DISABLED: Packet detection never worked reliably - using OCR detection only
+        // if (_storage is Data.DataStorageV2 dataStorageV2)
+        // {
+        //     dataStorageV2.TrackReturnMessage();
+        // }
     }
 
     /// <summary>
@@ -419,10 +420,11 @@ public sealed class MessageAnalyzerV2
         _logger?.LogInformation("[RETURN MSG] StubId: 0x{StubId:X8}, PayloadSize: {Size}", stubId, payload.Length);
 
         // Track Return messages for queue pop detection (burst pattern)
-        if (_storage is Data.DataStorageV2 dataStorageV2)
-        {
-            dataStorageV2.TrackReturnMessage();
-        }
+        // DISABLED: Packet detection never worked reliably - using OCR detection only
+        // if (_storage is Data.DataStorageV2 dataStorageV2)
+        // {
+        //     dataStorageV2.TrackReturnMessage();
+        // }
     }
 
     /// <summary>

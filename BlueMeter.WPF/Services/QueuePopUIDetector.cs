@@ -52,21 +52,16 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
         "BPSR"            // Generic version
     };
 
-    // Blacklist - if these are found, it's NOT a queue pop (e.g., "Challenge" button, dungeon UI)
+    // Blacklist - if these are found, it's NOT a queue pop (e.g., dungeon UI, combat screens)
+    // These patterns indicate active combat or dungeon UI
     private static readonly string[] BlacklistPatterns =
     {
-        // Challenge/Match UI
-        "challenge", "challen", "challe", "match", "single", "dual", "team",
-        // Dungeon/Combat UI indicators
-        "hp", "damage", "dps", "party", "objective", "boss", "elite", "mission",
-        "combo", "skill", "attack", "defense", "enemy", "wave", "round",
-        // Player status indicators that appear in dungeons
-        "health", "shield", "buff", "debuff", "cooldown", "stamina",
-        // Common dungeon UI text
-        "defeat", "victory", "reward", "loot", "exp", "level up",
-        // Results/Completion screens (when leaving dungeon)
-        "result", "results", "complete", "completed", "clear", "cleared",
-        "time", "rank", "score", "rating", "grade", "total", "summary"
+        // Active combat/dungeon indicators
+        "damage", "dps", "combo", "objective", "boss", "enemy", "wave",
+        // Dungeon/combat UI elements
+        "tracking", "unstable", "stamina", "healing", "skill",
+        // Results/Completion screens
+        "defeat", "victory", "clear", "cleared"
     };
 
     // P/Invoke declarations for screen capture
@@ -116,7 +111,7 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
     private bool _isRunning;
     private bool _disposed;
     private DateTime _lastAlertTime = DateTime.MinValue;
-    private readonly TimeSpan _alertCooldown = TimeSpan.FromSeconds(30); // Cooldown between alerts (30s to reduce false positives)
+    private readonly TimeSpan _alertCooldown = TimeSpan.FromSeconds(5); // Short cooldown - we detect Confirm/Cancel buttons to ensure it's the queue accept screen
     private TesseractEngine? _ocrEngine;
     private readonly SemaphoreSlim _ocrLock = new(1, 1); // Ensure only one OCR operation at a time
 
@@ -380,30 +375,54 @@ public sealed class QueuePopUIDetector : IQueuePopUIDetector
             // Count player cards first
             int playerCardCount = System.Text.RegularExpressions.Regex.Matches(allText, @"lv\.?\s*\d+").Count;
 
-            // Always log when we find ANY player cards (changed to Information level for visibility)
+            // DEBUG: Always log when we find ANY player cards to see what OCR detects
             if (playerCardCount > 0)
             {
-                _logger.LogInformation("[Queue Alert] OCR found {Count} player cards. Full text: {Text}",
-                    playerCardCount,
-                    allText.Length > 200 ? allText.Substring(0, 200) + "..." : allText);
+                _logger.LogInformation("[Queue Alert DEBUG] OCR found {Count} player cards", playerCardCount);
+                _logger.LogInformation("[Queue Alert DEBUG] Full OCR text: {Text}", allText);
+
+                // Check what we're looking for
+                bool hasConfirmDebug = allText.Contains("confirm");
+                bool hasConfirPartial = allText.Contains("confir");
+                bool hasCancelDebug = allText.Contains("cancel");
+                bool hasCancePartial = allText.Contains("cance");
+
+                _logger.LogInformation("[Queue Alert DEBUG] Button detection: confirm={Confirm}, confir={ConfirPartial}, cancel={Cancel}, cance={CancePartial}",
+                    hasConfirmDebug, hasConfirPartial, hasCancelDebug, hasCancePartial);
             }
 
-            // Check for blacklisted patterns (Challenge button, dungeon UI, etc.)
+            // Check for blacklisted patterns (combat/dungeon UI indicators)
+            // If ANY blacklist pattern found, it's NOT a queue pop - block immediately
             var foundBlacklistPatterns = BlacklistPatterns.Where(pattern => allText.Contains(pattern)).ToList();
-            if (foundBlacklistPatterns.Any() && playerCardCount >= 3)
+            if (foundBlacklistPatterns.Any())
             {
-                _logger.LogInformation("[Queue Alert] Blacklist blocked alert. Patterns: {Patterns}, Cards: {Count}",
-                    string.Join(", ", foundBlacklistPatterns), playerCardCount);
+                _logger.LogInformation("[Queue Alert] Blacklist blocked alert. Patterns: {Patterns} - This is combat/dungeon UI, not queue pop",
+                    string.Join(", ", foundBlacklistPatterns));
                 return false;
             }
 
-            // Detect queue pop by player card layout pattern
-            // Queue pop shows 5 player cards with "Lv.60" or similar level text
-            // Threshold: 3+ player cards (OCR doesn't always catch all 5)
-            if (playerCardCount >= 3)
+            // IMPORTANT: Must detect BOTH player cards AND Confirm+Cancel buttons
+            // Queue accept screen has BOTH buttons next to each other
+            // Use partial matches because OCR might misread some characters
+            bool hasConfirm = allText.Contains("confirm") || allText.Contains("confir");
+            bool hasCancel = allText.Contains("cancel") || allText.Contains("cance");
+            bool hasConfirmButton = hasConfirm && hasCancel;
+
+            // Detect queue pop: requires player cards AND confirm/cancel buttons
+            // Queue accept screen shows: 5 player cards + Confirm/Cancel buttons + timer
+            if (playerCardCount >= 2 && hasConfirmButton)
             {
-                _logger.LogInformation("[Queue Alert] ✓ QUEUE POP DETECTED! Cards: {Count}, Playing sound...", playerCardCount);
+                _logger.LogInformation("[Queue Alert] ✓ QUEUE POP DETECTED! Cards: {Count}, HasConfirm: {Confirm}, HasCancel: {Cancel}, Playing sound...",
+                    playerCardCount, hasConfirm, hasCancel);
                 return true;
+            }
+
+            // Log why detection failed (with OCR text sample for debugging)
+            if (playerCardCount >= 2 && !hasConfirmButton)
+            {
+                var textSample = allText.Length > 300 ? allText.Substring(0, 300) + "..." : allText;
+                _logger.LogInformation("[Queue Alert] Player cards found ({Count}) but buttons missing. HasConfirm: {Confirm}, HasCancel: {Cancel}. OCR text: {Text}",
+                    playerCardCount, hasConfirm, hasCancel, textSample);
             }
 
             return false;
