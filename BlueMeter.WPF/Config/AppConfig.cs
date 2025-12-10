@@ -312,6 +312,12 @@ public partial class AppConfig : ObservableObject
     private string? _battleLogDirectory = null;
 
     /// <summary>
+    /// Effective theme color (considers holiday themes if enabled)
+    /// This is a computed property that updates automatically
+    /// </summary>
+    public string EffectiveThemeColor => GetEffectiveThemeColor();
+
+    /// <summary>
     /// Get the effective theme color, considering holiday themes if enabled
     /// </summary>
     public string GetEffectiveThemeColor()
@@ -332,6 +338,17 @@ public partial class AppConfig : ObservableObject
 
         // Otherwise return the user's selected theme
         return ThemeColor ?? "#0047AB";
+    }
+
+    // Notify when effective theme color changes
+    partial void OnThemeColorChanged(string? value)
+    {
+        OnPropertyChanged(nameof(EffectiveThemeColor));
+    }
+
+    partial void OnEnableHolidayThemesChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EffectiveThemeColor));
     }
 
     /// <summary>
