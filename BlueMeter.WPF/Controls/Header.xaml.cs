@@ -45,4 +45,18 @@ public partial class Header : UserControl
         if (e.ButtonState == MouseButtonState.Pressed)
             Window.GetWindow(this)?.DragMove();
     }
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Only handle click if no command is bound (fallback behavior)
+        if (MinimizeToTrayCommand == null)
+        {
+            var window = Window.GetWindow(this);
+            if (window != null)
+            {
+                window.WindowState = WindowState.Minimized;
+            }
+        }
+        // If command is bound, it will execute instead of this handler
+    }
 }

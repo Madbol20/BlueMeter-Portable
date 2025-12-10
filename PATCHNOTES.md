@@ -6,10 +6,13 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ## Version 1.5.3
 
-**🐛 Bug Fix:**
+**🐛 Bug Fixes:**
 - Fixed DPS meter continuing to calculate after combat ends
-- Meter now only tracks player-involved combat (filters out NPC-vs-NPC and environmental damage)
-- DPS updates stop within 5-10 seconds after boss fights instead of continuing indefinitely
+  - Meter now only tracks player-involved combat (filters out NPC-vs-NPC and environmental damage)
+  - DPS updates stop within 5-10 seconds after boss fights instead of continuing indefinitely
+- Fixed Settings window minimize button not working
+  - Minimize button now works in all windows (Settings, Charts, etc.)
+  - MainView still minimizes to tray, other windows minimize to taskbar
 
 [Detailed Release Notes](docs/RELEASE_NOTES_1.5.3.md)
 

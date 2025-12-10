@@ -63,17 +63,18 @@
                 Style="{StaticResource HeaderTitle}"
                 Text="{Binding Title, RelativeSource={RelativeSource AncestorType=local:Header}}" />
 
-            <!-- Minimize to Tray Button on the right -->
+            <!-- Minimize Button on the right -->
             <Button
                 Grid.Column="1"
                 Command="{Binding MinimizeToTrayCommand, RelativeSource={RelativeSource AncestorType=local:Header}}"
+                Click="MinimizeButton_Click"
                 Background="Transparent"
                 BorderThickness="0"
                 Cursor="Hand"
                 Padding="10,0,10,0"
                 Margin="0,0,10,0"
                 VerticalAlignment="Center"
-                ToolTip="Minimize to Tray">
+                ToolTip="Minimize">
                 <Button.Template>
                     <ControlTemplate>
                         <TextBlock

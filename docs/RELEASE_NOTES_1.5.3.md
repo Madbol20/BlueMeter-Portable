@@ -2,7 +2,7 @@
 
 **Release Date:** TBD
 
-## Bug Fix
+## Bug Fixes
 
 ### 🐛 Fixed DPS Meter Continuing After Combat Ends
 
@@ -35,6 +35,22 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 - If the current player dies but party members are still fighting, tracking continues (since other players are involved)
 - The existing 15-second timeout for creating new sections remains unchanged
 
+### 🐛 Fixed Settings Window Minimize Button Not Working
+
+**Issue:** Clicking the minimize button in the Settings window had no effect, even though the button was visible.
+
+**Root Cause:** The Header control's minimize button was only bound to a command (`MinimizeToTrayCommand`), but the SettingsView didn't provide this command. MainView provides the command to minimize to tray, but Settings window didn't have any minimize functionality.
+
+**Fix Applied:**
+- Added click event handler in Header control as fallback when no command is bound
+- MainView continues to minimize to system tray (existing behavior)
+- Settings and other windows now minimize to taskbar when clicking the button
+
+**Impact:**
+- Minimize button now works in all windows (Settings, Charts, etc.)
+- MainView still minimizes to tray as before
+- Other windows minimize to taskbar normally
+
 ## Files Changed
 
 ### Modified
@@ -42,13 +58,28 @@ These lingering damage packets would reset the combat timeout, keeping the meter
   - Added filter at lines 120-125 to skip non-player combat events
   - Only logs battle logs where `isAttackerPlayer || isTargetPlayer` is true
 
+- `BlueMeter.WPF/Controls/Header.xaml`
+  - Added Click event handler to minimize button (line 70)
+  - Updated tooltip from "Minimize to Tray" to "Minimize" for generic windows
+
+- `BlueMeter.WPF/Controls/Header.xaml.cs`
+  - Added `MinimizeButton_Click` handler (lines 49-61)
+  - Minimizes window to taskbar when no command is bound
+  - Preserves command behavior when MinimizeToTrayCommand is provided
+
 ## Testing Notes
 
-To verify this fix:
+**DPS Meter Fix:**
 1. Complete a boss fight in a raid
 2. Open inventory or start traveling immediately after boss death
 3. Observe that DPS updates stop within 5-10 seconds (instead of continuing indefinitely)
 4. Verify that combat tracking continues normally during actual player combat
+
+**Minimize Button Fix:**
+1. Open Settings window
+2. Click the minimize button (−) in the top right
+3. Window should minimize to taskbar
+4. Restore from taskbar and verify window state is normal
 
 ## Known Issues
 
