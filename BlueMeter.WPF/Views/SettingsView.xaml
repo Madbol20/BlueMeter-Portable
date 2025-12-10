@@ -255,7 +255,7 @@
     <!-- Main Border: Apply theme color as base background -->
     <Border
         Style="{StaticResource ShadowWindowBorder}"
-        Background="{Binding AppConfig.EffectiveThemeColor, Converter={StaticResource ThemeColorConverter}, FallbackValue=#ECEBE9}">
+        Background="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeColorConverter}, FallbackValue=#ECEBE9}">
 
         <Grid>
             <!-- Optional Background Image Layer (on top of theme color) -->
@@ -280,7 +280,7 @@
                         <Style.Triggers>
                             <!-- Only show color filter when background image is active -->
                             <DataTrigger Binding="{Binding AppConfig.BackgroundOnlyMode}" Value="True">
-                                <Setter Property="Background" Value="{Binding AppConfig.EffectiveThemeColor, Converter={StaticResource ThemeColorOverlayConverter}, ConverterParameter=0.2}" />
+                                <Setter Property="Background" Value="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeColorOverlayConverter}, ConverterParameter=0.2}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

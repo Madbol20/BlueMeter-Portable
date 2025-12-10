@@ -14,8 +14,8 @@
         <converters:ThemeAccentConverter x:Key="ThemeAccentConverter" />
 
         <Style x:Key="HeaderBorder" TargetType="Border">
-            <Setter Property="Background" Value="{Binding DataContext.AppConfig.EffectiveThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=dark}" />
-            <Setter Property="BorderBrush" Value="{Binding DataContext.AppConfig.EffectiveThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=medium}" />
+            <Setter Property="Background" Value="{Binding DataContext.AppConfig.EffectiveThemeColor, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=dark}" />
+            <Setter Property="BorderBrush" Value="{Binding DataContext.AppConfig.EffectiveThemeColor, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=medium}" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
             <Setter Property="CornerRadius">
                 <Setter.Value>
@@ -29,7 +29,7 @@
             <Setter Property="Effect">
                 <Setter.Value>
                     <DropShadowEffect
-                        Color="{Binding DataContext.AppConfig.EffectiveThemeColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeAccentConverter}}"
+                        Color="{Binding DataContext.AppConfig.EffectiveThemeColor, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ThemeAccentConverter}}"
                         BlurRadius="8"
                         ShadowDepth="0"
                         Opacity="0.1" />
