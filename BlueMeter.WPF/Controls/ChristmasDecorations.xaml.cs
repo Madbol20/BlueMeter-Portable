@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using BlueMeter.WPF.Services;
 
 namespace BlueMeter.WPF.Controls;
 
@@ -38,7 +39,7 @@ public partial class ChristmasDecorations : UserControl
     private void ChristmasDecorations_Loaded(object sender, RoutedEventArgs e)
     {
         // Only start animations if currently in a holiday period
-        if (Services.HolidayThemeService.IsHolidayActive())
+        if (HolidayThemeService.IsHolidayActive())
         {
             StartSnowfall();
             StartTwinkling();

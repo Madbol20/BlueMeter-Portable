@@ -325,7 +325,7 @@ public partial class AppConfig : ObservableObject
         // If holiday themes are enabled, check if there's an active holiday
         if (EnableHolidayThemes)
         {
-            var holidayTheme = Services.HolidayThemeService.GetCurrentHolidayTheme();
+            var holidayTheme = BlueMeter.WPF.Services.HolidayThemeService.GetCurrentHolidayTheme();
             if (holidayTheme != null)
             {
                 var theme = ThemeDefinitions.GetTheme(holidayTheme);
@@ -358,7 +358,7 @@ public partial class AppConfig : ObservableObject
     {
         if (!EnableHolidayThemes) return false;
 
-        var holidayTheme = Services.HolidayThemeService.GetCurrentHolidayTheme();
+        var holidayTheme = BlueMeter.WPF.Services.HolidayThemeService.GetCurrentHolidayTheme();
         return holidayTheme != null;
     }
 
