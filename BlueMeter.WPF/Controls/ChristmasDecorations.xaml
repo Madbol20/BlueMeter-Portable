@@ -39,7 +39,7 @@
         </Storyboard>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid ClipToBounds="False">
         <!-- Christmas Lights at the top -->
         <Image
             x:Name="ChristmasLights"
@@ -54,11 +54,11 @@
         <!-- Snowflake Canvas -->
         <Canvas x:Name="SnowCanvas" ClipToBounds="True" />
 
-        <!-- Santa Hat on Top-Left (sticking out of the window) -->
+        <!-- Santa Hat on Top-Left (sticking WAY out of the window) -->
         <Image
-            Width="80"
-            Height="80"
-            Margin="-15,-25,0,0"
+            Width="90"
+            Height="90"
+            Margin="-20,-40,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Opacity="0.95"
@@ -66,7 +66,7 @@
             RenderTransformOrigin="0.5,0.5"
             Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/santa_hat.png">
             <Image.RenderTransform>
-                <RotateTransform Angle="-25" />
+                <RotateTransform Angle="-28" />
             </Image.RenderTransform>
         </Image>
 

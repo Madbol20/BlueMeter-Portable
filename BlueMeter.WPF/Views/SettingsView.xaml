@@ -255,9 +255,10 @@
     <!-- Main Border: Apply theme color as base background -->
     <Border
         Style="{StaticResource ShadowWindowBorder}"
-        Background="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeColorConverter}, FallbackValue=#ECEBE9}">
+        Background="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeColorConverter}, FallbackValue=#ECEBE9}"
+        ClipToBounds="False">
 
-        <Grid>
+        <Grid ClipToBounds="False">
             <!-- Optional Background Image Layer (on top of theme color) -->
             <Border Panel.ZIndex="0">
                 <Border.Style>

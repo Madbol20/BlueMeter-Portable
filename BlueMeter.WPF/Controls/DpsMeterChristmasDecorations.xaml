@@ -30,7 +30,7 @@
         </Storyboard>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid ClipToBounds="False">
         <!-- Festive Background Layer (behind everything, doesn't replace user background) -->
         <Image
             Opacity="0.15"
@@ -45,18 +45,13 @@
             Source="pack://application:,,,/Assets/Themes/Christmas/Backgrounds/snow_texture.png"
             Stretch="UniformToFill" />
 
-        <!-- Frost Border Frame -->
-        <Border
+        <!-- Frost Border Frame - OUTSIDE the window bounds -->
+        <Image
+            Margin="-20"
+            Opacity="0.7"
             Panel.ZIndex="999"
-            BorderThickness="0"
-            CornerRadius="{StaticResource MainCornerRadius}">
-            <Border.Background>
-                <ImageBrush
-                    ImageSource="pack://application:,,,/Assets/Themes/Christmas/Backgrounds/frost_border.png.png"
-                    Opacity="0.6"
-                    Stretch="Fill" />
-            </Border.Background>
-        </Border>
+            Source="pack://application:,,,/Assets/Themes/Christmas/Backgrounds/frost_border.png.png"
+            Stretch="Fill" />
 
         <!-- Sparkle Effects Canvas -->
         <Canvas x:Name="SparkleCanvas" Panel.ZIndex="50" ClipToBounds="True" />

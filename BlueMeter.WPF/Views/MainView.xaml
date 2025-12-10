@@ -327,14 +327,15 @@
     <!-- Modern Dark HUD Background -->
     <Border
         Style="{StaticResource ShadowWindowBorder}"
-        Background="#0A0E1A">
+        Background="#0A0E1A"
+        ClipToBounds="False">
 
         <!-- Background Image Layer (if configured) - overlayed with low opacity -->
         <Border.Effect>
             <DropShadowEffect ShadowDepth="0" BlurRadius="0" />
         </Border.Effect>
 
-        <Grid>
+        <Grid ClipToBounds="False">
             <!-- Optional Background Image Layer (on top of theme color) -->
             <Border Panel.ZIndex="0">
                 <Border.Style>
