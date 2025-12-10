@@ -978,6 +978,33 @@
                             <Border Style="{StaticResource SectionBorder}">
                                 <StackPanel Style="{StaticResource SectionStackPanel}">
 
+                                    <!-- 🎄 Holiday Themes Toggle -->
+                                    <Border Style="{StaticResource SectionFieldBorder}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock
+                                                    Style="{StaticResource FieldName}"
+                                                    Text="Enable Holiday Themes" />
+                                                <TextBlock
+                                                    Style="{StaticResource SectionSubTitleText}"
+                                                    FontSize="11"
+                                                    Foreground="#999"
+                                                    TextWrapping="Wrap"
+                                                    Text="Automatically apply festive themes during holidays (Christmas, etc.)" />
+                                            </StackPanel>
+
+                                            <CheckBox
+                                                Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                IsChecked="{Binding AppConfig.EnableHolidayThemes}" />
+                                        </Grid>
+                                    </Border>
+
                                     <Border Style="{StaticResource SectionFieldBorder}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -1112,22 +1139,11 @@
                 ConfirmCommand="{Binding ConfirmCommand}" />
             </Grid> <!-- End of Content Grid with rows -->
 
-            <!-- 🎄 Christmas Decorations Overlay (only visible when Christmas theme is active) -->
-            <ctrl:ChristmasDecorations Panel.ZIndex="999">
-                <ctrl:ChristmasDecorations.Style>
-                    <Style TargetType="ctrl:ChristmasDecorations">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding AppConfig.ThemeColor}" Value="Christmas">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding AppConfig.ThemeColor}" Value="#C41E3A">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ctrl:ChristmasDecorations.Style>
-            </ctrl:ChristmasDecorations>
+            <!-- 🎄 Holiday Decorations Overlay (Christmas, Halloween, etc.) -->
+            <!-- Only visible when EnableHolidayThemes is ON and a holiday is active -->
+            <ctrl:ChristmasDecorations
+                Panel.ZIndex="999"
+                Visibility="{Binding AppConfig.EnableHolidayThemes, Converter={StaticResource BoolToVisibilityConverter}}" />
 
         </Grid> <!-- End of Layering Grid -->
     </Border> <!-- End of Main Border with Theme Color -->

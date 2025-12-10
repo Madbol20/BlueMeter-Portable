@@ -90,6 +90,12 @@ public partial class AppConfig : ObservableObject
     private string? _themeColor = "#0047AB";
 
     /// <summary>
+    /// Enable automatic holiday themes (Christmas, Halloween, etc.)
+    /// </summary>
+    [ObservableProperty]
+    private bool _enableHolidayThemes = false;
+
+    /// <summary>
     /// 背景图片路径
     /// </summary>
     [ObservableProperty]
@@ -304,6 +310,40 @@ public partial class AppConfig : ObservableObject
     /// </summary>
     [ObservableProperty]
     private string? _battleLogDirectory = null;
+
+    /// <summary>
+    /// Get the effective theme color, considering holiday themes if enabled
+    /// </summary>
+    public string GetEffectiveThemeColor()
+    {
+        // If holiday themes are enabled, check if there's an active holiday
+        if (EnableHolidayThemes)
+        {
+            var holidayTheme = Services.HolidayThemeService.GetCurrentHolidayTheme();
+            if (holidayTheme != null)
+            {
+                var theme = ThemeDefinitions.GetTheme(holidayTheme);
+                if (theme != null)
+                {
+                    return theme.ColorHex;
+                }
+            }
+        }
+
+        // Otherwise return the user's selected theme
+        return ThemeColor ?? "#0047AB";
+    }
+
+    /// <summary>
+    /// Check if holiday decorations should be shown
+    /// </summary>
+    public bool ShouldShowHolidayDecorations()
+    {
+        if (!EnableHolidayThemes) return false;
+
+        var holidayTheme = Services.HolidayThemeService.GetCurrentHolidayTheme();
+        return holidayTheme != null;
+    }
 
     public AppConfig Clone()
     {

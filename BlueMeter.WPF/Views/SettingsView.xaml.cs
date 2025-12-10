@@ -48,16 +48,18 @@ public partial class SettingsView : Window
         // Add buttons for each theme definition
         foreach (var theme in ThemeDefinitions.Themes)
         {
+            // Skip holiday themes (they are automatically applied via EnableHolidayThemes toggle)
+            if (theme.Id == "Christmas")
+            {
+                continue;
+            }
+
             Button themeButton;
 
             // Handle special gradient themes
             if (theme.Id == "Rainbow" || theme.Id == "Sunset" || theme.Id == "Cyberpunk")
             {
                 themeButton = CreateGradientButton(theme.Id);
-            }
-            else if (theme.Id == "Christmas")
-            {
-                themeButton = CreateChristmasButton();
             }
             else if (theme.Id == "Transparent")
             {

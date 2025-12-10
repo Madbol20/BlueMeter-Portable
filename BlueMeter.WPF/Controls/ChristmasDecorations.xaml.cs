@@ -37,8 +37,12 @@ public partial class ChristmasDecorations : UserControl
 
     private void ChristmasDecorations_Loaded(object sender, RoutedEventArgs e)
     {
-        StartSnowfall();
-        StartTwinkling();
+        // Only start animations if currently in a holiday period
+        if (Services.HolidayThemeService.IsHolidayActive())
+        {
+            StartSnowfall();
+            StartTwinkling();
+        }
     }
 
     private void ChristmasDecorations_Unloaded(object sender, RoutedEventArgs e)

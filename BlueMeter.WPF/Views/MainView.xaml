@@ -902,22 +902,11 @@
 
             </Grid>
 
-            <!-- 🎄 Christmas Decorations Overlay (only visible when Christmas theme is active) -->
-            <ctrl:ChristmasDecorations Panel.ZIndex="999">
-                <ctrl:ChristmasDecorations.Style>
-                    <Style TargetType="ctrl:ChristmasDecorations">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding AppConfig.ThemeColor}" Value="Christmas">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding AppConfig.ThemeColor}" Value="#C41E3A">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ctrl:ChristmasDecorations.Style>
-            </ctrl:ChristmasDecorations>
+            <!-- 🎄 Holiday Decorations Overlay (Christmas, Halloween, etc.) -->
+            <!-- Only visible when EnableHolidayThemes is ON and a holiday is active -->
+            <ctrl:ChristmasDecorations
+                Panel.ZIndex="999"
+                Visibility="{Binding AppConfig.EnableHolidayThemes, Converter={StaticResource BoolToVisibilityConverter}}" />
 
         </Grid>
     </Border>
