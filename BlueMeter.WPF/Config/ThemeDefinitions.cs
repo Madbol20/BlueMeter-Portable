@@ -162,6 +162,16 @@ public static class ThemeDefinitions
             Id = "Transparent",
             DisplayName = "BlueMeter",
             ColorHex = "#1690F8" // Fallback to blue
+        },
+
+        // 🎄 Special: Christmas Theme
+        new ThemeDefinition
+        {
+            Id = "Christmas",
+            DisplayName = "ChristmasMeter 🎄",
+            ColorHex = "#C41E3A", // Christmas Red
+            AccentColor = "#165B33", // Christmas Green
+            DarkVariant = "#8B0000" // Dark Red
         }
     };
 

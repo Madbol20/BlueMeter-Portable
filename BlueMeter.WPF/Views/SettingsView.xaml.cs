@@ -55,6 +55,10 @@ public partial class SettingsView : Window
             {
                 themeButton = CreateGradientButton(theme.Id);
             }
+            else if (theme.Id == "Christmas")
+            {
+                themeButton = CreateChristmasButton();
+            }
             else if (theme.Id == "Transparent")
             {
                 themeButton = CreateTransparentButton();
@@ -102,6 +106,84 @@ public partial class SettingsView : Window
             Tag = "Transparent",
             ToolTip = "Transparent (No Color Overlay)"
         };
+    }
+
+    private Button CreateChristmasButton()
+    {
+        var button = new Button
+        {
+            Style = (Style)FindResource("ThemeButton"),
+            Tag = "Christmas",
+            ToolTip = "ChristmasMeter 🎄"
+        };
+
+        // Create Christmas-themed gradient template
+        var template = new ControlTemplate(typeof(Button));
+        var factory = new FrameworkElementFactory(typeof(Border));
+        factory.SetValue(Border.StyleProperty, FindResource("ThemeButtonBorder"));
+
+        var gridFactory = new FrameworkElementFactory(typeof(Grid));
+
+        // Christmas colors: Red, Green, Gold, White
+        var colors = new[] { "#C41E3A", "#165B33", "#FFD700", "#FFFAFA" };
+
+        for (int i = 0; i < 4; i++)
+        {
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.SetValue(Grid.RowProperty, i / 2);
+            borderFactory.SetValue(Grid.ColumnProperty, i % 2);
+
+            try
+            {
+                var color = (Color)ColorConverter.ConvertFromString(colors[i]);
+                borderFactory.SetValue(Border.BackgroundProperty, new SolidColorBrush(color));
+            }
+            catch
+            {
+                borderFactory.SetValue(Border.BackgroundProperty, Brushes.Red);
+            }
+
+            borderFactory.SetValue(Border.CornerRadiusProperty, i switch
+            {
+                0 => new CornerRadius(5, 0, 0, 0),
+                1 => new CornerRadius(0, 5, 0, 0),
+                2 => new CornerRadius(0, 0, 0, 5),
+                3 => new CornerRadius(0, 0, 5, 0),
+                _ => new CornerRadius(0)
+            });
+
+            gridFactory.AppendChild(borderFactory);
+        }
+
+        // Add snowflake icon overlay
+        var imageFactory = new FrameworkElementFactory(typeof(TextBlock));
+        imageFactory.SetValue(TextBlock.TextProperty, "❄");
+        imageFactory.SetValue(TextBlock.FontSizeProperty, 24.0);
+        imageFactory.SetValue(TextBlock.ForegroundProperty, Brushes.White);
+        imageFactory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        imageFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+        gridFactory.AppendChild(imageFactory);
+
+        // Row/column definitions
+        var rowDef1 = new FrameworkElementFactory(typeof(RowDefinition));
+        rowDef1.SetValue(RowDefinition.HeightProperty, new GridLength(1, GridUnitType.Star));
+        var rowDef2 = new FrameworkElementFactory(typeof(RowDefinition));
+        rowDef2.SetValue(RowDefinition.HeightProperty, new GridLength(1, GridUnitType.Star));
+        gridFactory.AppendChild(rowDef1);
+        gridFactory.AppendChild(rowDef2);
+
+        var colDef1 = new FrameworkElementFactory(typeof(ColumnDefinition));
+        colDef1.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
+        var colDef2 = new FrameworkElementFactory(typeof(ColumnDefinition));
+        colDef2.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
+        gridFactory.AppendChild(colDef1);
+        gridFactory.AppendChild(colDef2);
+
+        factory.AppendChild(gridFactory);
+        template.VisualTree = factory;
+        button.Template = template;
+
+        return button;
     }
 
     private Button CreateGradientButton(string gradientType)
