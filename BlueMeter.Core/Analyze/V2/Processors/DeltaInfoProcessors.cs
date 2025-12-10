@@ -117,6 +117,13 @@ public abstract class BaseDeltaInfoProcessor(IDataStorage storage, ILogger? logg
                 _storage.RegisterBossDeath(targetUuid);
             }
 
+            // Only log damage where at least one participant is a player
+            // This filters out NPC-vs-NPC combat and environmental effects
+            if (!isAttackerPlayer && !isTargetPlayer)
+            {
+                continue; // Skip non-player combat
+            }
+
             var (id, ticks) = IDGenerator.Next();
             _storage.AddBattleLog(new BattleLog
             {
