@@ -83,7 +83,7 @@
 
         <Style x:Key="StatisticTypeText" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeForegroundConverter}, ConverterParameter=text}" />
+            <Setter Property="Foreground" Value="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeForegroundConverter}, ConverterParameter=text}" />
             <Setter Property="FontFamily" Value="pack://application:,,,/Assets/Fonts/#HarmonyOS Sans SC" />
             <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
@@ -405,7 +405,7 @@
     <!--  Main Border: Apply theme color as base background (like MainView)  -->
     <Border
         Style="{StaticResource ShadowWindowBorder}"
-        Background="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeColorConverter}, FallbackValue=#0047AB}">
+        Background="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeColorConverter}, FallbackValue=#0047AB}">
 
         <Grid>
             <!--  Optional Background Image Layer (on top of theme color)  -->
@@ -434,7 +434,7 @@
                         <Style.Triggers>
                             <!-- Show color filter when background image is active, using theme color -->
                             <DataTrigger Binding="{Binding AppConfig.ShowBackgroundInDpsMeter}" Value="True">
-                                <Setter Property="Background" Value="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeColorOverlayConverter}, ConverterParameter=0.4}" />
+                                <Setter Property="Background" Value="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeColorOverlayConverter}, ConverterParameter=0.4}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -454,8 +454,8 @@
                 Height="25"
                 VerticalAlignment="Top"
                 Panel.ZIndex="2"
-                Background="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=dark}"
-                BorderBrush="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=medium}"
+                Background="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=dark}"
+                BorderBrush="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=medium}"
                 BorderThickness="0,0,0,1"
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Border.CornerRadius>
@@ -467,7 +467,7 @@
                 </Border.CornerRadius>
                 <Border.Effect>
                     <DropShadowEffect
-                        Color="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeAccentConverter}}"
+                        Color="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeAccentConverter}}"
                         BlurRadius="8"
                         ShadowDepth="0"
                         Opacity="0.1" />
@@ -784,8 +784,8 @@
                 VerticalAlignment="Bottom"
                 Height="25"
                 Opacity="1"
-                Background="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=dark}"
-                BorderBrush="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=medium}"
+                Background="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=dark}"
+                BorderBrush="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeBackgroundConverter}, ConverterParameter=medium}"
                 BorderThickness="0,1,0,0"
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Border.CornerRadius>
@@ -797,7 +797,7 @@
                 </Border.CornerRadius>
                 <Border.Effect>
                     <DropShadowEffect
-                        Color="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeAccentConverter}}"
+                        Color="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeAccentConverter}}"
                         BlurRadius="8"
                         ShadowDepth="0"
                         Opacity="0.1" />
@@ -868,7 +868,7 @@
                         Grid.Column="0"
                         HorizontalAlignment="Left"
                         Text="[LAST]"
-                        Foreground="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeAccentConverter}}"
+                        Foreground="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeAccentConverter}}"
                         FontWeight="Bold">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource FooterTextContent}">
@@ -900,7 +900,7 @@
                         HorizontalAlignment="Left"
                         Command="{Binding ReturnToLiveCommand}"
                         Content="[HISTORY]"
-                        Foreground="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeAccentConverter}}"
+                        Foreground="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeAccentConverter}}"
                         Background="Transparent"
                         BorderThickness="0"
                         FontWeight="Bold"
@@ -929,7 +929,7 @@
                         HorizontalAlignment="Left"
                         Style="{StaticResource FooterTextContent}"
                         Text="{Binding HistoryModeLabel}"
-                        Foreground="{Binding AppConfig.ThemeColor, Converter={StaticResource ThemeAccentConverter}}"
+                        Foreground="{Binding AppConfig.EffectiveThemeColor, Mode=OneWay, Converter={StaticResource ThemeAccentConverter}}"
                         Visibility="{Binding IsHistoryMode, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                     <TextBlock
@@ -952,6 +952,13 @@
             </Border>
 
             </Grid> <!-- End of Content Grid with CacheMode -->
+
+            <!-- 🎄 Christmas Decorations for DPS Meter (frost border, festive background, sparkles) -->
+            <!-- Only visible when EnableHolidayThemes is ON and a holiday is active -->
+            <ctrl:DpsMeterChristmasDecorations
+                Panel.ZIndex="1000"
+                Visibility="{Binding AppConfig.EnableHolidayThemes, Converter={StaticResource BoolToVisibilityConverter}}" />
+
         </Grid> <!-- End of Layering Grid -->
     </Border> <!-- End of Main Border with Theme Color -->
 

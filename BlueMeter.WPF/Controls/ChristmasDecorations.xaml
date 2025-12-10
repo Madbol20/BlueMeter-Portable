@@ -10,6 +10,9 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
+        <!-- Easing Functions -->
+        <SineEase x:Key="SineEaseInOut" EasingMode="EaseInOut" />
+
         <!-- Snowflake falling animation -->
         <Storyboard x:Key="SnowfallAnimation" RepeatBehavior="Forever">
             <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Canvas.Top)">
@@ -51,51 +54,52 @@
         <!-- Snowflake Canvas -->
         <Canvas x:Name="SnowCanvas" ClipToBounds="True" />
 
-        <!-- Corner Decorations -->
-        <Grid>
-            <!-- Top-Left: Star -->
-            <Image
-                Width="48"
-                Height="48"
-                Margin="10"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Opacity="0.9"
-                Panel.ZIndex="99"
-                Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/star.png" />
+        <!-- Santa Hat on Top-Left (sticking out of the window) -->
+        <Image
+            Width="80"
+            Height="80"
+            Margin="-15,-25,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Opacity="0.95"
+            Panel.ZIndex="999"
+            RenderTransformOrigin="0.5,0.5"
+            Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/santa_hat.png">
+            <Image.RenderTransform>
+                <RotateTransform Angle="-25" />
+            </Image.RenderTransform>
+        </Image>
 
-            <!-- Top-Right: Ornament -->
-            <Image
-                Width="32"
-                Height="32"
-                Margin="10"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Opacity="0.9"
-                Panel.ZIndex="99"
-                Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/christmas_ornament_gold.png" />
-
-            <!-- Bottom-Left: Ornament -->
-            <Image
-                Width="32"
-                Height="32"
-                Margin="10"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
-                Opacity="0.9"
-                Panel.ZIndex="99"
-                Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/christmas_ornament_red.png" />
-
-            <!-- Bottom-Right: Candy Cane -->
-            <Image
-                Width="24"
-                Height="48"
-                Margin="10"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Opacity="0.9"
-                Panel.ZIndex="99"
-                Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/candy_cane.png" />
-        </Grid>
+        <!-- Bell at Bottom-Right -->
+        <Image
+            Width="28"
+            Height="28"
+            Margin="0,0,8,8"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Opacity="0.85"
+            Panel.ZIndex="98"
+            Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/bell.png">
+            <!-- Subtle swing animation -->
+            <Image.RenderTransform>
+                <RotateTransform x:Name="BellRotation" Angle="0" />
+            </Image.RenderTransform>
+            <Image.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                    <BeginStoryboard>
+                        <Storyboard RepeatBehavior="Forever">
+                            <DoubleAnimation
+                                Storyboard.TargetName="BellRotation"
+                                Storyboard.TargetProperty="Angle"
+                                From="-5"
+                                To="5"
+                                Duration="0:0:1.5"
+                                AutoReverse="True"
+                                EasingFunction="{StaticResource SineEaseInOut}" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Image.Triggers>
+        </Image>
     </Grid>
 </UserControl>

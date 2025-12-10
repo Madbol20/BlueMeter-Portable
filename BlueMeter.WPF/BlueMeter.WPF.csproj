@@ -147,6 +147,11 @@
     <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_07.png" />
     <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_08.png" />
     <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_09.png" />
+    <Resource Include="Assets\Themes\Christmas\Backgrounds\festive_background.jpg" />
+    <Resource Include="Assets\Themes\Christmas\Backgrounds\frost_border.png.png" />
+    <Resource Include="Assets\Themes\Christmas\Backgrounds\snow_texture.png" />
+    <Resource Include="Assets\Themes\Christmas\Backgrounds\christmas_tree_silhouette.png" />
+    <Resource Include="Assets\Themes\Christmas\Effects\sparkle.png" />
 
     <!-- Sound files for queue pop alerts -->
     <Content Include="..\BlueMeter.Assets\sounds\*.mp3" Link="Assets\sounds\%(Filename)%(Extension)">
