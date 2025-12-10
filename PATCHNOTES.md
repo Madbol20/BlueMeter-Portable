@@ -6,6 +6,15 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ## Version 1.5.3
 
+**🎄 New Features:**
+- Christmas theme decorations
+  - Santa Hat decoration on MainView (above Launch button)
+  - Snowfall effects covering full window
+  - Frost border decoration on DPS meter
+  - Christmas lights decorations
+  - Window title shows event name when holiday themes enabled (e.g., "BlueMeter - Christmas 🎄")
+  - User color settings preserved (themes only add decorations, don't change colors)
+
 **🐛 Bug Fixes:**
 - Fixed DPS meter continuing to calculate after combat ends
   - Meter now only tracks player-involved combat (filters out NPC-vs-NPC and environmental damage)

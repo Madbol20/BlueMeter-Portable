@@ -2,6 +2,45 @@
 
 **Release Date:** TBD
 
+## New Features
+
+### 🎄 Christmas Theme Decorations
+
+**Description:** Complete holiday theme system with festive Christmas decorations for BlueMeter.
+
+**Features:**
+- **Santa Hat** - Festive decoration positioned above the Launch button in MainView
+  - 15° rotation for natural appearance
+  - Semi-transparent (95% opacity) to blend with UI
+- **Snowfall Effects** - Animated snowflakes falling across the entire window
+  - Full-height coverage from top to bottom
+  - Randomized sizes, speeds, and horizontal drift
+  - Smooth fade-in/fade-out animations
+- **Frost Border** - Decorative frost frame around the DPS meter window
+  - Scaled to extend beyond meter edges
+  - Semi-transparent overlay effect
+- **Christmas Lights** - String light decorations
+- **Dynamic Window Title** - Shows event name when themes enabled
+  - Example: "BlueMeter - Christmas 🎄"
+  - Automatically updates based on active holiday
+- **User Color Preservation** - Holiday themes only add decorations
+  - User's selected theme color remains unchanged
+  - No color override when holiday themes are enabled
+
+**Technical Implementation:**
+- Created `HolidayTitleConverter.cs` for dynamic window title formatting
+- Modified `AppConfig.cs` to preserve user color settings during holidays
+- Added `MainSnowCanvas` to root Grid for full-height snow coverage
+- Optimized snowflake fade-in animation (0.3s instead of 2s) for proper visibility
+- Used `RenderTransform` with `ScaleTransform` for frost border positioning
+- Santa Hat positioned with overflow decoration using `Panel.ZIndex`
+
+**User Impact:**
+- Festive visual experience during holiday seasons
+- No interference with functionality or user preferences
+- Can be toggled on/off in Settings → Advanced → Holiday Themes
+- All decorations are non-intrusive and maintain UI usability
+
 ## Bug Fixes
 
 ### 🐛 Fixed DPS Meter Continuing After Combat Ends
@@ -59,7 +98,43 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 
 ## Files Changed
 
+### Added
+- `BlueMeter.WPF/Converters/HolidayTitleConverter.cs`
+  - New converter for combining app name with holiday name in window titles
+  - Takes AppConfig as input and returns formatted title string
+
 ### Modified
+- `BlueMeter.WPF/Config/AppConfig.cs`
+  - Modified `GetEffectiveThemeColor()` to always return user's selected color
+  - Added `GetCurrentHolidayName()` method and `CurrentHolidayName` property
+  - Holiday themes now only add decorations without changing colors
+
+- `BlueMeter.WPF/Converters/ConveterDictionary.xaml`
+  - Added HolidayTitleConverter to global resources (line 34)
+
+- `BlueMeter.WPF/Views/MainView.xaml`
+  - Added Title binding with HolidayTitleConverter (line 14)
+  - Created MainSnowCanvas in root Grid for full-height snow coverage (lines 328-338)
+  - Added Santa Hat decoration above Launch button (lines 919-934)
+
+- `BlueMeter.WPF/Views/DpsStatisticsView.xaml`
+  - Updated to use HolidayTitleConverter for window title (line 18)
+
+- `BlueMeter.WPF/Controls/ChristmasDecorations.xaml`
+  - Modified SnowCanvas to bind to parent Grid dimensions
+  - Removed Santa Hat (moved to MainView for better positioning)
+
+- `BlueMeter.WPF/Controls/ChristmasDecorations.xaml.cs`
+  - Modified `CreateSnowflake()` to use MainSnowCanvas from parent window
+  - Changed snowflake start position from -50 to -200
+  - Optimized fade-in animation from 2 seconds to 0.3 seconds using keyframes
+  - Added `FindVisualChild<T>()` helper for visual tree navigation
+
+- `BlueMeter.WPF/Controls/DpsMeterChristmasDecorations.xaml`
+  - Adjusted frost border RenderTransform scaling (lines 42-58)
+  - ScaleX="1.3" ScaleY="1.5" with RenderTransformOrigin="0.5,0.3"
+  - Removed snow texture overlay
+
 - `BlueMeter.Core/Analyze/V2/Processors/DeltaInfoProcessors.cs`
   - Added filter at lines 120-125 to skip non-player combat events
   - Only logs battle logs where `isAttackerPlayer || isTargetPlayer` is true
@@ -79,6 +154,16 @@ These lingering damage packets would reset the combat timeout, keeping the meter
   - Always activates and brings window to front
 
 ## Testing Notes
+
+**Christmas Theme:**
+1. Enable Holiday Themes in Settings → Advanced
+2. Verify window title shows "BlueMeter - Christmas 🎄" (or current holiday name)
+3. Check that Santa Hat appears above Launch button in MainView
+4. Observe snowfall covering entire window from top to bottom
+5. Verify snowflakes fade in quickly and are visible immediately
+6. Check frost border around DPS meter extends beyond edges
+7. Confirm user's selected theme color remains unchanged
+8. Disable Holiday Themes and verify all decorations disappear
 
 **DPS Meter Fix:**
 1. Complete a boss fight in a raid
