@@ -11,7 +11,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vms="clr-namespace:BlueMeter.WPF.ViewModels"
     xmlns:checklist="clr-namespace:BlueMeter.WPF.Views.Checklist"
-    Title="{lex:Loc Key={x:Static loc:ResourcesKeys.App_Name}}"
+    Title="{Binding AppConfig, Converter={StaticResource HolidayTitleConverter}}"
     Width="1000"
     Height="650"
     MinWidth="830"
@@ -43,6 +43,7 @@
         <converters:ThemeAccentConverter x:Key="ThemeAccentConverter" />
         <converters:ThemeForegroundConverter x:Key="ThemeForegroundConverter" />
         <converters:ThemeToAppNameConverter x:Key="ThemeToAppNameConverter" />
+        <converters:HolidayTitleConverter x:Key="HolidayTitleConverter" />
         <converters:BackgroundOnlyModeOpacityConverter x:Key="BackgroundOnlyModeOpacityConverter" />
         <converters:IsEnabledToOpacityConverter x:Key="IsEnabledToOpacityConverter" />
         <converters:MenuCollapseConverter x:Key="MenuCollapseConverter" />
@@ -324,11 +325,23 @@
 
     </Window.Resources>
 
-    <!-- Modern Dark HUD Background -->
-    <Border
-        Style="{StaticResource ShadowWindowBorder}"
-        Background="#0A0E1A"
-        ClipToBounds="False">
+    <!-- Main Grid to allow decorations outside the border -->
+    <Grid x:Name="MainGrid" ClipToBounds="False">
+        <!-- Snow Canvas - explicitly bound to window size for full coverage -->
+        <Canvas
+            x:Name="MainSnowCanvas"
+            Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}}"
+            Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Window}}"
+            Panel.ZIndex="500"
+            ClipToBounds="False"
+            IsHitTestVisible="False"
+            Visibility="{Binding AppConfig.EnableHolidayThemes, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <!-- Modern Dark HUD Background -->
+        <Border
+            Style="{StaticResource ShadowWindowBorder}"
+            Background="#0A0E1A"
+            ClipToBounds="False">
 
         <!-- Background Image Layer (if configured) - overlayed with low opacity -->
         <Border.Effect>
@@ -903,14 +916,37 @@
 
             </Grid>
 
-            <!-- 🎄 Holiday Decorations Overlay (Christmas, Halloween, etc.) -->
-            <!-- Only visible when EnableHolidayThemes is ON and a holiday is active -->
-            <ctrl:ChristmasDecorations
-                Panel.ZIndex="999"
-                Visibility="{Binding AppConfig.EnableHolidayThemes, Converter={StaticResource BoolToVisibilityConverter}}" />
-
         </Grid>
-    </Border>
+        </Border>
+
+        <!-- 🎄 Holiday Decorations Overlay (Christmas, Halloween, etc.) -->
+        <!-- Only visible when EnableHolidayThemes is ON and a holiday is active -->
+        <!-- Positioned OUTSIDE the Border to allow overflow decorations (Santa Hat) -->
+        <ctrl:ChristmasDecorations
+            Margin="0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Panel.ZIndex="1000"
+            Visibility="{Binding AppConfig.EnableHolidayThemes, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <!-- Santa Hat - positioned directly above the Launch button -->
+        <Image
+            Width="65"
+            Height="65"
+            Margin="0,20,12,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Opacity="0.95"
+            Panel.ZIndex="1001"
+            RenderTransformOrigin="0.5,0.5"
+            Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/santa_hat.png"
+            Visibility="{Binding AppConfig.EnableHolidayThemes, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Image.RenderTransform>
+                <RotateTransform Angle="15" />
+            </Image.RenderTransform>
+        </Image>
+
+    </Grid>
 
 </Window>
 

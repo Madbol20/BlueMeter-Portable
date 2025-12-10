@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -76,10 +77,26 @@ public partial class ChristmasDecorations : UserControl
 
     private void CreateSnowflake()
     {
-        if (SnowCanvas == null) return;
+        // Try to use MainSnowCanvas from parent window if available
+        var window = Window.GetWindow(this);
+        Canvas? snowCanvas = null;
+
+        if (window != null)
+        {
+            // Search for MainSnowCanvas in the visual tree
+            snowCanvas = FindVisualChild<Canvas>(window, "MainSnowCanvas");
+        }
+
+        snowCanvas ??= SnowCanvas;
+
+        if (snowCanvas == null) return;
 
         try
         {
+            // Get the actual window dimensions
+            var targetHeight = window?.ActualHeight ?? 600;
+            var targetWidth = window?.ActualWidth ?? 800;
+
             // Random snowflake image
             var imageUri = new Uri(_snowflakeImages[_random.Next(_snowflakeImages.Length)], UriKind.Absolute);
             var snowflake = new Image
@@ -90,37 +107,37 @@ public partial class ChristmasDecorations : UserControl
                 Opacity = 0
             };
 
-            // Random horizontal position
-            var left = _random.Next(0, (int)Math.Max(1, ActualWidth));
+            // Random horizontal position across full width
+            var left = _random.Next(0, (int)Math.Max(1, targetWidth));
             Canvas.SetLeft(snowflake, left);
-            Canvas.SetTop(snowflake, -50);
+            // Start from way above the window
+            Canvas.SetTop(snowflake, -200);
 
-            SnowCanvas.Children.Add(snowflake);
+            snowCanvas.Children.Add(snowflake);
 
             // Create animation with random duration
             var duration = TimeSpan.FromSeconds(_random.Next(10, 20));
             var fallAnimation = new DoubleAnimation
             {
-                From = -50,
-                To = ActualHeight + 50,
+                // Start from way above to ensure coverage from top
+                From = -200,
+                To = targetHeight + 100,
                 Duration = duration,
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
             };
 
-            var fadeInAnimation = new DoubleAnimation
-            {
-                From = 0,
-                To = 0.7,
-                Duration = TimeSpan.FromSeconds(2)
-            };
+            // Simple fade in at the start, stay visible, fade out at the end
+            var storyboard = new Storyboard();
 
-            var fadeOutAnimation = new DoubleAnimation
-            {
-                From = 0.7,
-                To = 0,
-                BeginTime = duration - TimeSpan.FromSeconds(2),
-                Duration = TimeSpan.FromSeconds(2)
-            };
+            var opacityAnimation = new DoubleAnimationUsingKeyFrames();
+            opacityAnimation.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            opacityAnimation.KeyFrames.Add(new LinearDoubleKeyFrame(0.7, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(0.5))));
+            opacityAnimation.KeyFrames.Add(new LinearDoubleKeyFrame(0.7, KeyTime.FromTimeSpan(duration - TimeSpan.FromSeconds(2))));
+            opacityAnimation.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(duration)));
+
+            Storyboard.SetTarget(opacityAnimation, snowflake);
+            Storyboard.SetTargetProperty(opacityAnimation, new PropertyPath(OpacityProperty));
+            storyboard.Children.Add(opacityAnimation);
 
             // Optional: gentle sway animation
             var swayAnimation = new DoubleAnimation
@@ -133,15 +150,14 @@ public partial class ChristmasDecorations : UserControl
             };
 
             // Remove snowflake after animation completes
-            fallAnimation.Completed += (s, e) =>
+            storyboard.Completed += (s, e) =>
             {
-                SnowCanvas.Children.Remove(snowflake);
+                snowCanvas.Children.Remove(snowflake);
             };
 
             snowflake.BeginAnimation(Canvas.TopProperty, fallAnimation);
-            snowflake.BeginAnimation(OpacityProperty, fadeInAnimation);
-            snowflake.BeginAnimation(OpacityProperty, fadeOutAnimation);
             snowflake.BeginAnimation(Canvas.LeftProperty, swayAnimation);
+            storyboard.Begin();
         }
         catch
         {
@@ -156,5 +172,32 @@ public partial class ChristmasDecorations : UserControl
         var twinkleStoryboard = (Storyboard)Resources["TwinkleAnimation"];
         Storyboard.SetTarget(twinkleStoryboard, ChristmasLights);
         twinkleStoryboard.Begin();
+    }
+
+    /// <summary>
+    /// Helper method to find a named child in the visual tree
+    /// </summary>
+    private static T? FindVisualChild<T>(DependencyObject parent, string name) where T : FrameworkElement
+    {
+        if (parent == null) return null;
+
+        int childCount = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < childCount; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+
+            if (child is T typedChild && typedChild.Name == name)
+            {
+                return typedChild;
+            }
+
+            var result = FindVisualChild<T>(child, name);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+
+        return null;
     }
 }

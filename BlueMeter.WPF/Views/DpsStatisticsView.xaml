@@ -15,7 +15,7 @@
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:viewModels="clr-namespace:BlueMeter.WPF.ViewModels"
     xmlns:wpfModels="clr-namespace:BlueMeter.WPF.Models"
-    Title="{lex:Loc Key={x:Static loc:ResourcesKeys.Window_DpsStatistics_Title}}"
+    Title="{Binding AppConfig, Converter={StaticResource HolidayTitleConverter}}"
     Width="380"
     Height="360"
     MinWidth="300"
@@ -64,6 +64,7 @@
         <converters:ThemeBackgroundConverter x:Key="ThemeBackgroundConverter" />
         <converters:ThemeAccentConverter x:Key="ThemeAccentConverter" />
         <converters:ThemeForegroundConverter x:Key="ThemeForegroundConverter" />
+        <converters:HolidayTitleConverter x:Key="HolidayTitleConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:PanelColorModeConverter x:Key="PanelColorModeConverter" />
         <converters:PanelContentColorModeConverter x:Key="PanelContentColorModeConverter" />

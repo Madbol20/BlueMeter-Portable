@@ -31,4 +31,5 @@
     <converters:BackgroundOnlyModeToBackgroundConverter x:Key="BackgroundOnlyModeToBackgroundConverter" />
     <converters:BoolToActiveStatusConverter x:Key="BoolToActiveStatusConverter" />
     <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
+    <converters:HolidayTitleConverter x:Key="HolidayTitleConverter" />
 </ResourceDictionary>

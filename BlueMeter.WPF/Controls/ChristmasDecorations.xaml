@@ -39,7 +39,15 @@
         </Storyboard>
     </UserControl.Resources>
 
-    <Grid ClipToBounds="False">
+    <Grid x:Name="RootGrid" ClipToBounds="False">
+        <!-- Snowflake Canvas - bound to parent size to cover entire area -->
+        <Canvas
+            x:Name="SnowCanvas"
+            Width="{Binding ActualWidth, ElementName=RootGrid}"
+            Height="{Binding ActualHeight, ElementName=RootGrid}"
+            Panel.ZIndex="50"
+            ClipToBounds="False" />
+
         <!-- Christmas Lights at the top -->
         <Image
             x:Name="ChristmasLights"
@@ -51,24 +59,7 @@
             Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/christmas_lights.png"
             Stretch="Fill" />
 
-        <!-- Snowflake Canvas -->
-        <Canvas x:Name="SnowCanvas" ClipToBounds="True" />
-
-        <!-- Santa Hat on Top-Left (sticking WAY out of the window) -->
-        <Image
-            Width="90"
-            Height="90"
-            Margin="-20,-40,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Opacity="0.95"
-            Panel.ZIndex="999"
-            RenderTransformOrigin="0.5,0.5"
-            Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/santa_hat.png">
-            <Image.RenderTransform>
-                <RotateTransform Angle="-28" />
-            </Image.RenderTransform>
-        </Image>
+        <!-- Santa Hat removed - now placed directly in MainView for overflow support -->
 
         <!-- Bell at Bottom-Right -->
         <Image

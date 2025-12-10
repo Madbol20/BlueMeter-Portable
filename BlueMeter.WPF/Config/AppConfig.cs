@@ -318,25 +318,13 @@ public partial class AppConfig : ObservableObject
     public string EffectiveThemeColor => GetEffectiveThemeColor();
 
     /// <summary>
-    /// Get the effective theme color, considering holiday themes if enabled
+    /// Get the effective theme color - always returns user's selected color
+    /// Holiday themes only add decorations, they don't change the color
     /// </summary>
     public string GetEffectiveThemeColor()
     {
-        // If holiday themes are enabled, check if there's an active holiday
-        if (EnableHolidayThemes)
-        {
-            var holidayTheme = BlueMeter.WPF.Services.HolidayThemeService.GetCurrentHolidayTheme();
-            if (holidayTheme != null)
-            {
-                var theme = ThemeDefinitions.GetTheme(holidayTheme);
-                if (theme != null)
-                {
-                    return theme.ColorHex;
-                }
-            }
-        }
-
-        // Otherwise return the user's selected theme
+        // Always return the user's selected theme color
+        // Holiday themes only add decorations, not change colors
         return ThemeColor ?? "#0047AB";
     }
 
@@ -349,6 +337,7 @@ public partial class AppConfig : ObservableObject
     partial void OnEnableHolidayThemesChanged(bool value)
     {
         OnPropertyChanged(nameof(EffectiveThemeColor));
+        OnPropertyChanged(nameof(CurrentHolidayName));
     }
 
     /// <summary>
@@ -361,6 +350,22 @@ public partial class AppConfig : ObservableObject
         var holidayTheme = BlueMeter.WPF.Services.HolidayThemeService.GetCurrentHolidayTheme();
         return holidayTheme != null;
     }
+
+    /// <summary>
+    /// Get the current holiday name if holiday themes are enabled and a holiday is active
+    /// Returns null if no holiday is active or holiday themes are disabled
+    /// </summary>
+    public string? GetCurrentHolidayName()
+    {
+        if (!EnableHolidayThemes) return null;
+
+        return BlueMeter.WPF.Services.HolidayThemeService.GetCurrentHolidayName();
+    }
+
+    /// <summary>
+    /// Property that notifies when holiday name might have changed
+    /// </summary>
+    public string? CurrentHolidayName => GetCurrentHolidayName();
 
     public AppConfig Clone()
     {
