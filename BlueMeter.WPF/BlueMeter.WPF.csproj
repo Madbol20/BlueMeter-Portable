@@ -128,6 +128,26 @@
     <Resource Include="Assets\Images\ok_hover.png" />
     <Resource Include="Assets\Images\ok_normal.png" />
 
+    <!-- Christmas Theme Assets -->
+    <Resource Include="Assets\Themes\Christmas\Decorations\bell.png" />
+    <Resource Include="Assets\Themes\Christmas\Decorations\candy_cane.png" />
+    <Resource Include="Assets\Themes\Christmas\Decorations\christmas_lights.png" />
+    <Resource Include="Assets\Themes\Christmas\Decorations\christmas_ornament_gold.png" />
+    <Resource Include="Assets\Themes\Christmas\Decorations\christmas_ornament_red.png" />
+    <Resource Include="Assets\Themes\Christmas\Decorations\santa_hat.png" />
+    <Resource Include="Assets\Themes\Christmas\Decorations\star.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_large.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_medium_01.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_01.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_02.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_03.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_04.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_05.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_06.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_07.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_08.png" />
+    <Resource Include="Assets\Themes\Christmas\Snowflakes\snowflake_small_09.png" />
+
     <!-- Sound files for queue pop alerts -->
     <Content Include="..\BlueMeter.Assets\sounds\*.mp3" Link="Assets\sounds\%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
