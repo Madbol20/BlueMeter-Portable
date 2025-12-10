@@ -14,6 +14,13 @@ This document contains the changelog for all BlueMeter releases. For detailed re
   - Christmas lights decorations
   - Window title shows event name when holiday themes enabled (e.g., "BlueMeter - Christmas 🎄")
   - User color settings preserved (themes only add decorations, don't change colors)
+  - Clickable Christmas bell with music playback (15% volume)
+    - 95% chance: Jingle Bells instrumental
+    - 5% chance: Carol of Bells instrumental (Easter egg!)
+  - Custom candy cane cursor (tilted 15° left) when holiday themes enabled
+- Dynamic button colors
+  - Launch button and Daily/Weekly Checklist button now use complementary color gradients
+  - Automatically adapts to user's selected theme color
 
 **🐛 Bug Fixes:**
 - Fixed DPS meter continuing to calculate after combat ends

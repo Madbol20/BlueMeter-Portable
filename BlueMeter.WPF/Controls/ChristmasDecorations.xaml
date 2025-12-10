@@ -6,7 +6,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DesignHeight="600"
     d:DesignWidth="800"
-    IsHitTestVisible="False"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -46,7 +45,8 @@
             Width="{Binding ActualWidth, ElementName=RootGrid}"
             Height="{Binding ActualHeight, ElementName=RootGrid}"
             Panel.ZIndex="50"
-            ClipToBounds="False" />
+            ClipToBounds="False"
+            IsHitTestVisible="False" />
 
         <!-- Christmas Lights at the top -->
         <Image
@@ -57,20 +57,24 @@
             Opacity="0.8"
             Panel.ZIndex="100"
             Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/christmas_lights.png"
-            Stretch="Fill" />
+            Stretch="Fill"
+            IsHitTestVisible="False" />
 
         <!-- Santa Hat removed - now placed directly in MainView for overflow support -->
 
         <!-- Bell at Bottom-Right -->
         <Image
+            x:Name="ChristmasBell"
             Width="28"
             Height="28"
             Margin="0,0,8,8"
             HorizontalAlignment="Right"
             VerticalAlignment="Bottom"
+            Cursor="Hand"
             Opacity="0.85"
             Panel.ZIndex="98"
-            Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/bell.png">
+            Source="pack://application:,,,/Assets/Themes/Christmas/Decorations/bell.png"
+            MouseLeftButtonDown="ChristmasBell_Click">
             <!-- Subtle swing animation -->
             <Image.RenderTransform>
                 <RotateTransform x:Name="BellRotation" Angle="0" />

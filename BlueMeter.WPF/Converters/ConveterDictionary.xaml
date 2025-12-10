@@ -32,4 +32,5 @@
     <converters:BoolToActiveStatusConverter x:Key="BoolToActiveStatusConverter" />
     <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
     <converters:HolidayTitleConverter x:Key="HolidayTitleConverter" />
+    <converters:ComplementaryColorGradientConverter x:Key="ComplementaryColorGradientConverter" />
 </ResourceDictionary>

@@ -48,6 +48,10 @@
     <Content Include="Assets\sounds\*.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Copy Christmas music files -->
+    <Content Include="Assets\Themes\Christmas\music\*.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <!-- Copy Tesseract OCR language data for queue pop alerts -->
     <Content Include="tessdata\eng.traineddata">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -90,6 +94,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" />
     <PackageReference Include="System.Reactive" />
+    <PackageReference Include="System.Drawing.Common" />
     <!-- Serilog observable sink -->
     <PackageReference Include="Serilog" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
@@ -131,6 +136,9 @@
     <!-- Christmas Theme Assets -->
     <Resource Include="Assets\Themes\Christmas\Decorations\bell.png" />
     <Resource Include="Assets\Themes\Christmas\Decorations\candy_cane.png" />
+    <Content Include="Assets\Themes\Christmas\Decorations\candy_cane.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Resource Include="Assets\Themes\Christmas\Decorations\christmas_lights.png" />
     <Resource Include="Assets\Themes\Christmas\Decorations\christmas_ornament_gold.png" />
     <Resource Include="Assets\Themes\Christmas\Decorations\christmas_ornament_red.png" />

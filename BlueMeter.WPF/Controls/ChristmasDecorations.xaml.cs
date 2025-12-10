@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -17,6 +19,7 @@ public partial class ChristmasDecorations : UserControl
 {
     private readonly Random _random = new();
     private DispatcherTimer? _snowTimer;
+    private MediaPlayer? _musicPlayer;
     private readonly string[] _snowflakeImages = {
         "pack://application:,,,/Assets/Themes/Christmas/Snowflakes/snowflake_small_01.png",
         "pack://application:,,,/Assets/Themes/Christmas/Snowflakes/snowflake_small_02.png",
@@ -50,6 +53,10 @@ public partial class ChristmasDecorations : UserControl
     private void ChristmasDecorations_Unloaded(object sender, RoutedEventArgs e)
     {
         StopSnowfall();
+
+        // Clean up music player
+        _musicPlayer?.Stop();
+        _musicPlayer?.Close();
     }
 
     private void StartSnowfall()
@@ -73,6 +80,93 @@ public partial class ChristmasDecorations : UserControl
     {
         _snowTimer?.Stop();
         _snowTimer = null;
+    }
+
+    /// <summary>
+    /// Handle bell click - play Christmas music
+    /// </summary>
+    private void ChristmasBell_Click(object sender, MouseButtonEventArgs e)
+    {
+        // Only play music if holiday themes are enabled
+        if (!HolidayThemeService.IsHolidayActive())
+            return;
+
+        // Ensure we're on the UI thread for MediaPlayer
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => ChristmasBell_Click(sender, e));
+            return;
+        }
+
+        try
+        {
+            // 5% chance to play Carol of Bells instead (Easter egg!)
+            string musicFileName = _random.Next(100) < 5
+                ? "carolofbells_inst.mp3"
+                : "jb_inst.mp3";
+
+            // Get the music file path
+            string musicPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "Assets", "Themes", "Christmas", "music", musicFileName
+            );
+
+            if (!File.Exists(musicPath))
+            {
+                // Try alternate path
+                musicPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "Assets", "Themes", "Christmas", "music", musicFileName
+                );
+            }
+
+            if (File.Exists(musicPath))
+            {
+                // Initialize MediaPlayer if needed
+                if (_musicPlayer == null)
+                {
+                    _musicPlayer = new MediaPlayer();
+                }
+                else
+                {
+                    // Stop any currently playing music
+                    _musicPlayer.Stop();
+                }
+
+                _musicPlayer.Volume = 0.15; // 15% volume
+                _musicPlayer.Open(new Uri(musicPath, UriKind.Absolute));
+                _musicPlayer.Play();
+
+                // Trigger a stronger bell swing animation on click
+                TriggerBellRing();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error for debugging
+            System.Diagnostics.Debug.WriteLine($"Failed to play Christmas music: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Trigger a more pronounced bell swing when clicked
+    /// </summary>
+    private void TriggerBellRing()
+    {
+        var bell = ChristmasBell;
+        if (bell?.RenderTransform is RotateTransform rotateTransform)
+        {
+            var ringAnimation = new DoubleAnimation
+            {
+                From = -15,
+                To = 15,
+                Duration = TimeSpan.FromMilliseconds(100),
+                AutoReverse = true,
+                RepeatBehavior = new RepeatBehavior(3) // Ring 3 times
+            };
+
+            rotateTransform.BeginAnimation(RotateTransform.AngleProperty, ringAnimation);
+        }
     }
 
     private void CreateSnowflake()

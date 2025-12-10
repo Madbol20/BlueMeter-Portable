@@ -4,6 +4,21 @@
 
 ## New Features
 
+### 🎨 Dynamic Complementary Button Colors
+
+**Description:** Launch button and Daily/Weekly Checklist button now feature dynamic gradient colors that automatically adapt to the user's selected theme color.
+
+**Implementation:**
+- Created `ComplementaryColorGradientConverter` that calculates the complementary color (180° opposite on the color wheel)
+- Converts RGB to HSL, rotates hue by 180°, and creates a gradient with two shades
+- Buttons automatically update when theme color changes
+- Provides visual consistency while maintaining user color preferences
+
+**User Impact:**
+- More cohesive visual design
+- Buttons stand out with complementary colors
+- Automatic adaptation to any theme color selection
+
 ### 🎄 Christmas Theme Decorations
 
 **Description:** Complete holiday theme system with festive Christmas decorations for BlueMeter.
@@ -20,6 +35,15 @@
   - Scaled to extend beyond meter edges
   - Semi-transparent overlay effect
 - **Christmas Lights** - String light decorations
+- **Christmas Bell** - Interactive bell with music playback
+  - Click to play festive instrumental music (15% volume)
+  - 95% chance: Jingle Bells instrumental
+  - 5% chance: Carol of Bells instrumental (surprise Easter egg!)
+  - Visual feedback: Bell swings when clicked
+- **Candy Cane Cursor** - Custom festive cursor
+  - Appears when holiday themes are enabled
+  - Tilted 15° to the left for natural appearance
+  - Automatically reverts to default cursor when themes disabled
 - **Dynamic Window Title** - Shows event name when themes enabled
   - Example: "BlueMeter - Christmas 🎄"
   - Automatically updates based on active holiday
@@ -34,6 +58,10 @@
 - Optimized snowflake fade-in animation (0.3s instead of 2s) for proper visibility
 - Used `RenderTransform` with `ScaleTransform` for frost border positioning
 - Santa Hat positioned with overflow decoration using `Panel.ZIndex`
+- Created `CursorHelper.cs` for custom cursor creation from PNG images with rotation support
+- Bell uses `MediaPlayer` for MP3 playback with 15% volume and random track selection
+- Music files stored in `Assets/Themes/Christmas/music/`
+- Candy cane cursor created with P/Invoke to Windows API (CreateIconIndirect)
 
 **User Impact:**
 - Festive visual experience during holiday seasons
@@ -103,6 +131,16 @@ These lingering damage packets would reset the combat timeout, keeping the meter
   - New converter for combining app name with holiday name in window titles
   - Takes AppConfig as input and returns formatted title string
 
+- `BlueMeter.WPF/Converters/ComplementaryColorGradientConverter.cs`
+  - Calculates complementary color from theme color (180° hue rotation)
+  - Creates LinearGradientBrush with two shades for visual depth
+  - Converts between RGB and HSL color spaces
+
+- `BlueMeter.WPF/Helpers/CursorHelper.cs`
+  - Creates custom cursors from PNG images using Windows API
+  - Supports image rotation for custom cursor angles
+  - Uses P/Invoke (CreateIconIndirect, GetIconInfo) for cursor creation
+
 ### Modified
 - `BlueMeter.WPF/Config/AppConfig.cs`
   - Modified `GetEffectiveThemeColor()` to always return user's selected color
@@ -111,11 +149,18 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 
 - `BlueMeter.WPF/Converters/ConveterDictionary.xaml`
   - Added HolidayTitleConverter to global resources (line 34)
+  - Added ComplementaryColorGradientConverter to global resources (line 35)
 
 - `BlueMeter.WPF/Views/MainView.xaml`
   - Added Title binding with HolidayTitleConverter (line 14)
   - Created MainSnowCanvas in root Grid for full-height snow coverage (lines 328-338)
   - Added Santa Hat decoration above Launch button (lines 919-934)
+  - Updated PluginRunButton style to use ComplementaryColorGradientConverter (line 293)
+
+- `BlueMeter.WPF/Views/MainView.xaml.cs`
+  - Added custom cursor support with UpdateChristmasCursor() method
+  - Subscribes to AppConfig.PropertyChanged to toggle cursor
+  - Creates candy cane cursor with 15° left tilt when holiday themes enabled
 
 - `BlueMeter.WPF/Views/DpsStatisticsView.xaml`
   - Updated to use HolidayTitleConverter for window title (line 18)
@@ -123,17 +168,30 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 - `BlueMeter.WPF/Controls/ChristmasDecorations.xaml`
   - Modified SnowCanvas to bind to parent Grid dimensions
   - Removed Santa Hat (moved to MainView for better positioning)
+  - Added clickable Christmas bell with MouseLeftButtonDown event
+  - Removed IsHitTestVisible="False" from UserControl to enable bell clicks
+  - Added IsHitTestVisible="False" to SnowCanvas and ChristmasLights individually
 
 - `BlueMeter.WPF/Controls/ChristmasDecorations.xaml.cs`
   - Modified `CreateSnowflake()` to use MainSnowCanvas from parent window
   - Changed snowflake start position from -50 to -200
   - Optimized fade-in animation from 2 seconds to 0.3 seconds using keyframes
   - Added `FindVisualChild<T>()` helper for visual tree navigation
+  - Added `ChristmasBell_Click()` event handler for music playback
+  - Added `TriggerBellRing()` for visual bell swing animation
+  - Implements 95/5 random selection between two Christmas music tracks
+  - MediaPlayer volume set to 15% (0.15)
+  - Uses UI thread dispatcher for MediaPlayer reliability
 
 - `BlueMeter.WPF/Controls/DpsMeterChristmasDecorations.xaml`
   - Adjusted frost border RenderTransform scaling (lines 42-58)
   - ScaleX="1.3" ScaleY="1.5" with RenderTransformOrigin="0.5,0.3"
   - Removed snow texture overlay
+
+- `BlueMeter.WPF/BlueMeter.WPF.csproj`
+  - Added System.Drawing.Common package reference for cursor creation
+  - Added Content entry for Assets\Themes\Christmas\music\*.mp3 files
+  - Added Content entry for candy_cane.png (in addition to existing Resource entry)
 
 - `BlueMeter.Core/Analyze/V2/Processors/DeltaInfoProcessors.cs`
   - Added filter at lines 120-125 to skip non-player combat events
@@ -163,7 +221,16 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 5. Verify snowflakes fade in quickly and are visible immediately
 6. Check frost border around DPS meter extends beyond edges
 7. Confirm user's selected theme color remains unchanged
-8. Disable Holiday Themes and verify all decorations disappear
+8. Click the Christmas bell in bottom-right corner - music should play at low volume
+9. Click bell multiple times to test random track selection (95% Jingle Bells, 5% Carol of Bells)
+10. Verify candy cane cursor appears when hovering over MainView (tilted left)
+11. Disable Holiday Themes and verify all decorations disappear and cursor reverts to normal
+
+**Dynamic Button Colors:**
+1. Change theme color in Settings → Appearance
+2. Verify Launch button and Daily/Weekly Checklist button update with complementary gradient
+3. Test with multiple different theme colors (blue, purple, green, etc.)
+4. Confirm gradient automatically adapts to each color
 
 **DPS Meter Fix:**
 1. Complete a boss fight in a raid
