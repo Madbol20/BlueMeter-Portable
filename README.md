@@ -18,9 +18,11 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.5.2**
-- Fixed race condition crash during back-to-back raids
-- Added thread-safe locking to prevent dictionary modification crashes
+**Latest Version: 1.5.3**
+- Christmas theme decorations with interactive bell, custom candy cane cursor, and festive effects
+- Dynamic complementary color gradients for Launch and Daily/Weekly buttons
+- Fixed DPS meter continuing after combat ends (now filters NPC-vs-NPC damage)
+- Fixed Settings window minimize button not working
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 
