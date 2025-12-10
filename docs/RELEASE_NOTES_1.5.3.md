@@ -36,10 +36,10 @@
   - Semi-transparent overlay effect
 - **Christmas Lights** - String light decorations
 - **Christmas Bell** - Interactive bell with music playback
-  - Click to play festive instrumental music (15% volume)
-  - 95% chance: Jingle Bells instrumental
-  - 5% chance: Carol of Bells instrumental (surprise Easter egg!)
-  - Visual feedback: Bell swings when clicked
+  - ||Click to play festive instrumental music (15% volume)||
+  - ||95% chance: Jingle Bells instrumental||
+  - ||5% chance: Carol of Bells instrumental (surprise Easter egg!)||
+  - ||Visual feedback: Bell swings when clicked||
 - **Candy Cane Cursor** - Custom festive cursor
   - Appears when holiday themes are enabled
   - Tilted 15° to the left for natural appearance
@@ -221,16 +221,7 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 5. Verify snowflakes fade in quickly and are visible immediately
 6. Check frost border around DPS meter extends beyond edges
 7. Confirm user's selected theme color remains unchanged
-8. Click the Christmas bell in bottom-right corner - music should play at low volume
-9. Click bell multiple times to test random track selection (95% Jingle Bells, 5% Carol of Bells)
-10. Verify candy cane cursor appears when hovering over MainView (tilted left)
-11. Disable Holiday Themes and verify all decorations disappear and cursor reverts to normal
-
-**Dynamic Button Colors:**
-1. Change theme color in Settings → Appearance
-2. Verify Launch button and Daily/Weekly Checklist button update with complementary gradient
-3. Test with multiple different theme colors (blue, purple, green, etc.)
-4. Confirm gradient automatically adapts to each color
+8. Disable Holiday Themes and verify all decorations disappear
 
 **DPS Meter Fix:**
 1. Complete a boss fight in a raid
