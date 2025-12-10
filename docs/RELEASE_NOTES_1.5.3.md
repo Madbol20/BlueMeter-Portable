@@ -37,12 +37,17 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 
 ### 🐛 Fixed Settings Window Minimize Button Not Working
 
-**Issue:** Clicking the minimize button in the Settings window had no effect, even though the button was visible.
+**Issue #1:** Clicking the minimize button in the Settings window had no effect, even though the button was visible.
 
 **Root Cause:** The Header control's minimize button was only bound to a command (`MinimizeToTrayCommand`), but the SettingsView didn't provide this command. MainView provides the command to minimize to tray, but Settings window didn't have any minimize functionality.
 
+**Issue #2:** After minimizing Settings window, clicking "Settings" in MainView or meter didn't restore the window from minimized state.
+
+**Root Cause:** The `Show()` method doesn't automatically restore a minimized window - it needs explicit WindowState management.
+
 **Fix Applied:**
 - Added click event handler in Header control as fallback when no command is bound
+- Overrode `Show()` method in SettingsView to restore from minimized state before showing
 - MainView continues to minimize to system tray (existing behavior)
 - Settings and other windows now minimize to taskbar when clicking the button
 
@@ -50,6 +55,7 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 - Minimize button now works in all windows (Settings, Charts, etc.)
 - MainView still minimizes to tray as before
 - Other windows minimize to taskbar normally
+- Settings window properly restores from minimized state when reopened
 
 ## Files Changed
 
@@ -67,6 +73,11 @@ These lingering damage packets would reset the combat timeout, keeping the meter
   - Minimizes window to taskbar when no command is bound
   - Preserves command behavior when MinimizeToTrayCommand is provided
 
+- `BlueMeter.WPF/Views/SettingsView.xaml.cs`
+  - Overrode `Show()` method (lines 345-355)
+  - Restores window from minimized state before showing
+  - Always activates and brings window to front
+
 ## Testing Notes
 
 **DPS Meter Fix:**
@@ -79,7 +90,9 @@ These lingering damage packets would reset the combat timeout, keeping the meter
 1. Open Settings window
 2. Click the minimize button (−) in the top right
 3. Window should minimize to taskbar
-4. Restore from taskbar and verify window state is normal
+4. Click "Settings" in MainView or meter
+5. Window should restore from minimized state and come to front
+6. Verify window state is normal and all settings are visible
 
 ## Known Issues
 

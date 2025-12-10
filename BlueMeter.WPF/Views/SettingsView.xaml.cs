@@ -340,14 +340,28 @@ public partial class SettingsView : Window
     private void Nav_Theme_Click(object sender, RoutedEventArgs e) => ScrollToSection(SectionTheme);
 
     /// <summary>
+    /// Override Show() to restore from minimized state
+    /// </summary>
+    new public void Show()
+    {
+        // Restore from minimized state if needed
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        base.Show();
+        Activate();
+    }
+
+    /// <summary>
     /// Opens settings window, scrolls to UID field, and highlights it in red
     /// to indicate that the user needs to enter their UID for Solo Training mode
     /// </summary>
     public void ShowAndHighlightUidField()
     {
-        // Show the window and bring it to front
+        // Show the window and bring it to front (now properly restores from minimized)
         Show();
-        Activate();
 
         // Wait for window to be fully loaded before scrolling
         Dispatcher.InvokeAsync(() =>
