@@ -387,14 +387,14 @@ public static class DataStorageExtensions
     {
         try
         {
-            // Boss fights now handle their own encounter lifecycle in DataStorageV2
-            // This event handler is kept for potential future use (e.g., periodic saves)
+            // NEW DATA FLOW: Encounters are now saved BEFORE new combat starts (in RegisterBossEngagement)
+            // This event is fired when combat ends so UI can enter "Last Battle" mode
+            // Data stays in memory until new combat begins, then it's saved and cleared
 
-            // Optionally save current encounter state
-            if (_encounterService != null && _encounterService.IsEncounterActive)
-            {
-                await SaveCurrentEncounterAsync();
-            }
+            // No save here anymore! Saving happens in DataStorageV2.RegisterBossEngagement()
+            // when the next boss fight is about to start.
+
+            Console.WriteLine("[DataStorageExtensions] NewSectionCreated: Combat ended, UI can show Last Battle");
         }
         catch (Exception ex)
         {
