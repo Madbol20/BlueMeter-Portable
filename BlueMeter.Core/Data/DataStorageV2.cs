@@ -36,6 +36,12 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     private DateTime? _bossDeathTime = null;
     private const int BossDeathDelaySeconds = 8;
 
+    // ===== Deferred encounter save (keep "Last Battle" data until new combat) =====
+    private bool _awaitingNewCombat = false;
+    private long _lastEncounterDuration = 0;
+    private string? _lastEncounterBossName = null;
+    private long? _lastEncounterBossUuid = null;
+
     // ===== Queue Pop Detection (Packet-based) =====
     public static bool EnableQueueDetectionLogging { get; set; } = true;
     private readonly List<DateTime> _recentPlayerJoinTimes = new();
@@ -242,6 +248,40 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     {
         if (_activeBossUuid == 0 || _activeBossUuid != enemyUuid)
         {
+            // CRITICAL: Save and clear PREVIOUS encounter before starting new one
+            // This ensures "Last Battle" data stays intact until new combat actually starts
+            if (_awaitingNewCombat)
+            {
+                logger.LogInformation("New boss engaged while awaiting combat. Saving previous encounter before starting new one.");
+
+                // Save previous encounter synchronously to ensure data is captured
+                try
+                {
+                    var previousDuration = _lastEncounterDuration;
+                    var previousBossName = _lastEncounterBossName;
+                    var previousBossUuid = _lastEncounterBossUuid;
+
+                    DataStorageExtensions.EndCurrentEncounterAsync(
+                        previousDuration,
+                        previousBossName,
+                        previousBossUuid
+                    ).GetAwaiter().GetResult();
+
+                    logger.LogInformation("Previous encounter saved: Boss={BossName}, Duration={Duration}ms",
+                        previousBossName, previousDuration);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to save previous encounter");
+                }
+
+                // Now clear the data
+                PrivateClearDpsData();
+                logger.LogInformation("Previous encounter data cleared, ready for new combat");
+
+                _awaitingNewCombat = false;
+            }
+
             _activeBossUuid = enemyUuid;
             _bossDeathTime = null;
             logger.LogInformation("Boss fight started: Enemy {EnemyUid}", enemyUuid);
@@ -554,21 +594,19 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
                     ? (long)(DateTime.UtcNow - currentBossDeathTime.Value).TotalMilliseconds + (BossDeathDelaySeconds * 1000)
                     : (long)SectionTimeout.TotalMilliseconds;
 
-                // CRITICAL FIX: Save encounter data synchronously BEFORE clearing
-                // We must block here to ensure chart data is captured before it's deleted
-                try
-                {
-                    DataStorageExtensions.EndCurrentEncounterAsync(durationMs, bossName, currentBossUuid).GetAwaiter().GetResult();
-                    logger.LogInformation("Encounter ended for boss: {BossName} (UID={BossUid}), Duration={DurationMs}ms",
-                        bossName, currentBossUuid, durationMs);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to end encounter for boss fight");
-                }
+                // NEW APPROACH: Don't save/clear immediately!
+                // Store encounter info and set flag to indicate we're awaiting new combat
+                // This keeps "Last Battle" data intact until new boss is engaged
+                _awaitingNewCombat = true;
+                _lastEncounterDuration = durationMs;
+                _lastEncounterBossName = bossName;
+                _lastEncounterBossUuid = currentBossUuid;
 
-                // Now safe to clear - data has been saved
-                PrivateClearDpsData(); // raises DpsDataUpdated & DataUpdated
+                logger.LogInformation("Combat ended. Awaiting new combat before saving. Boss={BossName}, Duration={Duration}ms",
+                    bossName, durationMs);
+
+                // Fire NewSectionCreated so UI can enter "Last Battle" mode
+                // Data stays in memory - will be cleared when new combat starts
                 RaiseNewSectionCreated();
             }
             finally
@@ -584,27 +622,22 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
         var now = DateTime.UtcNow;
         if (now - last <= SectionTimeout) return;
 
-        // Timeout reached: save and clear section
+        // Timeout reached: store info and fire event (don't save/clear yet)
         try
         {
-            // CRITICAL FIX: Also save encounter on timeout (training dummy, wipe, etc.)
             // Calculate duration from last activity
             var durationMs = (long)(now - last).TotalMilliseconds;
 
-            try
-            {
-                // Save encounter before clearing (blocking to ensure data is captured)
-                DataStorageExtensions.EndCurrentEncounterAsync(durationMs, bossName: null, bossUuid: null)
-                    .GetAwaiter().GetResult();
-                logger.LogInformation("Encounter ended by timeout after {DurationMs}ms of inactivity", durationMs);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to end encounter on timeout");
-            }
+            // NEW APPROACH: Store encounter info for later save
+            _awaitingNewCombat = true;
+            _lastEncounterDuration = durationMs;
+            _lastEncounterBossName = null; // No boss (training dummy, wipe, etc.)
+            _lastEncounterBossUuid = null;
 
-            // Now safe to clear
-            PrivateClearDpsData(); // raises DpsDataUpdated & DataUpdated
+            logger.LogInformation("Combat ended by timeout after {Duration}ms. Awaiting new combat before saving.", durationMs);
+
+            // Fire NewSectionCreated so UI can enter "Last Battle" mode
+            // Data stays in memory - will be cleared when new combat starts
             RaiseNewSectionCreated();
         }
         finally
