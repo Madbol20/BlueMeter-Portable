@@ -377,6 +377,9 @@ public class EncounterService
                             skillData.UseTimes = kvp.Value.UseTimes;
                             skillData.CritTimes = kvp.Value.CritTimes;
                             skillData.LuckyTimes = kvp.Value.LuckyTimes;
+                            skillData.MinDamage = kvp.Value.MinDamage;
+                            skillData.MaxDamage = kvp.Value.MaxDamage;
+                            skillData.HighestCrit = kvp.Value.HighestCrit;
                         });
                     }
                 }
