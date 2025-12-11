@@ -39,20 +39,12 @@ public sealed class ApplicationStartup(
             // Initialize database for encounter history
             try
             {
-                // Convert empty string to null for battleLogDirectory (allows default path to be used)
-                var battleLogDir = string.IsNullOrWhiteSpace(configManager.CurrentConfig.BattleLogDirectory)
-                    ? null
-                    : configManager.CurrentConfig.BattleLogDirectory;
-
                 await DataStorageExtensions.InitializeDatabaseAsync(
                     dataStorage,
                     chartDataService: chartDataService,
                     autoCleanup: configManager.CurrentConfig.AutoDatabaseCleanup,
                     maxEncounters: configManager.CurrentConfig.MaxEncountersToKeep,
-                    maxSizeMB: configManager.CurrentConfig.MaxDatabaseSizeMB,
-                    enableAdvancedLogging: configManager.CurrentConfig.EnableAdvancedCombatLogging,
-                    maxStoredEncounters: configManager.CurrentConfig.MaxStoredEncounters,
-                    battleLogDirectory: battleLogDir);
+                    maxSizeMB: configManager.CurrentConfig.MaxDatabaseSizeMB);
                 logger.LogInformation(WpfLogEvents.StartupInit, "Database initialized successfully");
 
                 // Preload player cache from database to reduce "Unknown" players
