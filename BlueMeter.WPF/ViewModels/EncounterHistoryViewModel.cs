@@ -264,34 +264,12 @@ public partial class EncounterHistoryViewModel : BaseViewModel
     [RelayCommand]
     private void ManageAdvancedLogs()
     {
-        try
-        {
-            // Open the dedicated Combat Logs Window
-            var combatLogsWindow = _serviceProvider.GetService<Views.CombatLogsWindow>();
-            if (combatLogsWindow != null)
-            {
-                combatLogsWindow.Owner = Application.Current.MainWindow;
-                combatLogsWindow.ShowDialog();
-            }
-            else
-            {
-                _logger.LogError("Failed to create CombatLogsWindow - service not registered");
-                MessageBox.Show(
-                    "Failed to open Combat Logs window.\n\nPlease check the logs for details.",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error opening Combat Logs window");
-            MessageBox.Show(
-                $"Error opening Combat Logs window:\n\n{ex.Message}",
-                "Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-        }
+        // BSON logging removed - SQLite only
+        MessageBox.Show(
+            "Advanced Combat Logging (BSON) has been removed.\n\nAll encounter data is now stored in SQLite database only.",
+            "Feature Removed",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     private static string FormatBytes(long bytes)
@@ -351,22 +329,8 @@ public partial class EncounterSummaryViewModel : BaseViewModel
 
     private void CheckForBsonLog()
     {
-        try
-        {
-            var manager = DataStorageExtensions.GetBattleLogManager();
-            if (manager == null)
-            {
-                _hasBsonLog = false;
-                return;
-            }
-
-            var storedEncounters = manager.GetStoredEncounters();
-            _hasBsonLog = storedEncounters.Any(e => e.EncounterId == EncounterId);
-        }
-        catch
-        {
-            _hasBsonLog = false;
-        }
+        // BSON logging removed - SQLite only
+        _hasBsonLog = false;
     }
 
     private string FormatNumber(long value)
