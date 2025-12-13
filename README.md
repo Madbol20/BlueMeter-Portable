@@ -18,11 +18,11 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.5.3**
-- Christmas theme decorations with interactive bell, custom candy cane cursor, and festive effects
-- Dynamic complementary color gradients for Launch and Daily/Weekly buttons
-- Fixed DPS meter continuing after combat ends (now filters NPC-vs-NPC damage)
-- Fixed Settings window minimize button not working
+**Latest Version: 1.5.4**
+- **DPS Refresh Rate Settings** - Customizable update frequency (10/20/30/60 FPS) to eliminate in-game lag
+- Performance optimizations - Non-blocking UI sorting and improved batch processing
+- Reduced boss death delay from 8s to 5s for faster fight archiving
+- Recommended: Use Minimal (10 FPS) when playing, Medium/High (30-60 FPS) when tabbed out
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

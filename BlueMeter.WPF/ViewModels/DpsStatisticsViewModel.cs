@@ -63,10 +63,11 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
     private DispatcherTimer? _durationTimer;
     private bool _isInitialized;
     // UI update throttling to prevent freezing during intense combat
-    // Increased from 100ms to 200ms to improve performance in high-activity scenarios (raids/WBC)
+    // Dynamic throttle based on user's DpsRefreshRate setting (Minimal/Low/Medium/High)
     private DateTime _lastUiUpdate = DateTime.MinValue;
     private bool _pendingUiUpdate;
-    private readonly TimeSpan _uiUpdateThrottle = TimeSpan.FromMilliseconds(200);
+    // Computed property based on AppConfig.DpsRefreshRate
+    private TimeSpan UiUpdateThrottle => TimeSpan.FromMilliseconds(AppConfig.DpsRefreshRate.GetIntervalMs());
     // Combat pause detection - pause timer when no damage (but don't archive!)
     private DateTime _lastDamageTime = DateTime.MinValue;
     private readonly TimeSpan _combatPauseThreshold = TimeSpan.FromSeconds(1); // Stop meter after 1s of no combat
@@ -345,13 +346,13 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
         var now = DateTime.UtcNow;
         var timeSinceLastUpdate = now - _lastUiUpdate;
 
-        if (timeSinceLastUpdate < _uiUpdateThrottle)
+        if (timeSinceLastUpdate < UiUpdateThrottle)
         {
             // Too soon since last update - schedule a delayed update if not already pending
             if (!_pendingUiUpdate)
             {
                 _pendingUiUpdate = true;
-                var delay = _uiUpdateThrottle - timeSinceLastUpdate;
+                var delay = UiUpdateThrottle - timeSinceLastUpdate;
                 Task.Delay(delay).ContinueWith(_ =>
                 {
                     _dispatcher.BeginInvoke(() =>

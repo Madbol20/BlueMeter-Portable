@@ -4,6 +4,31 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.5.4
+
+**⚡ New Features:**
+- **DPS Refresh Rate Settings** - Customizable meter update frequency to eliminate in-game lag
+  - Minimal: 10 FPS (100ms) - Best for low-end PCs or when playing in-game
+  - Low: 20 FPS (50ms) - Good balance (Default)
+  - Medium: 30 FPS (33ms) - Smooth updates
+  - High: 60 FPS (16ms) - Maximum smoothness (high-end PCs only)
+  - Configurable in Settings → Performance
+  - Changes take effect immediately without restart
+
+**🚀 Performance Improvements:**
+- UI thread optimization - Changed sorting to non-blocking operations for smoother experience during raids
+- Batch processing optimization - Increased batch size from 100 to 300 for better throughput
+- Reduced boss death delay from 8s to 5s for faster fight archiving
+
+**User Impact:**
+- **Eliminates lag when tabbed into game** - Lower refresh rates reduce CPU competition
+- Smoother UI during intense combat (10+ players)
+- Faster "Last Battle" transition after boss fights
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.5.4.md)
+
+---
+
 ## Version 1.5.3
 
 **🎄 New Features:**

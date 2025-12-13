@@ -93,8 +93,9 @@ public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
 
         try
         {
-            // Sort the collection based on the current criteria
-            _dispatcher.Invoke(() =>
+            // Use BeginInvoke instead of Invoke to avoid blocking the UI thread during sorting
+            // This allows the UI to remain responsive during intense combat
+            _dispatcher.BeginInvoke(() =>
             {
                 switch (SortMemberPath)
                 {
@@ -114,9 +115,9 @@ public partial class DpsStatisticsSubViewModel : BaseViewModel, IDisposable
                         Data.SortBy(x => x.Percent, SortDirection == SortDirectionEnum.Descending);
                         break;
                 }
-            });
-            // Update the Index property to reflect the new order (1-based index)
-            UpdateItemIndices();
+                // Update the Index property to reflect the new order (1-based index)
+                UpdateItemIndices();
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
         catch (Exception ex)
         {

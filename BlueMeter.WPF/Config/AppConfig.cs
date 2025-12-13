@@ -287,6 +287,13 @@ public partial class AppConfig : ObservableObject
         BlueMeter.Core.Data.DataStorageV2.EnableQueueDetectionLogging = value;
     }
 
+    partial void OnDpsRefreshRateChanged(DpsRefreshRate value)
+    {
+        // Update global batch timeout when DPS refresh rate changes
+        var intervalMs = value.GetIntervalMs();
+        BlueMeter.Core.Data.BattleLogQueue.GlobalBatchTimeout = TimeSpan.FromMilliseconds(intervalMs);
+    }
+
     // ===== Advanced Combat Logging Settings =====
 
     /// <summary>
@@ -310,6 +317,13 @@ public partial class AppConfig : ObservableObject
     /// </summary>
     [ObservableProperty]
     private string? _battleLogDirectory = null;
+
+    /// <summary>
+    /// DPS Refresh Rate (how often DPS numbers update)
+    /// Minimal=10fps, Low=20fps, Medium=30fps, High=60fps
+    /// </summary>
+    [ObservableProperty]
+    private DpsRefreshRate _dpsRefreshRate = DpsRefreshRate.Low;
 
     /// <summary>
     /// Effective theme color (considers holiday themes if enabled)

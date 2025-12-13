@@ -895,6 +895,66 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Performance Section -->
+                            <ctrl:CardHeader
+                                Title="Performance"
+                                Subtitle="Configure DPS meter update frequency and smoothness" />
+
+                            <Border Style="{StaticResource SectionBorder}">
+                                <StackPanel Style="{StaticResource SectionStackPanel}">
+
+                                    <!-- DPS Refresh Rate -->
+                                    <Border Style="{StaticResource SectionFieldBorder}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="39*" />
+                                                <ColumnDefinition Width="*" MinWidth="10" />
+                                                <ColumnDefinition Width="60*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldName}"
+                                                Text="DPS Refresh Rate"
+                                                ToolTip="How often DPS numbers update. Higher = smoother but more CPU usage." />
+                                            <ComboBox
+                                                Grid.Column="2"
+                                                SelectedItem="{Binding AppConfig.DpsRefreshRate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource FieldComboBox}">
+                                                <ComboBox.Items>
+                                                    <models:DpsRefreshRate xmlns:models="clr-namespace:BlueMeter.WPF.Models">Minimal</models:DpsRefreshRate>
+                                                    <models:DpsRefreshRate xmlns:models="clr-namespace:BlueMeter.WPF.Models">Low</models:DpsRefreshRate>
+                                                    <models:DpsRefreshRate xmlns:models="clr-namespace:BlueMeter.WPF.Models">Medium</models:DpsRefreshRate>
+                                                    <models:DpsRefreshRate xmlns:models="clr-namespace:BlueMeter.WPF.Models">High</models:DpsRefreshRate>
+                                                </ComboBox.Items>
+                                            </ComboBox>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Info Text -->
+                                    <Border Style="{StaticResource SectionFieldBorderBase}">
+                                        <TextBlock
+                                            Margin="0,0,10,0"
+                                            FontSize="11"
+                                            Foreground="#888888"
+                                            TextWrapping="Wrap">
+                                            <Run Text="?? " FontWeight="Bold" />
+                                            <Run Text="Minimal: 10 FPS (100ms) - Best for low-end PCs" />
+                                            <LineBreak />
+                                            <Run Text="?? " FontWeight="Bold" />
+                                            <Run Text="Low: 20 FPS (50ms) - Good balance (Default)" />
+                                            <LineBreak />
+                                            <Run Text="?? " FontWeight="Bold" />
+                                            <Run Text="Medium: 30 FPS (33ms) - Smooth updates" />
+                                            <LineBreak />
+                                            <Run Text="?? " FontWeight="Bold" />
+                                            <Run Text="High: 60 FPS (16ms) - Maximum smoothness (High-end PCs only)" />
+                                        </TextBlock>
+                                    </Border>
+
+                                </StackPanel>
+                            </Border>
+
                             <!-- Advanced Combat Logging Section -->
                             <ctrl:CardHeader
                                 Title="Advanced Combat Logging (Beta)"

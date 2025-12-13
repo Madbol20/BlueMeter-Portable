@@ -34,7 +34,7 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     // ===== Boss tracking for battle section management =====
     private long _activeBossUuid = 0;
     private DateTime? _bossDeathTime = null;
-    private const int BossDeathDelaySeconds = 8;
+    private const int BossDeathDelaySeconds = 5;
 
     // ===== Queue Pop Detection (Packet-based) =====
     public static bool EnableQueueDetectionLogging { get; set; } = true;

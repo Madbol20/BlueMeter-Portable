@@ -22,24 +22,39 @@ public sealed class BattleLogQueue : IDisposable
 
     // Configuration
     private readonly int _batchSize;
-    private readonly TimeSpan _batchTimeout;
+    private TimeSpan _batchTimeout;
 
     // Metrics
     private long _totalProcessed;
     private long _totalBatches;
     private readonly Stopwatch _metricsTimer = Stopwatch.StartNew();
 
+    /// <summary>
+    /// Global batch timeout override (set by UI based on DpsRefreshRate setting)
+    /// If null, uses the default from constructor
+    /// </summary>
+    public static TimeSpan? GlobalBatchTimeout { get; set; } = null;
+
+    /// <summary>
+    /// Update the batch timeout for this instance (allows runtime changes)
+    /// </summary>
+    public void UpdateBatchTimeout(TimeSpan newTimeout)
+    {
+        _batchTimeout = newTimeout;
+    }
+
     public BattleLogQueue(
         DataStorageV2 storageV2,
         ILogger<BattleLogQueue>? logger = null,
         int capacity = 10_000,
-        int batchSize = 100,
+        int batchSize = 300,
         TimeSpan? batchTimeout = null)
     {
         _storageV2 = storageV2 ?? throw new ArgumentNullException(nameof(storageV2));
         _logger = logger;
         _batchSize = batchSize;
-        _batchTimeout = batchTimeout ?? TimeSpan.FromMilliseconds(50);
+        // Use GlobalBatchTimeout if set, otherwise use parameter or default
+        _batchTimeout = GlobalBatchTimeout ?? batchTimeout ?? TimeSpan.FromMilliseconds(50);
 
         _channel = Channel.CreateBounded<BattleLog>(new BoundedChannelOptions(capacity)
         {
