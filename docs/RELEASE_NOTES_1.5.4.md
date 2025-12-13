@@ -66,6 +66,27 @@
 
 ## Bug Fixes
 
+### 🐛 Fixed ScopeTime Toggle Not Working (Current ↔ Total)
+
+**Issue:** When switching from Current to Total damage view, it worked correctly. However, switching back from Total to Current would fail to update the UI, leaving the meter stuck showing total damage.
+
+**Root Cause:** The `OnScopeTimeChanged` handler was calling `UpdateData()`, which went through the throttled update path designed for combat data updates. When users manually toggled between Current/Total, the UI update would be delayed by the DPS refresh rate throttle (10-100ms depending on settings) or skipped entirely if a pending update was already scheduled.
+
+**User Report:** "when I switch from current damage to total it works, but then switching back to current doesn't work"
+
+**Fix Applied:**
+- Modified `OnScopeTimeChanged()` in `DpsStatisticsViewModel.cs` (lines 1049-1071)
+- Changed from `UpdateData()` to `PerformUiUpdate()` to bypass throttling
+- Modified `OnStatisticIndexChanged()` to use the same approach for metric switching (lines 1073-1086)
+- User-initiated actions now update immediately without throttle delay
+- Combat data updates continue to use throttling for performance
+
+**User Impact:**
+- ✅ Current ↔ Total toggle now works instantly in both directions
+- ✅ Metric switching (Damage/Healing/TakenDamage) updates immediately
+- ✅ No performance regression - combat updates still throttled as designed
+- ✅ Better responsiveness to manual UI interactions
+
 ### 🐛 Reduced Boss Death Delay
 
 **Issue:** After defeating a boss, the meter would continue tracking for too long (8 seconds) before archiving the fight as "Last Battle."

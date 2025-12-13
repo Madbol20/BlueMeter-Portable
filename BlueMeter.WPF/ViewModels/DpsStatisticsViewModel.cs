@@ -1054,7 +1054,17 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
         }
 
         UpdateBattleDuration();
-        UpdateData();
+
+        // User-initiated toggle should update immediately, bypass throttling
+        // Call PerformUiUpdate directly instead of going through throttled UpdateData()
+        if (_dispatcher.CheckAccess())
+        {
+            PerformUiUpdate();
+        }
+        else
+        {
+            _dispatcher.BeginInvoke(PerformUiUpdate);
+        }
 
         // Notify that CurrentPlayerSlot might have changed
         OnPropertyChanged(nameof(CurrentStatisticData));
@@ -1063,6 +1073,15 @@ public partial class DpsStatisticsViewModel : BaseViewModel, IDisposable
     partial void OnStatisticIndexChanged(StatisticType value)
     {
         OnPropertyChanged(nameof(CurrentStatisticData));
-        UpdateData();
+
+        // User-initiated metric change should update immediately, bypass throttling
+        if (_dispatcher.CheckAccess())
+        {
+            PerformUiUpdate();
+        }
+        else
+        {
+            _dispatcher.BeginInvoke(PerformUiUpdate);
+        }
     }
 }

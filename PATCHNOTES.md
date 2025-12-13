@@ -20,10 +20,16 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 - Batch processing optimization - Increased batch size from 100 to 300 for better throughput
 - Reduced boss death delay from 8s to 5s for faster fight archiving
 
+**🐛 Bug Fixes:**
+- Fixed ScopeTime toggle not working when switching from Total back to Current
+  - User-initiated toggles (Current/Total, Damage/Healing) now update immediately
+  - Bypasses throttle for manual actions while keeping combat updates optimized
+
 **User Impact:**
 - **Eliminates lag when tabbed into game** - Lower refresh rates reduce CPU competition
 - Smoother UI during intense combat (10+ players)
 - Faster "Last Battle" transition after boss fights
+- Instant response when toggling between Current/Total or changing metrics
 
 [Detailed Release Notes](docs/RELEASE_NOTES_1.5.4.md)
 

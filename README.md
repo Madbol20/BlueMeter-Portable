@@ -21,6 +21,7 @@ For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES
 **Latest Version: 1.5.4**
 - **DPS Refresh Rate Settings** - Customizable update frequency (10/20/30/60 FPS) to eliminate in-game lag
 - Performance optimizations - Non-blocking UI sorting and improved batch processing
+- Fixed ScopeTime toggle - Current/Total switching now works instantly in both directions
 - Reduced boss death delay from 8s to 5s for faster fight archiving
 - Recommended: Use Minimal (10 FPS) when playing, Medium/High (30-60 FPS) when tabbed out
 
