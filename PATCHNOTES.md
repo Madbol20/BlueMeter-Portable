@@ -4,6 +4,18 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.5.5
+
+**🐛 Critical Bug Fix:**
+- Fixed race condition crash in 20-man raids (ArgumentException: "Destination array is not long enough")
+- Added comprehensive thread-safe locking to DataStorageV2.cs with caching for improved performance
+- Eliminates crashes during large-scale content (20-man raids, World Boss Carnage, dynamic player join/leave)
+- Note: v1.5.2 fixed this in DataStorage.cs, but the project uses DataStorageV2.cs which still had the issue
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.5.5.md)
+
+---
+
 ## Version 1.5.3
 
 **🎄 New Features:**

@@ -18,11 +18,10 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.5.3**
-- Christmas theme decorations with interactive bell, custom candy cane cursor, and festive effects
-- Dynamic complementary color gradients for Launch and Daily/Weekly buttons
-- Fixed DPS meter continuing after combat ends (now filters NPC-vs-NPC damage)
-- Fixed Settings window minimize button not working
+**Latest Version: 1.5.5**
+- **CRITICAL FIX:** Eliminated race condition crashes in 20-man raids (ArgumentException: "Destination array is not long enough")
+- Added comprehensive thread-safe locking to DataStorageV2.cs with performance-optimized caching
+- Fully stable during large-scale content (20-man raids, World Boss Carnage, dynamic player join/leave)
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

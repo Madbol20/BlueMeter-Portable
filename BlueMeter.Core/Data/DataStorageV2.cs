@@ -14,6 +14,12 @@ namespace BlueMeter.Core.Data;
 /// </summary>
 public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IDataStorage
 {
+    // ===== Thread Safety =====
+    /// <summary>
+    /// Lock object for thread-safe access to DPS data dictionaries and caches
+    /// </summary>
+    private readonly object _dpsDataLock = new();
+
     // ===== Event Batching Support =====
     private readonly object _eventBatchLock = new();
     private readonly List<BattleLog> _pendingBattleLogs = new(100);
@@ -142,9 +148,19 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     private Dictionary<long, DpsData> FullDpsData { get; } = [];
 
     /// <summary>
+    /// 缓存的全程玩家DPS列表
+    /// </summary>
+    private List<DpsData>? _cachedFullDpsDataList;
+
+    /// <summary>
     /// 阶段性玩家DPS字典 (Key: UID)
     /// </summary>
     private Dictionary<long, DpsData> SectionedDpsData { get; } = [];
+
+    /// <summary>
+    /// 缓存的阶段性玩家DPS列表
+    /// </summary>
+    private List<DpsData>? _cachedSectionedDpsDataList;
 
     /// <summary>
     /// 强制新分段标记
@@ -175,9 +191,22 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     public ReadOnlyDictionary<long, DpsData> ReadOnlyFullDpsDatas => FullDpsData.AsReadOnly();
 
     /// <summary>
-    /// 只读全程玩家DPS列表; 注意! 频繁读取该属性可能会导致性能问题!
+    /// 只读全程玩家DPS列表 (性能优化: 使用缓存避免频繁创建新列表)
     /// </summary>
-    public IReadOnlyList<DpsData> ReadOnlyFullDpsDataList => FullDpsData.Values.ToList().AsReadOnly();
+    public IReadOnlyList<DpsData> ReadOnlyFullDpsDataList
+    {
+        get
+        {
+            lock (_dpsDataLock)
+            {
+                if (_cachedFullDpsDataList == null)
+                {
+                    _cachedFullDpsDataList = FullDpsData.Values.ToList();
+                }
+                return _cachedFullDpsDataList.AsReadOnly();
+            }
+        }
+    }
 
     /// <summary>
     /// 阶段性只读玩家DPS字典 (Key: UID)
@@ -185,9 +214,22 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     public ReadOnlyDictionary<long, DpsData> ReadOnlySectionedDpsDatas => SectionedDpsData.AsReadOnly();
 
     /// <summary>
-    /// 阶段性只读玩家DPS列表; 注意! 频繁读取该属性可能会导致性能问题!
+    /// 阶段性只读玩家DPS列表 (性能优化: 使用缓存避免频繁创建新列表)
     /// </summary>
-    public IReadOnlyList<DpsData> ReadOnlySectionedDpsDataList => SectionedDpsData.Values.ToList().AsReadOnly();
+    public IReadOnlyList<DpsData> ReadOnlySectionedDpsDataList
+    {
+        get
+        {
+            lock (_dpsDataLock)
+            {
+                if (_cachedSectionedDpsDataList == null)
+                {
+                    _cachedSectionedDpsDataList = SectionedDpsData.Values.ToList();
+                }
+                return _cachedSectionedDpsDataList.AsReadOnly();
+            }
+        }
+    }
 
     /// <summary>
     /// Inactivity timeout for creating new sections (phase transitions, pauses)
@@ -246,59 +288,29 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     /// </summary>
     public void RegisterBossEngagement(long enemyUuid)
     {
+        // CRITICAL FIX: Only clear data ONCE per combat session, not for every mob!
+        // Encounter will be started lazily on first save, not here
+        if (_awaitingNewCombat)
+        {
+            logger.LogInformation("New combat session started (first damage dealt). Clearing previous data.");
+
+            // Previous encounter was already saved when combat ended!
+            // Just clear the data now to make room for new combat
+            PrivateClearDpsData();
+            logger.LogInformation("Previous encounter data cleared, ready for new combat");
+
+            _awaitingNewCombat = false;
+
+            // NOTE: Encounter will be started automatically when first save happens
+            // This ensures encounter exists before we try to save stats to it
+        }
+
+        // Track boss for death detection (but don't start new encounters for each mob!)
         if (_activeBossUuid == 0 || _activeBossUuid != enemyUuid)
         {
-            // CRITICAL: Save and clear PREVIOUS encounter before starting new one
-            // This ensures "Last Battle" data stays intact until new combat actually starts
-            if (_awaitingNewCombat)
-            {
-                logger.LogInformation("New boss engaged while awaiting combat. Saving previous encounter before starting new one.");
-
-                // Save previous encounter synchronously to ensure data is captured
-                try
-                {
-                    var previousDuration = _lastEncounterDuration;
-                    var previousBossName = _lastEncounterBossName;
-                    var previousBossUuid = _lastEncounterBossUuid;
-
-                    DataStorageExtensions.EndCurrentEncounterAsync(
-                        previousDuration,
-                        previousBossName,
-                        previousBossUuid
-                    ).GetAwaiter().GetResult();
-
-                    logger.LogInformation("Previous encounter saved: Boss={BossName}, Duration={Duration}ms",
-                        previousBossName, previousDuration);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to save previous encounter");
-                }
-
-                // Now clear the data
-                PrivateClearDpsData();
-                logger.LogInformation("Previous encounter data cleared, ready for new combat");
-
-                _awaitingNewCombat = false;
-            }
-
             _activeBossUuid = enemyUuid;
             _bossDeathTime = null;
-            logger.LogInformation("Boss fight started: Enemy {EnemyUid}", enemyUuid);
-
-            // Start encounter for this boss fight
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await DataStorageExtensions.StartNewEncounterAsync();
-                    logger.LogInformation("Encounter started for boss fight: Enemy {EnemyUid}", enemyUuid);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to start encounter for boss fight");
-                }
-            });
+            logger.LogDebug("Boss tracking updated: Enemy {EnemyUid}", enemyUuid);
         }
     }
 
@@ -594,16 +606,31 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
                     ? (long)(DateTime.UtcNow - currentBossDeathTime.Value).TotalMilliseconds + (BossDeathDelaySeconds * 1000)
                     : (long)SectionTimeout.TotalMilliseconds;
 
-                // NEW APPROACH: Don't save/clear immediately!
-                // Store encounter info and set flag to indicate we're awaiting new combat
-                // This keeps "Last Battle" data intact until new boss is engaged
-                _awaitingNewCombat = true;
+                // SAVE ENCOUNTER IMMEDIATELY when combat ends!
+                // This ensures we don't lose data if user doesn't start another fight
                 _lastEncounterDuration = durationMs;
                 _lastEncounterBossName = bossName;
                 _lastEncounterBossUuid = currentBossUuid;
 
-                logger.LogInformation("Combat ended. Awaiting new combat before saving. Boss={BossName}, Duration={Duration}ms",
+                logger.LogInformation("Combat ended. Saving encounter now. Boss={BossName}, Duration={Duration}ms",
                     bossName, durationMs);
+
+                // Save encounter asynchronously
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await DataStorageExtensions.EndCurrentEncounterAsync(durationMs, bossName, currentBossUuid);
+                        logger.LogInformation("Encounter saved successfully after combat end");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to save encounter after combat end");
+                    }
+                });
+
+                // Set flag to indicate we're awaiting new combat (for clearing data later)
+                _awaitingNewCombat = true;
 
                 // Fire NewSectionCreated so UI can enter "Last Battle" mode
                 // Data stays in memory - will be cleared when new combat starts
@@ -628,13 +655,29 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
             // Calculate duration from last activity
             var durationMs = (long)(now - last).TotalMilliseconds;
 
-            // NEW APPROACH: Store encounter info for later save
-            _awaitingNewCombat = true;
+            // SAVE ENCOUNTER IMMEDIATELY when combat times out
             _lastEncounterDuration = durationMs;
             _lastEncounterBossName = null; // No boss (training dummy, wipe, etc.)
             _lastEncounterBossUuid = null;
 
-            logger.LogInformation("Combat ended by timeout after {Duration}ms. Awaiting new combat before saving.", durationMs);
+            logger.LogInformation("Combat ended by timeout after {Duration}ms. Saving encounter now.", durationMs);
+
+            // Save encounter asynchronously
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await DataStorageExtensions.EndCurrentEncounterAsync(durationMs, null, null);
+                    logger.LogInformation("Encounter saved successfully after timeout");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to save encounter after timeout");
+                }
+            });
+
+            // Set flag to indicate we're awaiting new combat
+            _awaitingNewCombat = true;
 
             // Fire NewSectionCreated so UI can enter "Last Battle" mode
             // Data stays in memory - will be cleared when new combat starts
@@ -700,22 +743,29 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     /// </remarks>
     public (DpsData fullData, DpsData sectionedData) GetOrCreateDpsDataByUid(long uid)
     {
-        var fullDpsDataFlag = FullDpsData.TryGetValue(uid, out var fullDpsData);
-        if (!fullDpsDataFlag)
+        lock (_dpsDataLock)
         {
-            fullDpsData = new DpsData { UID = uid };
+            var fullDpsDataFlag = FullDpsData.TryGetValue(uid, out var fullDpsData);
+            if (!fullDpsDataFlag)
+            {
+                fullDpsData = new DpsData { UID = uid };
+            }
+
+            var sectionedDpsDataFlag = SectionedDpsData.TryGetValue(uid, out var sectionedDpsData);
+            if (!sectionedDpsDataFlag)
+            {
+                sectionedDpsData = new DpsData { UID = uid };
+            }
+
+            SectionedDpsData[uid] = sectionedDpsData!;
+            FullDpsData[uid] = fullDpsData!;
+
+            // Invalidate caches when dictionaries are modified
+            _cachedFullDpsDataList = null;
+            _cachedSectionedDpsDataList = null;
+
+            return (fullDpsData!, sectionedDpsData!);
         }
-
-        var sectionedDpsDataFlag = SectionedDpsData.TryGetValue(uid, out var sectionedDpsData);
-        if (!sectionedDpsDataFlag)
-        {
-            sectionedDpsData = new DpsData { UID = uid };
-        }
-
-        SectionedDpsData[uid] = sectionedDpsData!;
-        FullDpsData[uid] = fullDpsData!;
-
-        return (fullDpsData!, sectionedDpsData!);
     }
 
     /// <summary>
@@ -903,13 +953,19 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     /// </summary>
     private void PrivateClearDpsDataNoEvents()
     {
-        // Clear sliding windows for charts (Phase 2B)
-        foreach (var dpsData in SectionedDpsData.Values)
+        lock (_dpsDataLock)
         {
-            dpsData.ClearWindows();
-        }
+            // Clear sliding windows for charts (Phase 2B)
+            foreach (var dpsData in SectionedDpsData.Values)
+            {
+                dpsData.ClearWindows();
+            }
 
-        SectionedDpsData.Clear();
+            SectionedDpsData.Clear();
+
+            // Invalidate cache when dictionary is modified
+            _cachedSectionedDpsDataList = null;
+        }
     }
 
     /// <summary>
@@ -972,23 +1028,29 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
 
     private void PrivateClearDpsData()
     {
-        // Clear sliding windows for charts (Phase 2B)
-        foreach (var dpsData in SectionedDpsData.Values)
+        lock (_dpsDataLock)
         {
-            dpsData.ClearWindows();
-        }
+            // Clear sliding windows for charts (Phase 2B)
+            foreach (var dpsData in SectionedDpsData.Values)
+            {
+                dpsData.ClearWindows();
+            }
 
-        SectionedDpsData.Clear();
+            SectionedDpsData.Clear();
 
-        // Reset boss tracking when section clears
-        _activeBossUuid = 0;
-        _bossDeathTime = null;
+            // Invalidate cache when dictionary is modified
+            _cachedSectionedDpsDataList = null;
 
-        // CRITICAL FIX: Reset timeout flag to allow meter to accept new data after manual reset
-        // Without this, if timeout occurred before reset, meter stays frozen until new battle logs arrive
-        lock (_sectionTimeoutLock)
-        {
-            _timeoutSectionClearedOnce = false;
+            // Reset boss tracking when section clears
+            _activeBossUuid = 0;
+            _bossDeathTime = null;
+
+            // CRITICAL FIX: Reset timeout flag to allow meter to accept new data after manual reset
+            // Without this, if timeout occurred before reset, meter stays frozen until new battle logs arrive
+            lock (_sectionTimeoutLock)
+            {
+                _timeoutSectionClearedOnce = false;
+            }
         }
 
         RaiseDpsDataUpdated();
@@ -1135,14 +1197,22 @@ public sealed partial class DataStorageV2(ILogger<DataStorageV2> logger) : IData
     public void ClearAllDpsData()
     {
         ForceNewBattleSection = true;
-        SectionedDpsData.Clear();
-        FullDpsData.Clear();
 
-        // CRITICAL FIX: Reset timeout flag to allow meter to accept new data after manual reset
-        // Without this, if timeout occurred before reset, meter stays frozen until new battle logs arrive
-        lock (_sectionTimeoutLock)
+        lock (_dpsDataLock)
         {
-            _timeoutSectionClearedOnce = false;
+            SectionedDpsData.Clear();
+            FullDpsData.Clear();
+
+            // Invalidate caches when dictionaries are modified
+            _cachedFullDpsDataList = null;
+            _cachedSectionedDpsDataList = null;
+
+            // CRITICAL FIX: Reset timeout flag to allow meter to accept new data after manual reset
+            // Without this, if timeout occurred before reset, meter stays frozen until new battle logs arrive
+            lock (_sectionTimeoutLock)
+            {
+                _timeoutSectionClearedOnce = false;
+            }
         }
 
         RaiseDpsDataUpdated();

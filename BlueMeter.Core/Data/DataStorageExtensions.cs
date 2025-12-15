@@ -115,7 +115,14 @@ public static class DataStorageExtensions
     /// </summary>
     public static async Task SaveCurrentEncounterAsync()
     {
-        if (_encounterService == null || !_encounterService.IsEncounterActive) return;
+        if (_encounterService == null) return;
+
+        // Lazy start: If no encounter is active, start one now
+        if (!_encounterService.IsEncounterActive)
+        {
+            await StartNewEncounterAsync();
+            Console.WriteLine("[DataStorageExtensions] Started new encounter (lazy initialization)");
+        }
 
         // Avoid saving too frequently
         if (DateTime.Now - _lastSaveTime < MinSaveDuration) return;
@@ -136,6 +143,16 @@ public static class DataStorageExtensions
                 // Fallback to static DataStorage
                 playerInfos = DataStorage.ReadOnlyPlayerInfoDatas.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                 dpsData = DataStorage.ReadOnlySectionedDpsDatas.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
+            // Filter out only very minimal encounters (accidental hits, etc.)
+            // Very low threshold (10K) to capture trash mobs and small fights
+            // The main deduplication happens in RegisterBossEngagement (1 encounter per session)
+            var totalDamage = dpsData.Values.Sum(d => d.TotalAttackDamage);
+            if (totalDamage < 10_000)
+            {
+                Console.WriteLine($"[DataStorageExtensions] Skipping save - total damage {totalDamage:N0} is below 10K threshold (likely accidental hit)");
+                return;
             }
 
             // Get chart history from cache (populated by BeforeHistoryCleared event)
@@ -209,7 +226,10 @@ public static class DataStorageExtensions
         // Final save before ending
         await SaveCurrentEncounterAsync();
 
-        await _encounterService.EndCurrentEncounterAsync(durationMs, 0, bossName, bossUuid);
+        // Save all encounters longer than 1 second (includes trash mobs and boss fights)
+        // Very short encounters (< 1s) are likely accidental hits and will be deleted
+        const long MinEncounterDurationMs = 1000; // 1 second
+        await _encounterService.EndCurrentEncounterAsync(durationMs, MinEncounterDurationMs, bossName, bossUuid);
     }
 
     /// <summary>
@@ -304,7 +324,7 @@ public static class DataStorageExtensions
         }
     }
 
-    private static async void OnNewSectionCreated()
+    private static void OnNewSectionCreated()
     {
         try
         {
@@ -351,12 +371,11 @@ public static class DataStorageExtensions
         try
         {
             // Update player cache in database
+            // Note: We do NOT save encounter here - encounters are only saved when combat ends
+            // (in RegisterBossEngagement when a new boss fight starts)
             if (_encounterService != null)
             {
                 await _encounterService.UpdatePlayerCacheAsync(playerInfo);
-
-                // Periodically save encounter data
-                await SaveCurrentEncounterAsync();
             }
         }
         catch (Exception ex)
