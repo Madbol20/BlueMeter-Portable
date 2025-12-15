@@ -157,10 +157,6 @@ public partial class App : Application
                 services.AddTransient<EnhancedSkillBreakdownViewModel>();
                 services.AddTransient<EnhancedSkillBreakdownView>();
 
-                // Combat Logs Window (Phase 3)
-                services.AddTransient<CombatLogsWindowViewModel>();
-                services.AddTransient<CombatLogsWindow>();
-
                 // Replay Window (Phase 4)
                 services.AddTransient<ReplayWindowViewModel>();
                 services.AddTransient<ReplayWindow>();

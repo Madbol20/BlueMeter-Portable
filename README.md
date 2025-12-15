@@ -18,12 +18,11 @@ The tool does not require modifying the game client and does not violate the gam
 
 For detailed patch notes and release information, see [PATCHNOTES.md](PATCHNOTES.md).
 
-**Latest Version: 1.5.4**
+**Latest Version: 1.5.6**
+- **CRITICAL FIX:** Eliminated race condition crashes in 20-man raids
 - **DPS Refresh Rate Settings** - Customizable update frequency (10/20/30/60 FPS) to eliminate in-game lag
-- Performance optimizations - Non-blocking UI sorting and improved batch processing
-- Fixed ScopeTime toggle - Current/Total switching now works instantly in both directions
-- Reduced boss death delay from 8s to 5s for faster fight archiving
-- Recommended: Use Minimal (10 FPS) when playing, Medium/High (30-60 FPS) when tabbed out
+- Performance optimizations - Thread-safe locking, non-blocking UI sorting, improved batch processing
+- Fixed ScopeTime toggle and reduced boss death delay for faster fight archiving
 
 For full changelog history, see [PATCHNOTES.md](PATCHNOTES.md) or detailed release notes in the `/docs/` directory.
 

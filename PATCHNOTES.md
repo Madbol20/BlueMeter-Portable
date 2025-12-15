@@ -4,6 +4,34 @@ This document contains the changelog for all BlueMeter releases. For detailed re
 
 ---
 
+## Version 1.5.6
+
+**🐛 Critical Bug Fix:**
+- Fixed race condition crash in 20-man raids (ArgumentException: "Destination array is not long enough")
+- Added comprehensive thread-safe locking to DataStorageV2.cs with caching for improved performance
+- Eliminates crashes during large-scale content (20-man raids, World Boss Carnage, dynamic player join/leave)
+
+**⚡ New Features:**
+- **DPS Refresh Rate Settings** - Customizable meter update frequency to eliminate in-game lag
+  - Minimal: 10 FPS (100ms) - Best for low-end PCs or when playing in-game
+  - Low: 20 FPS (50ms) - Good balance (Default)
+  - Medium: 30 FPS (33ms) - Smooth updates
+  - High: 60 FPS (16ms) - Maximum smoothness (high-end PCs only)
+  - Configurable in Settings → Performance
+
+**🚀 Performance Improvements:**
+- UI thread optimization - Changed sorting to non-blocking operations for smoother experience during raids
+- Batch processing optimization - Increased batch size from 100 to 300 for better throughput
+- Reduced boss death delay from 8s to 5s for faster fight archiving
+
+**🐛 Bug Fixes:**
+- Fixed ScopeTime toggle not working when switching from Total back to Current
+  - User-initiated toggles (Current/Total, Damage/Healing) now update immediately
+
+[Detailed Release Notes](docs/RELEASE_NOTES_1.5.6.md)
+
+---
+
 ## Version 1.5.4
 
 **⚡ New Features:**

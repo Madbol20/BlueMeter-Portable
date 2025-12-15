@@ -23,11 +23,6 @@ public static class DataStorageExtensions
     private static Dictionary<long, List<Database.ChartDataPoint>>? _cachedDpsHistory;
     private static Dictionary<long, List<Database.ChartDataPoint>>? _cachedHpsHistory;
 
-    // Advanced Combat Logging (BSON)
-    private static BattleLogManager? _battleLogManager;
-    private static BattleLogRecorder? _currentRecorder;
-    private static bool _advancedLoggingEnabled = false;
-
     /// <summary>
     /// Initialize database integration with DataStorage
     /// </summary>
@@ -37,10 +32,7 @@ public static class DataStorageExtensions
         object? chartDataService = null,
         bool autoCleanup = true,
         int maxEncounters = 20,
-        double maxSizeMB = 100,
-        bool enableAdvancedLogging = false,
-        int maxStoredEncounters = 10,
-        string? battleLogDirectory = null)
+        double maxSizeMB = 100)
     {
         if (_isInitialized) return;
 
@@ -100,20 +92,6 @@ public static class DataStorageExtensions
             DataStorage.PlayerInfoUpdated += OnPlayerInfoUpdated;
         }
 
-        // Initialize Advanced Combat Logging (BSON)
-        _advancedLoggingEnabled = enableAdvancedLogging;
-        if (_advancedLoggingEnabled)
-        {
-            _battleLogManager = new BattleLogManager(battleLogDirectory, maxStoredEncounters);
-            Console.WriteLine($"[DataStorageExtensions] Advanced Combat Logging enabled:");
-            Console.WriteLine($"  Directory: {_battleLogManager.LogDirectory}");
-            Console.WriteLine($"  Max encounters: {_battleLogManager.MaxEncounters}");
-        }
-        else
-        {
-            Console.WriteLine("[DataStorageExtensions] Advanced Combat Logging disabled (fast mode)");
-        }
-
         _isInitialized = true;
     }
 
@@ -123,16 +101,6 @@ public static class DataStorageExtensions
     public static EncounterService? GetEncounterService() => _encounterService;
 
     /// <summary>
-    /// Get the battle log manager instance (for advanced combat logging)
-    /// </summary>
-    public static BattleLogManager? GetBattleLogManager() => _battleLogManager;
-
-    /// <summary>
-    /// Check if advanced combat logging is enabled
-    /// </summary>
-    public static bool IsAdvancedLoggingEnabled() => _advancedLoggingEnabled;
-
-    /// <summary>
     /// Start a new encounter manually
     /// </summary>
     public static async Task StartNewEncounterAsync()
@@ -140,13 +108,6 @@ public static class DataStorageExtensions
         if (_encounterService == null) return;
 
         await _encounterService.StartEncounterAsync();
-
-        // Start BSON recorder if advanced logging enabled
-        if (_advancedLoggingEnabled && _battleLogManager != null)
-        {
-            _currentRecorder = BattleLogRecorder.StartNew();
-            Console.WriteLine("[DataStorageExtensions] BattleLogRecorder started for advanced logging");
-        }
     }
 
     /// <summary>
@@ -154,7 +115,14 @@ public static class DataStorageExtensions
     /// </summary>
     public static async Task SaveCurrentEncounterAsync()
     {
-        if (_encounterService == null || !_encounterService.IsEncounterActive) return;
+        if (_encounterService == null) return;
+
+        // Lazy start: If no encounter is active, start one now
+        if (!_encounterService.IsEncounterActive)
+        {
+            await StartNewEncounterAsync();
+            Console.WriteLine("[DataStorageExtensions] Started new encounter (lazy initialization)");
+        }
 
         // Avoid saving too frequently
         if (DateTime.Now - _lastSaveTime < MinSaveDuration) return;
@@ -175,6 +143,16 @@ public static class DataStorageExtensions
                 // Fallback to static DataStorage
                 playerInfos = DataStorage.ReadOnlyPlayerInfoDatas.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                 dpsData = DataStorage.ReadOnlySectionedDpsDatas.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
+            // Filter out only very minimal encounters (accidental hits, etc.)
+            // Very low threshold (10K) to capture trash mobs and small fights
+            // The main deduplication happens in RegisterBossEngagement (1 encounter per session)
+            var totalDamage = dpsData.Values.Sum(d => d.TotalAttackDamage);
+            if (totalDamage < 10_000)
+            {
+                Console.WriteLine($"[DataStorageExtensions] Skipping save - total damage {totalDamage:N0} is below 10K threshold (likely accidental hit)");
+                return;
             }
 
             // Get chart history from cache (populated by BeforeHistoryCleared event)
@@ -248,47 +226,10 @@ public static class DataStorageExtensions
         // Final save before ending
         await SaveCurrentEncounterAsync();
 
-        // Save BSON if advanced logging enabled
-        if (_advancedLoggingEnabled && _battleLogManager != null && _currentRecorder != null)
-        {
-            try
-            {
-                Console.WriteLine("[DataStorageExtensions] Stopping BattleLogRecorder and saving to BSON...");
-
-                // Stop recorder
-                _currentRecorder.Stop();
-
-                // Get battle logs
-                var battleLogs = _currentRecorder.BattleLogs;
-
-                // Get player infos
-                var playerInfos = DataStorage.BuildPlayerDicFromBattleLog(battleLogs);
-                var playerInfoList = playerInfos.Values.ToList();
-
-                // Generate encounter ID
-                var encounterId = _encounterService.CurrentEncounterId ?? Guid.NewGuid().ToString();
-
-                // Save to BSON via BattleLogManager
-                await _battleLogManager.SaveEncounterAsync(
-                    encounterId,
-                    bossName,
-                    battleLogs,
-                    playerInfoList
-                );
-
-                Console.WriteLine($"[DataStorageExtensions] BSON saved: {battleLogs.Count} events, {playerInfoList.Count} players");
-
-                // Clear recorder
-                _currentRecorder = null;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[DataStorageExtensions] ERROR saving BSON: {ex.Message}");
-                Console.WriteLine($"  Stack trace: {ex.StackTrace}");
-            }
-        }
-
-        await _encounterService.EndCurrentEncounterAsync(durationMs, 0, bossName, bossUuid);
+        // Save all encounters longer than 1 second (includes trash mobs and boss fights)
+        // Very short encounters (< 1s) are likely accidental hits and will be deleted
+        const long MinEncounterDurationMs = 1000; // 1 second
+        await _encounterService.EndCurrentEncounterAsync(durationMs, MinEncounterDurationMs, bossName, bossUuid);
     }
 
     /// <summary>
@@ -383,18 +324,18 @@ public static class DataStorageExtensions
         }
     }
 
-    private static async void OnNewSectionCreated()
+    private static void OnNewSectionCreated()
     {
         try
         {
-            // Boss fights now handle their own encounter lifecycle in DataStorageV2
-            // This event handler is kept for potential future use (e.g., periodic saves)
+            // NEW DATA FLOW: Encounters are now saved BEFORE new combat starts (in RegisterBossEngagement)
+            // This event is fired when combat ends so UI can enter "Last Battle" mode
+            // Data stays in memory until new combat begins, then it's saved and cleared
 
-            // Optionally save current encounter state
-            if (_encounterService != null && _encounterService.IsEncounterActive)
-            {
-                await SaveCurrentEncounterAsync();
-            }
+            // No save here anymore! Saving happens in DataStorageV2.RegisterBossEngagement()
+            // when the next boss fight is about to start.
+
+            Console.WriteLine("[DataStorageExtensions] NewSectionCreated: Combat ended, UI can show Last Battle");
         }
         catch (Exception ex)
         {
@@ -430,12 +371,11 @@ public static class DataStorageExtensions
         try
         {
             // Update player cache in database
+            // Note: We do NOT save encounter here - encounters are only saved when combat ends
+            // (in RegisterBossEngagement when a new boss fight starts)
             if (_encounterService != null)
             {
                 await _encounterService.UpdatePlayerCacheAsync(playerInfo);
-
-                // Periodically save encounter data
-                await SaveCurrentEncounterAsync();
             }
         }
         catch (Exception ex)
@@ -555,22 +495,6 @@ public static class DataStorageExtensions
         // Clear cached data
         _cachedDpsHistory = null;
         _cachedHpsHistory = null;
-
-        // Cleanup advanced logging
-        if (_currentRecorder != null)
-        {
-            try
-            {
-                if (_currentRecorder.State == RunningState.Running)
-                {
-                    _currentRecorder.Stop();
-                }
-            }
-            catch { }
-            _currentRecorder = null;
-        }
-        _battleLogManager = null;
-        _advancedLoggingEnabled = false;
 
         _encounterService = null;
         _dataStorage = null;

@@ -318,6 +318,7 @@ public partial class AppConfig : ObservableObject
     [ObservableProperty]
     private string? _battleLogDirectory = null;
 
+
     /// <summary>
     /// DPS Refresh Rate (how often DPS numbers update)
     /// Minimal=10fps, Low=20fps, Medium=30fps, High=60fps
