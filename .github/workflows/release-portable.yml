@@ -1,0 +1,83 @@
+name: Build Portable Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+
+permissions:
+  contents: write
+
+jobs:
+  build-portable:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Generate version (date-run-branch)
+        id: version
+        shell: pwsh
+        run: |
+          $date = Get-Date -Format "yyyy-MM-dd"
+          $run = "${{ github.run_number }}"
+          $branch = "${{ github.ref_name }}"
+
+          # sanitize branch name for tags/files
+          $branch = $branch -replace '[^a-zA-Z0-9._-]', '-'
+
+          $version = "$date-$run-$branch"
+
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Version: $version"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish portable single-file EXE
+        run: >
+          dotnet publish BlueMeter.WPF
+          -c Release
+          -r win-x64
+          --self-contained true
+          /p:PublishSingleFile=true
+          /p:IncludeNativeLibrariesForSelfExtract=true
+          /p:EnableCompressionInSingleFile=true
+          /p:PublishTrimmed=false
+          /p:Version=${{ env.VERSION }}
+          -o publish
+
+      - name: Rename executable
+        run: |
+          cd publish
+          ren *.exe BlueMeter-${{ env.VERSION }}-Portable.exe
+
+      - name: Create ZIP archive
+        run: |
+          cd publish
+          tar -a -c -f BlueMeter-${{ env.VERSION }}-Portable-win-x64.zip BlueMeter-${{ env.VERSION }}-Portable.exe
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: BlueMeter ${{ env.VERSION }}
+          body: |
+            Automated portable release
+
+            Version: ${{ env.VERSION }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+          files: |
+            publish/BlueMeter-${{ env.VERSION }}-Portable.exe
+            publish/BlueMeter-${{ env.VERSION }}-Portable-win-x64.zip
+            
