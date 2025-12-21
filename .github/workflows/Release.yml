@@ -24,27 +24,35 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Generate version & tag
+      - name: Generate versions
         id: version
         shell: pwsh
         run: |
-          $date = Get-Date -Format "yyyy-MM-dd-HHmm"
-          $run = "${{ github.run_number }}"
-          $version = "v$date-$run"
+          $date = Get-Date -Format "yyyy.MM.dd"
+          $time = Get-Date -Format "HHmm"
+          $run  = "${{ github.run_number }}"
 
-          echo "VERSION=$version" >> $env:GITHUB_ENV
-          echo "TAG=$version" >> $env:GITHUB_ENV
+          # Valid for .NET
+          $dotnetVersion = "$date.$run"
 
-          Write-Host "Version: $version"
+          # Pretty Git tag
+          $tagVersion = "v$(Get-Date -Format 'yyyy-MM-dd-HHmm')-$run"
+
+          echo "DOTNET_VERSION=$dotnetVersion" >> $env:GITHUB_ENV
+          echo "TAG_VERSION=$tagVersion" >> $env:GITHUB_ENV
+
+          Write-Host "DOTNET_VERSION = $dotnetVersion"
+          Write-Host "TAG_VERSION    = $tagVersion"
+
 
       - name: Restore dependencies
-        run: dotnet restore BlueMeter.WPF
+        run: dotnet restore BlueMeter.WPF /p:Version=${{ env.DOTNET_VERSION }}
 
       - name: Clean
         run: dotnet clean BlueMeter.WPF -c Release
 
       - name: Build (Release)
-        run: dotnet build BlueMeter.WPF -c Release --no-restore
+        run: dotnet build BlueMeter.WPF -c Release --no-restore /p:Version=${{ env.DOTNET_VERSION }}
 
       - name: Publish
         run: |
@@ -65,8 +73,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
-          name: BlueMeter ${{ env.VERSION }}
+          tag_name: ${{ env.TAG_VERSION }}
+          name: BlueMeter ${{ env.TAG_VERSION }}
           body: |
             ## BlueMeter Automatic Release
 
