@@ -140,9 +140,7 @@ jobs:
             - Unsigned executable (Windows SmartScreen may warn)
             - No configuration files modified outside the app directory
 
-        
-  files: |
+          files: |
             publish/BlueMeter-${{ env.VERSION }}-Portable.exe
             publish/BlueMeter-${{ env.VERSION }}-Portable-win-x64.zip
 
- 
