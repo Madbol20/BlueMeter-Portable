@@ -26,18 +26,28 @@ jobs:
       # Read version from setup/Installer.iss (same as your BAT)
       # ------------------------------------------------------------
       - name: Read version from Installer.iss
-        id: version
         shell: pwsh
         run: |
-          $line = Select-String -Path "setup/Installer.iss" -Pattern '#define MyAppVersion'
-          if (-not $line) {
-            Write-Error "Could not find MyAppVersion in Installer.iss"
+          $matches = Select-String -Path "setup/Installer.iss" -Pattern '#define\s+MyAppVersion'
+      
+          if (-not $matches) {
+            Write-Error "MyAppVersion not found in setup/Installer.iss"
+            exit 1
+          }
+      
+          # Take the first match explicitly
+          $line = $matches[0].Line
+      
+          if ($line -match '#define\s+MyAppVersion\s+"([^"]+)"') {
+            $version = $matches = $Matches[1]
+          } else {
+            Write-Error "Failed to parse version from line: $line"
             exit 1
           }
 
-          $version = ($line.Line -split '=')[1].Trim().Trim('"')
           echo "VERSION=$version" >> $env:GITHUB_ENV
-          Write-Host "Version: $version"
+          Write-Host "Version detected: $version"
+
 
       # ------------------------------------------------------------
       - name: Restore dependencies
