@@ -1,0 +1,85 @@
+name: BlueMeter Automatic Release
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - release/*
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Generate version & tag
+        id: version
+        shell: pwsh
+        run: |
+          $date = Get-Date -Format "yyyy-MM-dd-HHmm"
+          $run = "${{ github.run_number }}"
+          $version = "v$date-$run"
+
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          echo "TAG=$version" >> $env:GITHUB_ENV
+
+          Write-Host "Version: $version"
+
+      - name: Restore dependencies
+        run: dotnet restore BlueMeter.WPF
+
+      - name: Clean
+        run: dotnet clean BlueMeter.WPF -c Release
+
+      - name: Build (Release)
+        run: dotnet build BlueMeter.WPF -c Release --no-restore
+
+      - name: Publish
+        run: |
+          dotnet publish BlueMeter.WPF `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -p:PublishSingleFile=false `
+            -o publish
+
+      - name: Archive build
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path publish\* `
+            -DestinationPath "BlueMeter-${{ env.VERSION }}.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: BlueMeter ${{ env.VERSION }}
+          body: |
+            ## BlueMeter Automatic Release
+
+            **Version:** ${{ env.VERSION }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+
+            ### Build Info
+            - .NET 8.0
+            - Configuration: Release
+            - Platform: Windows x64
+
+            Generated automatically via GitHub Actions.
+          files: |
+            BlueMeter-${{ env.VERSION }}.zip
+            
