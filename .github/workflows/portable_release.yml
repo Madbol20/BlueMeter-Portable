@@ -1,0 +1,148 @@
+name: Build Portable Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+
+permissions:
+  contents: write
+
+jobs:
+  build-portable:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+
+      - name: Generate version and metadata
+        id: meta
+        shell: pwsh
+        run: |
+          $date = Get-Date -Format "yyyy-MM-dd"
+          $run = "${{ github.run_number }}"
+          $branch = "${{ github.ref_name }}"
+          $branchSafe = $branch -replace '[^a-zA-Z0-9._-]', '-'
+
+          $version = "$date-$run-$branchSafe"
+
+          $commitSha = "${{ github.sha }}"
+          $shortSha = $commitSha.Substring(0,7)
+
+          $commitMsg = git log -1 --pretty=%s
+          $commitAuthor = git log -1 --pretty=%an
+          $commitDate = git log -1 --pretty=%cd --date=iso
+
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          echo "BRANCH=$branch" >> $env:GITHUB_ENV
+          echo "SHORT_SHA=$shortSha" >> $env:GITHUB_ENV
+          echo "COMMIT_MSG=$commitMsg" >> $env:GITHUB_ENV
+          echo "COMMIT_AUTHOR=$commitAuthor" >> $env:GITHUB_ENV
+          echo "COMMIT_DATE=$commitDate" >> $env:GITHUB_ENV
+
+          Write-Host "Version: $version"
+
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish portable single-file EXE
+        run: >
+          dotnet publish BlueMeter.WPF
+          -c Release
+          -r win-x64
+          --self-contained true
+          /p:PublishSingleFile=true
+          /p:IncludeNativeLibrariesForSelfExtract=true
+          /p:EnableCompressionInSingleFile=true
+          /p:PublishTrimmed=false
+          /p:Version=${{ env.VERSION }}
+          -o publish
+
+      - name: Rename executable
+        run: |
+          cd publish
+          ren *.exe BlueMeter-${{ env.VERSION }}-Portable.exe
+
+      - name: Create ZIP archive
+        run: |
+          cd publish
+          tar -a -c -f BlueMeter-${{ env.VERSION }}-Portable-win-x64.zip BlueMeter-${{ env.VERSION }}-Portable.exe
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: BlueMeter ${{ env.VERSION }}
+          body: |
+            ## 🟦 BlueMeter Portable Release
+
+            **Version:** `${{ env.VERSION }}`
+            **Branch:** `${{ env.BRANCH }}`
+            **Build type:** Portable (single-file EXE, self-contained)
+            **Build time:** `${{ github.run_started_at }}` (UTC)
+
+            ---
+
+            ### 🔧 Source Information
+            - **Commit:** `${{ env.SHORT_SHA }}`
+            - **Author:** ${{ env.COMMIT_AUTHOR }}
+            - **Commit date:** ${{ env.COMMIT_DATE }}
+            - **Message:**  
+              > ${{ env.COMMIT_MSG }}
+
+            ---
+
+            ### 📦 Included Artifacts
+            - `BlueMeter-${{ env.VERSION }}-Portable.exe`
+            - `BlueMeter-${{ env.VERSION }}-Portable-win-x64.zip`
+
+            Both contain the same executable.
+
+            ---
+
+            ### ▶️ How to Run
+            1. Download the `.exe` **or** extract the `.zip`
+            2. Double-click `BlueMeter-*-Portable.exe`
+            3. No .NET installation required
+
+            ---
+
+            ### ⚠️ Requirements
+            - **Npcap** must be installed for packet capture  
+              https://npcap.com/
+
+            Administrator privileges may be required by Npcap.
+
+            ---
+
+            ### 🧪 Branch Notes
+            This build was produced from the **`${{ env.BRANCH }}`** branch.
+
+            - `main` → stable
+            - `dev` → experimental / WIP
+            - language branches → localized variants
+
+            Use the appropriate branch for your needs.
+
+            ---
+
+            ### ❗ Notes
+            - Portable build (no installer)
+            - Unsigned executable (Windows SmartScreen may warn)
+            - No configuration files modified outside the app directory
+
+        
+  files: |
+            publish/BlueMeter-${{ env.VERSION }}-Portable.exe
+            publish/BlueMeter-${{ env.VERSION }}-Portable-win-x64.zip
+
+ 
