@@ -34,7 +34,7 @@ public sealed partial class PluginListItemViewModel : ObservableObject
 
     public string Description => Plugin.GetPluginDescription(CultureInfo.CurrentUICulture);
 
-    public bool IsEnabled => Plugin.PackageName != "BlueMeter.WPF.Plugins.BuiltIn.ModuleSolverPlugin"; // Disable ModuleSolver temporarily
+    public bool IsEnabled => Plugin.PackageName != "BlueMeter.WPF.Plugins.BuiltIn.WorldBossPlugin"; // Disable WorldBoss (feature doesn't exist)
 
     public string AutoStartText => _state.IsAutoStart
         ? _localizationManager.GetString(ResourcesKeys.MainView_Plugin_AutoRunState_Enabled)

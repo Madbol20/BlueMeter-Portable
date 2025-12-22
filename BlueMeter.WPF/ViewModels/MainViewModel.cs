@@ -107,6 +107,12 @@ public partial class MainViewModel : BaseViewModel, IDisposable
         // Auto-run plugins that have AutoStart enabled
         foreach (var pluginViewModel in _plugins)
         {
+            // Skip World Boss plugin autostart (feature doesn't exist)
+            if (pluginViewModel.Plugin.PackageName == "BlueMeter.WPF.Plugins.BuiltIn.WorldBossPlugin")
+            {
+                continue;
+            }
+
             if (pluginViewModel.State.IsAutoStart)
             {
                 pluginViewModel.RunCommand.Execute(null);
