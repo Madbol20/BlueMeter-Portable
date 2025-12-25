@@ -400,17 +400,39 @@ public class ModuleOCRCaptureService : IDisposable
     {
         try
         {
+            // Normalize text - replace multiple spaces/newlines with single space
+            text = Regex.Replace(text, @"\s+", " ", RegexOptions.Multiline);
+
             // Look for module title patterns like:
             // "Excellent Attack Module"
             // "Superior Defense Module"
             // etc.
 
-            // Find module type (Attack/Defense/Support)
-            var typeMatch = Regex.Match(text, @"(Attack|Defense|Support|Offense|Defensive)\s+Module", RegexOptions.IgnoreCase);
+            // Find module type (Attack/Defense/Support) - more flexible pattern
+            // Allow for variations like "Attack", "Offensive", "Guard", "Defensive", "Healing", "Support"
+            var typeMatch = Regex.Match(text,
+                @"(Attack|Offensive?|Defen[cs]e|Defensive?|Guard|Protection|Support|Healing?)\s*(?:Module)?",
+                RegexOptions.IgnoreCase);
+
+            // If no match with flexible pattern, try to find just the word "Module" and look nearby
+            if (!typeMatch.Success)
+            {
+                var moduleMatch = Regex.Match(text, @"Module", RegexOptions.IgnoreCase);
+                if (moduleMatch.Success)
+                {
+                    // Look for category words near "Module" (within 20 characters)
+                    var nearbyText = text.Substring(Math.Max(0, moduleMatch.Index - 20),
+                        Math.Min(40, text.Length - Math.Max(0, moduleMatch.Index - 20)));
+                    typeMatch = Regex.Match(nearbyText,
+                        @"(Attack|Offensive?|Defen[cs]e|Defensive?|Guard|Protection|Support|Healing?)",
+                        RegexOptions.IgnoreCase);
+                }
+            }
+
             if (!typeMatch.Success)
             {
                 _logger.LogDebug("[Module OCR] Could not find module type in text");
-                WriteDebug("[Module OCR] ✗ Could not find 'Attack/Defense/Support Module' in text");
+                WriteDebug("[Module OCR] ✗ Could not find module type in text");
                 WriteDebug($"[Module OCR] Text preview: {text.Substring(0, Math.Min(200, text.Length))}");
                 return null;
             }
@@ -420,35 +442,39 @@ public class ModuleOCRCaptureService : IDisposable
             var categoryStr = typeMatch.Groups[1].Value;
             var category = categoryStr.ToLower() switch
             {
-                "attack" or "offense" => ModuleCategory.Attack,
-                "defense" or "defensive" => ModuleCategory.Defense,
-                "support" => ModuleCategory.Support,
+                "attack" or "offense" or "offensive" => ModuleCategory.Attack,
+                "defense" or "defence" or "defensive" or "guard" or "protection" => ModuleCategory.Defense,
+                "support" or "healing" or "heal" => ModuleCategory.Support,
                 _ => ModuleCategory.All
             };
 
-            // Find quality/rarity from the prefix
-            var qualityMatch = Regex.Match(text, @"(Excellent|Superior|Rare|Epic|Legendary|Common|Uncommon)\s+(Attack|Defense|Support)", RegexOptions.IgnoreCase);
+            // Find quality/rarity - look for quality keywords anywhere in text
+            var qualityMatch = Regex.Match(text,
+                @"(Excellent|Superior|Advanced|Rare|Epic|Legendary|Common|Uncommon|Basic|High\s*Performance)",
+                RegexOptions.IgnoreCase);
             var qualityStr = qualityMatch.Success ? qualityMatch.Groups[1].Value : "Common";
 
             var quality = qualityStr.ToLower() switch
             {
                 "legendary" => 6,
                 "epic" or "excellent" => 5,
-                "superior" or "rare" => 4,
-                "uncommon" => 3,
-                "common" => 2,
+                "superior" or "rare" or "advanced" => 4,
+                "uncommon" or "high performance" => 3,
+                "common" or "basic" => 2,
                 _ => 3
             };
 
             // Find all attribute patterns like:
             // "Agile+1", "Special Attack+9", "Agility Boost+4"
             // "ATK+12", "HP Boost+5", "CRIT DMG+8"
+            // Also handle variations like "Agile + 1", "Special Attack: 9", "Agility Boost 4"
             var parts = new List<ModulePart>();
 
-            // Pattern 1: Full attribute names with + and numbers
-            // Matches: "Special Attack+9", "Agility Boost+4", "HP Boost+5"
+            // More flexible pattern for attributes with numbers
+            // Matches various formats: "Name+9", "Name + 9", "Name: 9", "Name 9"
+            // Also handles OCR variations like "|" instead of "I" in numbers
             var attributeMatches = Regex.Matches(text,
-                @"([A-Za-z][\w\s]*?)\s*\+\s*(\d+)",
+                @"([A-Za-z][\w\s&]*?)\s*(?:\+|:|\s)\s*([0-9|Il]+)",
                 RegexOptions.IgnoreCase);
 
             WriteDebug($"[Module OCR] Found {attributeMatches.Count} potential attribute matches");
@@ -483,11 +509,19 @@ public class ModuleOCRCaptureService : IDisposable
                     continue;
                 }
 
+                // Clean up OCR errors in numbers (| -> 1, l -> 1, I -> 1, O -> 0, etc.)
+                valueStr = valueStr.Replace("|", "1").Replace("l", "1").Replace("I", "1").Replace("O", "0");
+
                 if (int.TryParse(valueStr, out var value) && value > 0)
                 {
                     parts.Add(new ModulePart(attrId, attrName, value));
                     processedAttributes.Add(attrName);
                     _logger.LogDebug("[Module OCR] Found attribute: {Name}+{Value} (ID: {Id})", attrName, value, attrId);
+                    WriteDebug($"[Module OCR]   ✓ Parsed: '{ocrText}' -> {attrName}+{value}");
+                }
+                else
+                {
+                    WriteDebug($"[Module OCR]   Invalid value: '{valueStr}' for attribute '{ocrText}'");
                 }
             }
 
@@ -534,85 +568,134 @@ public class ModuleOCRCaptureService : IDisposable
 
     private (int id, string name) NormalizeAttributeToGameFormat(string ocrText)
     {
-        // Clean up the OCR text
-        ocrText = ocrText.Trim();
+        // Clean up the OCR text - normalize spaces and remove special characters
+        ocrText = Regex.Replace(ocrText.Trim(), @"\s+", " ");
+        ocrText = ocrText.Replace("&", "and");
 
         // Map OCR text to ModuleConstants attribute IDs and names
         // This ensures compatibility with the optimizer algorithm
         var attributeMappings = new Dictionary<string, (int id, string name)>(StringComparer.OrdinalIgnoreCase)
         {
-            // From ModuleConstants.AttributeNames
+            // From ModuleConstants.AttributeNames - with additional OCR variations
             { "Strength Boost", (ModuleConstants.STRENGTH_BOOST, "Strength Boost") },
             { "Strength", (ModuleConstants.STRENGTH_BOOST, "Strength Boost") },
             { "STR Boost", (ModuleConstants.STRENGTH_BOOST, "Strength Boost") },
             { "STR", (ModuleConstants.STRENGTH_BOOST, "Strength Boost") },
+            { "Str Boost", (ModuleConstants.STRENGTH_BOOST, "Strength Boost") },
+            { "Str", (ModuleConstants.STRENGTH_BOOST, "Strength Boost") },
 
             { "Agility Boost", (ModuleConstants.AGILITY_BOOST, "Agility Boost") },
             { "AGI Boost", (ModuleConstants.AGILITY_BOOST, "Agility Boost") },
+            { "Agility", (ModuleConstants.AGILITY_BOOST, "Agility Boost") },
+            { "AGI", (ModuleConstants.AGILITY_BOOST, "Agility Boost") },
+            { "Agi Boost", (ModuleConstants.AGILITY_BOOST, "Agility Boost") },
+            { "Agi", (ModuleConstants.AGILITY_BOOST, "Agility Boost") },
 
             { "Intellect Boost", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
             { "Intelligence Boost", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
             { "INT Boost", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
             { "INT", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
+            { "Intel Boost", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
+            { "Int Boost", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
+            { "Int", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
+            { "Intelligence", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
+            { "Intellect", (ModuleConstants.INTELLIGENCE_BOOST, "Intellect Boost") },
 
             { "Special Attack", (ModuleConstants.SPECIAL_ATTACK_DAMAGE, "Special Attack") },
             { "Special ATK", (ModuleConstants.SPECIAL_ATTACK_DAMAGE, "Special Attack") },
             { "SpecialAttack", (ModuleConstants.SPECIAL_ATTACK_DAMAGE, "Special Attack") },
+            { "Special Atk", (ModuleConstants.SPECIAL_ATTACK_DAMAGE, "Special Attack") },
+            { "Spec Attack", (ModuleConstants.SPECIAL_ATTACK_DAMAGE, "Special Attack") },
+            { "Spec Atk", (ModuleConstants.SPECIAL_ATTACK_DAMAGE, "Special Attack") },
+            { "Special", (ModuleConstants.SPECIAL_ATTACK_DAMAGE, "Special Attack") },
 
             { "Elite Strike", (ModuleConstants.ELITE_STRIKE, "Elite Strike") },
+            { "Elite", (ModuleConstants.ELITE_STRIKE, "Elite Strike") },
 
             { "Healing Boost", (ModuleConstants.SPECIAL_HEALING_BOOST, "Healing Boost") },
             { "Heal Boost", (ModuleConstants.SPECIAL_HEALING_BOOST, "Healing Boost") },
+            { "Healing", (ModuleConstants.SPECIAL_HEALING_BOOST, "Healing Boost") },
+            { "Heal", (ModuleConstants.SPECIAL_HEALING_BOOST, "Healing Boost") },
 
             { "Healing Enhance", (ModuleConstants.EXPERT_HEALING_BOOST, "Healing Enhance") },
             { "Heal Enhance", (ModuleConstants.EXPERT_HEALING_BOOST, "Healing Enhance") },
+            { "Healing Enhancement", (ModuleConstants.EXPERT_HEALING_BOOST, "Healing Enhance") },
+            { "Enhance", (ModuleConstants.EXPERT_HEALING_BOOST, "Healing Enhance") },
 
             { "Cast Focus", (ModuleConstants.CASTING_FOCUS, "Cast Focus") },
             { "Casting Focus", (ModuleConstants.CASTING_FOCUS, "Cast Focus") },
+            { "Cast", (ModuleConstants.CASTING_FOCUS, "Cast Focus") },
+            { "Casting", (ModuleConstants.CASTING_FOCUS, "Cast Focus") },
 
             { "Attack SPD", (ModuleConstants.ATTACK_SPEED_FOCUS, "Attack SPD") },
             { "Attack Speed", (ModuleConstants.ATTACK_SPEED_FOCUS, "Attack SPD") },
             { "ATK SPD", (ModuleConstants.ATTACK_SPEED_FOCUS, "Attack SPD") },
             { "Speed", (ModuleConstants.ATTACK_SPEED_FOCUS, "Attack SPD") },
+            { "Atk Spd", (ModuleConstants.ATTACK_SPEED_FOCUS, "Attack SPD") },
+            { "Attack Spd", (ModuleConstants.ATTACK_SPEED_FOCUS, "Attack SPD") },
+            { "ATK Speed", (ModuleConstants.ATTACK_SPEED_FOCUS, "Attack SPD") },
 
             { "Crit Focus", (ModuleConstants.CRITICAL_FOCUS, "Crit Focus") },
             { "Critical Focus", (ModuleConstants.CRITICAL_FOCUS, "Crit Focus") },
             { "CRIT Focus", (ModuleConstants.CRITICAL_FOCUS, "Crit Focus") },
             { "CRIT", (ModuleConstants.CRITICAL_FOCUS, "Crit Focus") },
+            { "Critical", (ModuleConstants.CRITICAL_FOCUS, "Crit Focus") },
+            { "Crit", (ModuleConstants.CRITICAL_FOCUS, "Crit Focus") },
 
             { "Luck Focus", (ModuleConstants.LUCK_FOCUS, "Luck Focus") },
+            { "Luck", (ModuleConstants.LUCK_FOCUS, "Luck Focus") },
 
             { "Resistance", (ModuleConstants.MAGIC_RESISTANCE, "Resistance") },
             { "Magic Resistance", (ModuleConstants.MAGIC_RESISTANCE, "Resistance") },
             { "RES", (ModuleConstants.MAGIC_RESISTANCE, "Resistance") },
+            { "Res", (ModuleConstants.MAGIC_RESISTANCE, "Resistance") },
+            { "Magic Res", (ModuleConstants.MAGIC_RESISTANCE, "Resistance") },
+            { "Mag Res", (ModuleConstants.MAGIC_RESISTANCE, "Resistance") },
 
             { "Armor", (ModuleConstants.PHYSICAL_RESISTANCE, "Armor") },
             { "Physical Resistance", (ModuleConstants.PHYSICAL_RESISTANCE, "Armor") },
             { "DEF", (ModuleConstants.PHYSICAL_RESISTANCE, "Armor") },
+            { "Def", (ModuleConstants.PHYSICAL_RESISTANCE, "Armor") },
+            { "Defense", (ModuleConstants.PHYSICAL_RESISTANCE, "Armor") },
+            { "Physical Res", (ModuleConstants.PHYSICAL_RESISTANCE, "Armor") },
+            { "Phys Res", (ModuleConstants.PHYSICAL_RESISTANCE, "Armor") },
 
             { "DMG Stack", (ModuleConstants.EXTREME_DAMAGE_STACK, "DMG Stack") },
             { "Damage Stack", (ModuleConstants.EXTREME_DAMAGE_STACK, "DMG Stack") },
+            { "Dmg Stack", (ModuleConstants.EXTREME_DAMAGE_STACK, "DMG Stack") },
+            { "Damage", (ModuleConstants.EXTREME_DAMAGE_STACK, "DMG Stack") },
 
             { "Agile", (ModuleConstants.EXTREME_FLEXIBLE_MOVEMENT, "Agile") },
             { "Flexible Movement", (ModuleConstants.EXTREME_FLEXIBLE_MOVEMENT, "Agile") },
+            { "Flexible", (ModuleConstants.EXTREME_FLEXIBLE_MOVEMENT, "Agile") },
+            { "Movement", (ModuleConstants.EXTREME_FLEXIBLE_MOVEMENT, "Agile") },
 
             { "Life Condense", (ModuleConstants.EXTREME_LIFE_CONVERGENCE, "Life Condense") },
             { "Life Convergence", (ModuleConstants.EXTREME_LIFE_CONVERGENCE, "Life Condense") },
+            { "Life Cond", (ModuleConstants.EXTREME_LIFE_CONVERGENCE, "Life Condense") },
 
             { "First Aid", (ModuleConstants.EXTREME_EMERGENCY_MEASURES, "First Aid") },
             { "Emergency Measures", (ModuleConstants.EXTREME_EMERGENCY_MEASURES, "First Aid") },
+            { "Emergency", (ModuleConstants.EXTREME_EMERGENCY_MEASURES, "First Aid") },
+            { "Aid", (ModuleConstants.EXTREME_EMERGENCY_MEASURES, "First Aid") },
 
             { "Life Wave", (ModuleConstants.EXTREME_LIFE_FLUCTUATION, "Life Wave") },
             { "Life Fluctuation", (ModuleConstants.EXTREME_LIFE_FLUCTUATION, "Life Wave") },
+            { "Life Fluct", (ModuleConstants.EXTREME_LIFE_FLUCTUATION, "Life Wave") },
 
             { "Life Steal", (ModuleConstants.EXTREME_LIFE_DRAIN, "Life Steal") },
             { "Life Drain", (ModuleConstants.EXTREME_LIFE_DRAIN, "Life Steal") },
+            { "Lifesteal", (ModuleConstants.EXTREME_LIFE_DRAIN, "Life Steal") },
 
             { "Team Luck&Crit", (ModuleConstants.EXTREME_TEAM_CRIT, "Team Luck&Crit") },
             { "Team Crit", (ModuleConstants.EXTREME_TEAM_CRIT, "Team Luck&Crit") },
+            { "Team Luck and Crit", (ModuleConstants.EXTREME_TEAM_CRIT, "Team Luck&Crit") },
+            { "Team Luck Crit", (ModuleConstants.EXTREME_TEAM_CRIT, "Team Luck&Crit") },
 
             { "Final Protection", (ModuleConstants.EXTREME_DESPERATE_GUARDIAN, "Final Protection") },
-            { "Desperate Guardian", (ModuleConstants.EXTREME_DESPERATE_GUARDIAN, "Final Protection") }
+            { "Desperate Guardian", (ModuleConstants.EXTREME_DESPERATE_GUARDIAN, "Final Protection") },
+            { "Final Prot", (ModuleConstants.EXTREME_DESPERATE_GUARDIAN, "Final Protection") },
+            { "Desperate", (ModuleConstants.EXTREME_DESPERATE_GUARDIAN, "Final Protection") }
         };
 
         // Try to find exact match
@@ -622,16 +705,53 @@ public class ModuleOCRCaptureService : IDisposable
         }
 
         // Try partial match (for OCR errors)
+        // First try to find the best match based on similarity
+        var bestMatch = (key: "", value: (id: 0, name: ""), score: 0.0);
+
         foreach (var mapping in attributeMappings)
         {
-            if (ocrText.Contains(mapping.Key, StringComparison.OrdinalIgnoreCase) ||
-                mapping.Key.Contains(ocrText, StringComparison.OrdinalIgnoreCase))
+            // Check if either contains the other
+            if (ocrText.Contains(mapping.Key, StringComparison.OrdinalIgnoreCase))
             {
-                return mapping.Value;
+                var score = (double)mapping.Key.Length / ocrText.Length;
+                if (score > bestMatch.score)
+                {
+                    bestMatch = (mapping.Key, mapping.Value, score);
+                }
+            }
+            else if (mapping.Key.Contains(ocrText, StringComparison.OrdinalIgnoreCase))
+            {
+                var score = (double)ocrText.Length / mapping.Key.Length;
+                if (score > bestMatch.score)
+                {
+                    bestMatch = (mapping.Key, mapping.Value, score);
+                }
+            }
+            // Check if they share significant common words
+            else
+            {
+                var ocrWords = ocrText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var mapWords = mapping.Key.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var commonWords = ocrWords.Intersect(mapWords, StringComparer.OrdinalIgnoreCase).Count();
+                if (commonWords > 0)
+                {
+                    var score = (double)commonWords / Math.Max(ocrWords.Length, mapWords.Length);
+                    if (score > 0.5 && score > bestMatch.score)
+                    {
+                        bestMatch = (mapping.Key, mapping.Value, score);
+                    }
+                }
             }
         }
 
+        if (bestMatch.score > 0.5)
+        {
+            WriteDebug($"[Module OCR]   Fuzzy match: '{ocrText}' -> {bestMatch.value.name} (score: {bestMatch.score:F2})");
+            return bestMatch.value;
+        }
+
         // Default: return with unknown ID
+        WriteDebug($"[Module OCR]   No match for: '{ocrText}'");
         return (0, ocrText);
     }
 
